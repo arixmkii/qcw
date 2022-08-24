@@ -6,21 +6,18 @@ jobs:
 
   build:
     runs-on: windows-latest
-    
-    defaults:
-      run:
-        shell: msys2 {0}
 
     steps:
 
-    - name: 'Install msys2'
+    - name: '🏗️ Install msys2'
       uses: msys2/setup-msys2@v2
       with:
-        msystem: MSYS
+        msystem: MINGW64
         update: true
         install: >-
           make
           git
+          unzip
           base-devel
           mingw-w64-x86_64-toolchain
           python
@@ -32,8 +29,54 @@ jobs:
           mingw-w64-x86_64-SDL2
           mingw-w64-x86_64-go
 
-    - name: 'Checkout'
+    - name: '📝 Checkout'
       uses: actions/checkout@v3
       with:
         fetch-depth: 1
         submodules: true
+
+    - name: '🛠️ Build gvproxy'
+      working-directory: gvisor-tap-vsock
+      shell: msys2 {0}
+      run: |
+        make gvproxy
+
+    - name: '🛠️ Build podman'
+      working-directory: podman
+      shell: msys2 {0}
+      run: |
+        make podman-remote
+
+    - name: '🛠️ Build qemu'
+      working-directory: qemu
+      shell: msys2 {0}
+      run: |
+        mkdir build
+        cd build
+        ../configure --enable-gtk --enable-sdl
+        ninja
+
+    - name: '📥 Download xz'
+      shell: msys2 {0}
+      run: |
+        curl -o xz.zip https://tukaani.org/xz/xz-5.2.6-windows.zip
+        unzip -d xz xz.zip
+
+    - name: '📦 Pack bundle'
+      shell: msys2 {0}
+      run: |
+        mkdir -p qcw
+        cp -Lr xz/bin_x86-64 qcw/xz
+        mkdir -p qcw/podman
+        cp gvisor-tap-vsock/bin/gvproxy qcw/podman/gvproxy
+        cp gvisor-tap-vsock/bin/gvproxy qcw/podman/gvproxy.exe
+        cp podman/bin/windows/podman.exe qcw/podman/podman.exe
+        cp -Lr qemu/build/qemu-bundle/a/_temp/msys64/qemu qcw/qemu
+        ./add_mingw64_dlls.sh
+        cp -Lr shells qcw/shells
+
+    - name: '🚀 Upload artifact'
+      uses: actions/upload-artifact@v3
+      with:
+        name: qcw-bundle
+        path: qcw

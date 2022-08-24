@@ -1,0 +1,5036 @@
+From patchwork Fri Jul 22 19:04:29 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
+X-Patchwork-Id: 1659748
+Return-Path: <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+X-Original-To: incoming@patchwork.ozlabs.org
+Delivered-To: patchwork-incoming@bilbo.ozlabs.org
+Authentication-Results: ozlabs.org;
+ spf=pass (sender SPF authorized) smtp.mailfrom=nongnu.org
+ (client-ip=209.51.188.17; helo=lists.gnu.org;
+ envelope-from=qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org;
+ receiver=<UNKNOWN>)
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by bilbo.ozlabs.org (Postfix) with ESMTPS id 4LqK5l3LNxz9sGQ
+	for <incoming@patchwork.ozlabs.org>; Sat, 23 Jul 2022 05:20:27 +1000 (AEST)
+Received: from localhost ([::1]:60682 helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>)
+	id 1oEyCH-0007nJ-AX
+	for incoming@patchwork.ozlabs.org; Fri, 22 Jul 2022 15:20:25 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10]:39882)
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExyK-0007Vj-FQ
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:06:01 -0400
+Received: from mout.kundenserver.de ([212.227.126.134]:60541)
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExyI-0005N5-FO
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:59 -0400
+Received: from thinkpad.redhat.com ([82.142.8.70]) by mrelayeu.kundenserver.de
+ (mreue010 [212.227.15.167]) with ESMTPSA (Nemesis) id
+ 1Mi2eP-1nbUPE452X-00e1yX; Fri, 22 Jul 2022 21:04:46 +0200
+From: Laurent Vivier <lvivier@redhat.com>
+To: qemu-devel@nongnu.org
+Cc: Eric Blake <eblake@redhat.com>, Thomas Huth <thuth@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>, Markus Armbruster <armbru@redhat.com>,
+ "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
+ Stefano Brivio <sbrivio@redhat.com>
+Subject: [PATCH v7 01/14] net: introduce convert_host_port()
+Date: Fri, 22 Jul 2022 21:04:29 +0200
+Message-Id: <20220722190442.301310-2-lvivier@redhat.com>
+X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20220722190442.301310-1-lvivier@redhat.com>
+References: <20220722190442.301310-1-lvivier@redhat.com>
+MIME-Version: 1.0
+X-Provags-ID: V03:K1:ZP2Kx9DTH2400TsoJYcNzwb9TevjOEs6WJpKedK32cFeYrMfvND
+ i8yTnOgJrYTmREWf0VkFYKkak3hNTLS6Bj4Wa1S2fsqTAXsqOw7NC7VgTNQBmn7IFae/5Jv
+ nNamIeV+6UlsYyTHe/hEVapQbgIM6bBmCjvH3IFCN/ArSpXjJRQeGbL2LYnFoEf8q/le/z3
+ f4HgQb4OzbyDPZrlVWYcA==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:4SKYIwG4VxM=:z/RQ1OXqFbCSjgPofRbzCV
+ BnzDkhTl1y/f0JUvx1ukz1AJlOQ+Wu4iYdiojDFvK8XPLs8hC6t3LqHb5ABPih45qDiQIywtM
+ EooKRAb7m24XeamtW0J77PcHPTtU1My4zZJ5dVGD2zEwws8cdeIbNv8tRGOsadZ84fKa0XEKo
+ Tzd3qPVEkIV1c89OXIyJw58RrAJkeKQfTHW0rj5o+1VVrfjFTtMF+yYJOPU9AneMc4l/Qg/2t
+ nyyvpVqupv/fhydGjkFDiz2rYPU195eRJhcEp5dCeDZFHr2NPO137T5J5HWlV4eufgM0nv6v4
+ yoYZE9WwVR+zeb6u+pugc2lHTWfovCSAowqtbUanqQB1iGydwEJH4ZfZs3lWUHoynG4KAkJwv
+ OR1r1zWfBKQVbRpqj5CfKX+EcRaHJtvfGLOMsdWU6M0GeVfnRtd5Q9gQ6uZxYR9vIyRi/9+p3
+ 3HwTtywLKWBzbf+T9b0lFSPiFVoadqUymGuUVyr5vv1Sc/d63d+1J2zwCtPFKWBKGCcOq03TE
+ g3IbZjgYRb+1NqRSPNU3w6idfQSKnoO943cS7LF7MQZQTV973hGmmLS12MF1Oxt6IytDxg4Lo
+ c0bOZCVxKBHJeiYJ9a7jOavQJJtxPc1lqOmoItAbBfIwXTMYTt72n9Klowxe6pwdvfW68/SC0
+ VxH/rlBShWlRMzg5pgyUGokGnsobd60XtnL7sbFHGa0PiiOyfD34pzbRhoCCxIcgF2deiXCAV
+ zQ5vq6LA8UCYUuxptZaxNa4PUa0DOu/hsLpnVA==
+Received-SPF: permerror client-ip=212.227.126.134;
+ envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
+X-Spam_score_int: -18
+X-Spam_score: -1.9
+X-Spam_bar: -
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001, SPF_HELO_NONE=0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=no autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org
+Sender: "Qemu-devel"
+ <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+
+Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+Reviewed-by: Stefano Brivio <sbrivio@redhat.com>
+---
+ include/qemu/sockets.h |  2 ++
+ net/net.c              | 62 ++++++++++++++++++++++--------------------
+ 2 files changed, 34 insertions(+), 30 deletions(-)
+
+diff --git a/include/qemu/sockets.h b/include/qemu/sockets.h
+index 038faa157f59..47194b9732f8 100644
+--- a/include/qemu/sockets.h
++++ b/include/qemu/sockets.h
+@@ -47,6 +47,8 @@ void socket_listen_cleanup(int fd, Error **errp);
+ int socket_dgram(SocketAddress *remote, SocketAddress *local, Error **errp);
+ 
+ /* Old, ipv4 only bits.  Don't use for new code. */
++int convert_host_port(struct sockaddr_in *saddr, const char *host,
++                      const char *port, Error **errp);
+ int parse_host_port(struct sockaddr_in *saddr, const char *str,
+                     Error **errp);
+ int socket_init(void);
+diff --git a/net/net.c b/net/net.c
+index 2db160e0634d..d2288bd3a929 100644
+--- a/net/net.c
++++ b/net/net.c
+@@ -66,55 +66,57 @@ static QTAILQ_HEAD(, NetClientState) net_clients;
+ /***********************************************************/
+ /* network device redirectors */
+ 
+-int parse_host_port(struct sockaddr_in *saddr, const char *str,
+-                    Error **errp)
++int convert_host_port(struct sockaddr_in *saddr, const char *host,
++                      const char *port, Error **errp)
+ {
+-    gchar **substrings;
+     struct hostent *he;
+-    const char *addr, *p, *r;
+-    int port, ret = 0;
++    const char *r;
++    long p;
+ 
+     memset(saddr, 0, sizeof(*saddr));
+ 
+-    substrings = g_strsplit(str, ":", 2);
+-    if (!substrings || !substrings[0] || !substrings[1]) {
+-        error_setg(errp, "host address '%s' doesn't contain ':' "
+-                   "separating host from port", str);
+-        ret = -1;
+-        goto out;
+-    }
+-
+-    addr = substrings[0];
+-    p = substrings[1];
+-
+     saddr->sin_family = AF_INET;
+-    if (addr[0] == '\0') {
++    if (host[0] == '\0') {
+         saddr->sin_addr.s_addr = 0;
+     } else {
+-        if (qemu_isdigit(addr[0])) {
+-            if (!inet_aton(addr, &saddr->sin_addr)) {
++        if (qemu_isdigit(host[0])) {
++            if (!inet_aton(host, &saddr->sin_addr)) {
+                 error_setg(errp, "host address '%s' is not a valid "
+-                           "IPv4 address", addr);
+-                ret = -1;
+-                goto out;
++                           "IPv4 address", host);
++                return -1;
+             }
+         } else {
+-            he = gethostbyname(addr);
++            he = gethostbyname(host);
+             if (he == NULL) {
+-                error_setg(errp, "can't resolve host address '%s'", addr);
+-                ret = -1;
+-                goto out;
++                error_setg(errp, "can't resolve host address '%s'", host);
++                return -1;
+             }
+             saddr->sin_addr = *(struct in_addr *)he->h_addr;
+         }
+     }
+-    port = strtol(p, (char **)&r, 0);
+-    if (r == p) {
+-        error_setg(errp, "port number '%s' is invalid", p);
++    if (qemu_strtol(port, &r, 0, &p) != 0) {
++        error_setg(errp, "port number '%s' is invalid", port);
++        return -1;
++    }
++    saddr->sin_port = htons(p);
++    return 0;
++}
++
++int parse_host_port(struct sockaddr_in *saddr, const char *str,
++                    Error **errp)
++{
++    gchar **substrings;
++    int ret;
++
++    substrings = g_strsplit(str, ":", 2);
++    if (!substrings || !substrings[0] || !substrings[1]) {
++        error_setg(errp, "host address '%s' doesn't contain ':' "
++                   "separating host from port", str);
+         ret = -1;
+         goto out;
+     }
+-    saddr->sin_port = htons(port);
++
++    ret = convert_host_port(saddr, substrings[0], substrings[1], errp);
+ 
+ out:
+     g_strfreev(substrings);
+
+From patchwork Fri Jul 22 19:04:30 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
+X-Patchwork-Id: 1659727
+Return-Path: <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+X-Original-To: incoming@patchwork.ozlabs.org
+Delivered-To: patchwork-incoming@bilbo.ozlabs.org
+Authentication-Results: ozlabs.org;
+ spf=pass (sender SPF authorized) smtp.mailfrom=nongnu.org
+ (client-ip=209.51.188.17; helo=lists.gnu.org;
+ envelope-from=qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org;
+ receiver=<UNKNOWN>)
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by bilbo.ozlabs.org (Postfix) with ESMTPS id 4LqJs90tM2z9sGH
+	for <incoming@patchwork.ozlabs.org>; Sat, 23 Jul 2022 05:09:32 +1000 (AEST)
+Received: from localhost ([::1]:60298 helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>)
+	id 1oEy1h-0004m3-8h
+	for incoming@patchwork.ozlabs.org; Fri, 22 Jul 2022 15:09:29 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10]:39712)
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxw-00072x-BN
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:37 -0400
+Received: from mout.kundenserver.de ([212.227.126.134]:45285)
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxu-0005IZ-9j
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:35 -0400
+Received: from thinkpad.redhat.com ([82.142.8.70]) by mrelayeu.kundenserver.de
+ (mreue010 [212.227.15.167]) with ESMTPSA (Nemesis) id
+ 1MXGak-1o00FF2LgE-00YmO2; Fri, 22 Jul 2022 21:04:47 +0200
+From: Laurent Vivier <lvivier@redhat.com>
+To: qemu-devel@nongnu.org
+Cc: Eric Blake <eblake@redhat.com>, Thomas Huth <thuth@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>, Markus Armbruster <armbru@redhat.com>,
+ "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>
+Subject: [PATCH v7 02/14] net: remove the @errp argument of net_client_inits()
+Date: Fri, 22 Jul 2022 21:04:30 +0200
+Message-Id: <20220722190442.301310-3-lvivier@redhat.com>
+X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20220722190442.301310-1-lvivier@redhat.com>
+References: <20220722190442.301310-1-lvivier@redhat.com>
+MIME-Version: 1.0
+X-Provags-ID: V03:K1:4KWCMWFzK8aE43ToMQWexc+rxFUvnSO4o6ys1POS14kdMfq+EqU
+ QDl0i2dXRNndwPjzHuqGHN+aMwTv3nXx/QY8ynEeJqspLcIgV+eWzJmSHFilqrhQZQN1CBA
+ rQK1Vp/mfHIXhnWU+sScvyefPtjsq1tcNV4QjUy0fOUZGeIlLftbCTr1A1dIovwx9ax1xIU
+ 2Pa46z9VMFmeJCJBdkRqw==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:6bp4zs6BPMI=:/2K9Vx9EzSp6JLa+26VClz
+ y51x/NdjkrgIAdvMkjasBX6k5CrahtU0wx116nARPE+bBHeBTYNtQWqzxOH+A38TtuO7MncmB
+ kV5/xPf3pr0YyHR1J9/pQC8DYfFqCHII5KrZ0P2kK5Bi2XO8zFe6sJUhmgqWUn133k9zZa5Hj
+ jgzTGDQlSR7CvJP3fkOmSWde+waW3QlpueXqyXHqvX/e72NEl0TcQOQmNUrOkfPIkVuJU0wDq
+ GqQqFEwOrqsIURsygD5WaTuc47nEBP0BXnN1HLXMufgektzkTHy5V4tpgARae6Hsy3YpRP4DL
+ wU+YWQwt9RNN1ut8YmJI4EOdHYvHisyG9rH4oBojNprnknrAg3S9Nf+JsgVt6uUP0QLZpnpqe
+ oR9JDUcNW6ktz+2RYZvBho3YYvQRBop51QNsMFXPa/g1Qm2aIFVPc+I1dw2rANBO1mX2mhxAj
+ GqUaXJ4JBsjzDFn5v4X9NJTQT8CZIHGsaIB2PisnjYMZXameCdFpHAuKFThSoVcjkEnvWddVv
+ 6NE7m3OKCpwAK6HIFH6nyzgNxq13bUMKbsX+lLMZ9ikBnEqLWPsoiCzg7GWy+9E8Tzd0g1ZTc
+ 3O/CYvBvXG2JQgqOjNVTMJ11S1p4+Qb9gERZcT0pzQWEAO+Uw0ed5oTre4uG1ZnfakyZMDvXW
+ XnfPeBQ9Xb3tqDKvgDcgtzMors9XRuonZJSuQzqvf6YrXxA57pQsr2u/erEf7wx7jdihGlfHd
+ upbF81YdYmFAcSDyeOw730212eW6fzzujSV2wg==
+Received-SPF: permerror client-ip=212.227.126.134;
+ envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
+X-Spam_score_int: -18
+X-Spam_score: -1.9
+X-Spam_bar: -
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001, SPF_HELO_NONE=0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=no autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org
+Sender: "Qemu-devel"
+ <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+
+The only caller passes &error_fatal, so use this directly in the function.
+
+It's what we do for -blockdev, -device, and -object.
+
+Suggested-by: Markus Armbruster <armbru@redhat.com>
+Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+Reviewed-by: Markus Armbruster <armbru@redhat.com>
+---
+ include/net/net.h |  2 +-
+ net/net.c         | 20 +++++++-------------
+ softmmu/vl.c      |  2 +-
+ 3 files changed, 9 insertions(+), 15 deletions(-)
+
+diff --git a/include/net/net.h b/include/net/net.h
+index 523136c7acba..c53c64ac18c4 100644
+--- a/include/net/net.h
++++ b/include/net/net.h
+@@ -216,7 +216,7 @@ extern const char *host_net_devices[];
+ /* from net.c */
+ int net_client_parse(QemuOptsList *opts_list, const char *str);
+ void show_netdevs(void);
+-int net_init_clients(Error **errp);
++void net_init_clients(void);
+ void net_check_clients(void);
+ void net_cleanup(void);
+ void hmp_host_net_add(Monitor *mon, const QDict *qdict);
+diff --git a/net/net.c b/net/net.c
+index d2288bd3a929..15958f881776 100644
+--- a/net/net.c
++++ b/net/net.c
+@@ -1562,27 +1562,21 @@ out:
+     return ret;
+ }
+ 
+-int net_init_clients(Error **errp)
++void net_init_clients(void)
+ {
+     net_change_state_entry =
+         qemu_add_vm_change_state_handler(net_vm_change_state_handler, NULL);
+ 
+     QTAILQ_INIT(&net_clients);
+ 
+-    if (qemu_opts_foreach(qemu_find_opts("netdev"),
+-                          net_init_netdev, NULL, errp)) {
+-        return -1;
+-    }
+-
+-    if (qemu_opts_foreach(qemu_find_opts("nic"), net_param_nic, NULL, errp)) {
+-        return -1;
+-    }
++    qemu_opts_foreach(qemu_find_opts("netdev"), net_init_netdev, NULL,
++                      &error_fatal);
+ 
+-    if (qemu_opts_foreach(qemu_find_opts("net"), net_init_client, NULL, errp)) {
+-        return -1;
+-    }
++    qemu_opts_foreach(qemu_find_opts("nic"), net_param_nic, NULL,
++                      &error_fatal);
+ 
+-    return 0;
++    qemu_opts_foreach(qemu_find_opts("net"), net_init_client, NULL,
++                      &error_fatal);
+ }
+ 
+ int net_client_parse(QemuOptsList *opts_list, const char *optarg)
+diff --git a/softmmu/vl.c b/softmmu/vl.c
+index aabd82e09a20..8f3f3bb74389 100644
+--- a/softmmu/vl.c
++++ b/softmmu/vl.c
+@@ -1904,7 +1904,7 @@ static void qemu_create_late_backends(void)
+         qtest_server_init(qtest_chrdev, qtest_log, &error_fatal);
+     }
+ 
+-    net_init_clients(&error_fatal);
++    net_init_clients();
+ 
+     object_option_foreach_add(object_create_late);
+ 
+
+From patchwork Fri Jul 22 19:04:31 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
+X-Patchwork-Id: 1659739
+Return-Path: <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+X-Original-To: incoming@patchwork.ozlabs.org
+Delivered-To: patchwork-incoming@bilbo.ozlabs.org
+Authentication-Results: ozlabs.org;
+ spf=pass (sender SPF authorized) smtp.mailfrom=nongnu.org
+ (client-ip=209.51.188.17; helo=lists.gnu.org;
+ envelope-from=qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org;
+ receiver=<UNKNOWN>)
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by bilbo.ozlabs.org (Postfix) with ESMTPS id 4LqK0g5tQTz9sGS
+	for <incoming@patchwork.ozlabs.org>; Sat, 23 Jul 2022 05:16:03 +1000 (AEST)
+Received: from localhost ([::1]:49052 helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>)
+	id 1oEy81-00087k-Mh
+	for incoming@patchwork.ozlabs.org; Fri, 22 Jul 2022 15:16:01 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10]:39548)
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxk-0006e0-8o
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:24 -0400
+Received: from mout.kundenserver.de ([212.227.126.187]:33863)
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxh-00059h-36
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:23 -0400
+Received: from thinkpad.redhat.com ([82.142.8.70]) by mrelayeu.kundenserver.de
+ (mreue010 [212.227.15.167]) with ESMTPSA (Nemesis) id
+ 1M42zo-1oExxA2FO4-0000Oi; Fri, 22 Jul 2022 21:04:48 +0200
+From: Laurent Vivier <lvivier@redhat.com>
+To: qemu-devel@nongnu.org
+Cc: Eric Blake <eblake@redhat.com>, Thomas Huth <thuth@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>, Markus Armbruster <armbru@redhat.com>,
+ "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>
+Subject: [PATCH v7 03/14] net: simplify net_client_parse() error management
+Date: Fri, 22 Jul 2022 21:04:31 +0200
+Message-Id: <20220722190442.301310-4-lvivier@redhat.com>
+X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20220722190442.301310-1-lvivier@redhat.com>
+References: <20220722190442.301310-1-lvivier@redhat.com>
+MIME-Version: 1.0
+X-Provags-ID: V03:K1:yai9V2YwdGqaGDVOM38gF5jrkr0C48seEco88/uFNrFZk7e9Bxp
+ 0pgipcHoKyNw1IP4EV3jwCdbMOLNGnFv8DjUwHZcyGuElo+IZAK3srJ3zkLaU0+97lAvG9p
+ y+A75PIhtJzjBEL7os+qAgghxiy41BtimOomF1ze+WOZFlShsUUjONl0ilznkeQvFH47QFX
+ lw7HKjTSU9aQvryY2pNlQ==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:BofZXZkFywA=:1XJjbcCftY3sNfIr/3NqO3
+ SjDUCtX2yZE9yUfd7AGDNQdeg92hNrcCggFjV645FBIPdr4H80vnr7GhMB/JI4CK9D/rAuiW8
+ fh3EVK7dnfWN6vT5obsxu0WNGVML12RkVsn6ZHNDb1hTmNE/pbKRXwp6YATLOJTivuVYAGyM6
+ URUJTrXU1XY0v9y0v04SZXB1zp6JZOCLBqc6VopMYU/YTarwqS0LUGaTcYICBeRQlX3pSJlD+
+ 90EzHrU8yRcVJy79OqXxdnFnIdqLJMZQFGxDQ7s5fiDACONzbKSCN62qgPoTJhR4B6l5JWtr3
+ RWn4wURhT1YV5TrtyNhH8oYaJuL0CtMSRVzzGTbAeRJjN123Ykr/Lia4LzmBDvDJC0qUmKftb
+ OFMTgJllQFm/2jrGPrO9G3E8aYLjroaodovkMbydU77GhiLuy5353VILHzkiPYc5NJBqO/ORM
+ 7cD0YnTgKtE3I2uWXlhufFqcdi9ajOBN/b2gYM2aWSg3icuNRDE1XIYtiw51XoHX5FXxL0/5l
+ LE2sjDwX7ir/xyk2ZkoAu1YGGpUZVvxo5KUyX411stZAVAjFwHvPHdNazDPokuUubvSZy8XM9
+ R3tljIat8PORtDOP4Q/aq7FY6m83qz5uK/LWTFnSEDf15oxijRhjNfSvJCIB5HD7dl2N5ITCQ
+ B1QuemOVh2nHTiR8pqFUnBItsnvoYFZpYqULM3xwQMeWxeiSJbuUq9jF/P1srZs/Uv89G2UDi
+ 72o3zPpDq8MvmBnd8ELaRcQLfVe4TrT1pFbJrA==
+Received-SPF: permerror client-ip=212.227.126.187;
+ envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
+X-Spam_score_int: -18
+X-Spam_score: -1.9
+X-Spam_bar: -
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001, SPF_HELO_NONE=0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=no autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org
+Sender: "Qemu-devel"
+ <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+
+All net_client_parse() callers exit in case of error.
+
+Move exit(1) to net_client_parse() and remove error checking from
+the callers.
+
+Suggested-by: Markus Armbruster <armbru@redhat.com>
+Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+Reviewed-by: Markus Armbruster <armbru@redhat.com>
+---
+ include/net/net.h |  2 +-
+ net/net.c         |  6 ++----
+ softmmu/vl.c      | 12 +++---------
+ 3 files changed, 6 insertions(+), 14 deletions(-)
+
+diff --git a/include/net/net.h b/include/net/net.h
+index c53c64ac18c4..e755254443ea 100644
+--- a/include/net/net.h
++++ b/include/net/net.h
+@@ -214,7 +214,7 @@ extern NICInfo nd_table[MAX_NICS];
+ extern const char *host_net_devices[];
+ 
+ /* from net.c */
+-int net_client_parse(QemuOptsList *opts_list, const char *str);
++void net_client_parse(QemuOptsList *opts_list, const char *str);
+ void show_netdevs(void);
+ void net_init_clients(void);
+ void net_check_clients(void);
+diff --git a/net/net.c b/net/net.c
+index 15958f881776..f056e8aebfb2 100644
+--- a/net/net.c
++++ b/net/net.c
+@@ -1579,13 +1579,11 @@ void net_init_clients(void)
+                       &error_fatal);
+ }
+ 
+-int net_client_parse(QemuOptsList *opts_list, const char *optarg)
++void net_client_parse(QemuOptsList *opts_list, const char *optarg)
+ {
+     if (!qemu_opts_parse_noisily(opts_list, optarg, true)) {
+-        return -1;
++        exit(1);
+     }
+-
+-    return 0;
+ }
+ 
+ /* From FreeBSD */
+diff --git a/softmmu/vl.c b/softmmu/vl.c
+index 8f3f3bb74389..0478210f2e04 100644
+--- a/softmmu/vl.c
++++ b/softmmu/vl.c
+@@ -2815,21 +2815,15 @@ void qemu_init(int argc, char **argv, char **envp)
+                 break;
+             case QEMU_OPTION_netdev:
+                 default_net = 0;
+-                if (net_client_parse(qemu_find_opts("netdev"), optarg) == -1) {
+-                    exit(1);
+-                }
++                net_client_parse(qemu_find_opts("netdev"), optarg);
+                 break;
+             case QEMU_OPTION_nic:
+                 default_net = 0;
+-                if (net_client_parse(qemu_find_opts("nic"), optarg) == -1) {
+-                    exit(1);
+-                }
++                net_client_parse(qemu_find_opts("nic"), optarg);
+                 break;
+             case QEMU_OPTION_net:
+                 default_net = 0;
+-                if (net_client_parse(qemu_find_opts("net"), optarg) == -1) {
+-                    exit(1);
+-                }
++                net_client_parse(qemu_find_opts("net"), optarg);
+                 break;
+ #ifdef CONFIG_LIBISCSI
+             case QEMU_OPTION_iscsi:
+
+From patchwork Fri Jul 22 19:04:32 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
+X-Patchwork-Id: 1659728
+Return-Path: <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+X-Original-To: incoming@patchwork.ozlabs.org
+Delivered-To: patchwork-incoming@bilbo.ozlabs.org
+Authentication-Results: ozlabs.org;
+ spf=pass (sender SPF authorized) smtp.mailfrom=nongnu.org
+ (client-ip=209.51.188.17; helo=lists.gnu.org;
+ envelope-from=qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org;
+ receiver=<UNKNOWN>)
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by bilbo.ozlabs.org (Postfix) with ESMTPS id 4LqJsM6dXdz9sGH
+	for <incoming@patchwork.ozlabs.org>; Sat, 23 Jul 2022 05:09:43 +1000 (AEST)
+Received: from localhost ([::1]:33304 helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>)
+	id 1oEy1t-0005bI-Ne
+	for incoming@patchwork.ozlabs.org; Fri, 22 Jul 2022 15:09:41 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10]:39046)
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxM-0005he-Dx
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:00 -0400
+Received: from mout.kundenserver.de ([212.227.126.187]:37883)
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxI-0004Oe-Pl
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:04:59 -0400
+Received: from thinkpad.redhat.com ([82.142.8.70]) by mrelayeu.kundenserver.de
+ (mreue010 [212.227.15.167]) with ESMTPSA (Nemesis) id
+ 1N3suW-1nWjAX1CqW-00zqDE; Fri, 22 Jul 2022 21:04:49 +0200
+From: Laurent Vivier <lvivier@redhat.com>
+To: qemu-devel@nongnu.org
+Cc: Eric Blake <eblake@redhat.com>, Thomas Huth <thuth@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>, Markus Armbruster <armbru@redhat.com>,
+ "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>
+Subject: [PATCH v7 04/14] qapi: net: introduce a way to bypass
+ qemu_opts_parse_noisily()
+Date: Fri, 22 Jul 2022 21:04:32 +0200
+Message-Id: <20220722190442.301310-5-lvivier@redhat.com>
+X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20220722190442.301310-1-lvivier@redhat.com>
+References: <20220722190442.301310-1-lvivier@redhat.com>
+MIME-Version: 1.0
+X-Provags-ID: V03:K1:i4YxW2DJJpBzFCr6gZoxNebsdQet+rkVLycl0LpNIbOUVunxYbI
+ Rsd4qOib63yqseimETOt5br2GgvltVlhZpDM6rU271w3p3Lan5xpbC2KMAcSqXnqcezBVF2
+ yiGYucCZStJhptE1DdrZtQM/pRLv2TlfVvweb3oj5V8U7rTqzHAymCn1/EAsv/PsUYG1quD
+ ElDp7mm/vYPkhd7VGHOxg==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:MY4ba61ayWU=:+5xK9+Lmm/LNkWJkyTzY9B
+ OCrixeskv21ICX8oTWBXzs002hzNeGyN2WrfHjD7QP6WGpGi7Rd2Jmt3BHTP9AMJLtiUunFMB
+ od5075jbMO1qkwn/31cMISsFqfPWcziQ/13pPTR9B7z0tA9Cr7GDEUVwgLQJ9T8Lys0EnVKln
+ vDUy7n23h7DHanPBGWWLCqW/e7BgRj+nN+4TJAiTy0RRI+xW4drUlZAoXTMJ/ePJJlRazfFZJ
+ 5iL+8vRibd8K0+5j5WMRZboArIlnSkIkolAesEkteGOSvkSAZqhHzsdL4JyE2JEcrElwMLC1Z
+ MJspNZzxmL652t2meEY9ZG5HPkvJRrRcEolqcD840NcYB3PLAxjxftcpAf0sm7I/qmG/oVcc1
+ JtyAqktQu3Ojow0Y/SF4ksPX+YZhaDAZZSK6tR0BB9YyKs/I177A4vGN7Pp+Rfd16cDeegZwH
+ ehIsS1XpIOkM57m4KPglmILBYr9Sq+scTXTuHA2nXuhi80cXqpkY/4TsRpGIR1d4El5yAvmXq
+ 7zJ9W0TXTcIycY9CN4tTHRVY/kNtKHwPQ0tdZE1H0eVbN216UPdPlXuzFx7ybD7e983Ov64xY
+ nCcCmH62icNJHZJSwntAgJC2dWEj7csZS4I/HOYE/6IB6VVrGKgxDlo5Pq0fcwsgCPe9OLV5E
+ FBg4daHsBod5lTK3FScXc4MR3ZRUfbd2NKivwXCNqJln1PrZD+AyY29FyrxbDn6eyLvH5jmTK
+ EwSPEH7h3R+HMz+tT21sO28SuLvSDIzzeX3E3A==
+Received-SPF: permerror client-ip=212.227.126.187;
+ envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
+X-Spam_score_int: -18
+X-Spam_score: -1.9
+X-Spam_bar: -
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001, SPF_HELO_NONE=0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=no autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org
+Sender: "Qemu-devel"
+ <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+
+As qemu_opts_parse_noisily() flattens the QAPI structures ("type" field
+of Netdev structure can collides with "type" field of SocketAddress),
+we introduce a way to bypass qemu_opts_parse_noisily() and use directly
+visit_type_Netdev() to parse the backend parameters.
+
+More details from Markus:
+
+qemu_init() passes the argument of -netdev, -nic, and -net to
+net_client_parse().
+
+net_client_parse() parses with qemu_opts_parse_noisily(), passing
+QemuOptsList qemu_netdev_opts for -netdev, qemu_nic_opts for -nic, and
+qemu_net_opts for -net.  Their desc[] are all empty, which means any
+keys are accepted.  The result of the parse (a QemuOpts) is stored in
+the QemuOptsList.
+
+Note that QemuOpts is flat by design.  In some places, we layer non-flat
+on top using dotted keys convention, but not here.
+
+net_init_clients() iterates over the stored QemuOpts, and passes them to
+net_init_netdev(), net_param_nic(), or net_init_client(), respectively.
+
+These functions pass the QemuOpts to net_client_init().  They also do
+other things with the QemuOpts, which we can ignore here.
+
+net_client_init() uses the opts visitor to convert the (flat) QemOpts to
+a (non-flat) QAPI object Netdev.  Netdev is also the argument of QMP
+command netdev_add.
+
+The opts visitor was an early attempt to support QAPI in
+(QemuOpts-based) CLI.  It restricts QAPI types to a certain shape; see
+commit eb7ee2cbeb "qapi: introduce OptsVisitor".
+
+A more modern way to support QAPI is qobject_input_visitor_new_str().
+It uses keyval_parse() instead of QemuOpts for KEY=VALUE,... syntax, and
+it also supports JSON syntax.  The former isn't quite as expressive as
+JSON, but it's a lot closer than QemuOpts + opts visitor.
+
+This commit paves the way to use of the modern way instead.
+
+Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+Reviewed-by: Markus Armbruster <armbru@redhat.com>
+---
+ include/net/net.h |  2 ++
+ net/net.c         | 57 +++++++++++++++++++++++++++++++++++++++++++++++
+ softmmu/vl.c      |  6 ++++-
+ 3 files changed, 64 insertions(+), 1 deletion(-)
+
+diff --git a/include/net/net.h b/include/net/net.h
+index e755254443ea..826e14a78734 100644
+--- a/include/net/net.h
++++ b/include/net/net.h
+@@ -214,6 +214,8 @@ extern NICInfo nd_table[MAX_NICS];
+ extern const char *host_net_devices[];
+ 
+ /* from net.c */
++bool netdev_is_modern(const char *optarg);
++void netdev_parse_modern(const char *optarg);
+ void net_client_parse(QemuOptsList *opts_list, const char *str);
+ void show_netdevs(void);
+ void net_init_clients(void);
+diff --git a/net/net.c b/net/net.c
+index f056e8aebfb2..ffe3e5a2cf1d 100644
+--- a/net/net.c
++++ b/net/net.c
+@@ -54,6 +54,7 @@
+ #include "net/colo-compare.h"
+ #include "net/filter.h"
+ #include "qapi/string-output-visitor.h"
++#include "qapi/qobject-input-visitor.h"
+ 
+ /* Net bridge is currently not supported for W32. */
+ #if !defined(_WIN32)
+@@ -63,6 +64,16 @@
+ static VMChangeStateEntry *net_change_state_entry;
+ static QTAILQ_HEAD(, NetClientState) net_clients;
+ 
++typedef struct NetdevQueueEntry {
++    Netdev *nd;
++    Location loc;
++    QSIMPLEQ_ENTRY(NetdevQueueEntry) entry;
++} NetdevQueueEntry;
++
++typedef QSIMPLEQ_HEAD(, NetdevQueueEntry) NetdevQueue;
++
++static NetdevQueue nd_queue = QSIMPLEQ_HEAD_INITIALIZER(nd_queue);
++
+ /***********************************************************/
+ /* network device redirectors */
+ 
+@@ -1562,6 +1573,20 @@ out:
+     return ret;
+ }
+ 
++static void netdev_init_modern(void)
++{
++    while (!QSIMPLEQ_EMPTY(&nd_queue)) {
++        NetdevQueueEntry *nd = QSIMPLEQ_FIRST(&nd_queue);
++
++        QSIMPLEQ_REMOVE_HEAD(&nd_queue, entry);
++        loc_push_restore(&nd->loc);
++        net_client_init1(nd->nd, true, &error_fatal);
++        loc_pop(&nd->loc);
++        qapi_free_Netdev(nd->nd);
++        g_free(nd);
++    }
++}
++
+ void net_init_clients(void)
+ {
+     net_change_state_entry =
+@@ -1569,6 +1594,8 @@ void net_init_clients(void)
+ 
+     QTAILQ_INIT(&net_clients);
+ 
++    netdev_init_modern();
++
+     qemu_opts_foreach(qemu_find_opts("netdev"), net_init_netdev, NULL,
+                       &error_fatal);
+ 
+@@ -1579,6 +1606,36 @@ void net_init_clients(void)
+                       &error_fatal);
+ }
+ 
++/*
++ * Does this -netdev argument use modern rather than traditional syntax?
++ * Modern syntax is to be parsed with netdev_parse_modern().
++ * Traditional syntax is to be parsed with net_client_parse().
++ */
++bool netdev_is_modern(const char *optarg)
++{
++    return false;
++}
++
++/*
++ * netdev_parse_modern() uses modern, more expressive syntax than
++ * net_client_parse(), but supports only the -netdev option.
++ * netdev_parse_modern() appends to @nd_queue, whereas net_client_parse()
++ * appends to @qemu_netdev_opts.
++ */
++void netdev_parse_modern(const char *optarg)
++{
++    Visitor *v;
++    NetdevQueueEntry *nd;
++
++    v = qobject_input_visitor_new_str(optarg, "type", &error_fatal);
++    nd = g_new(NetdevQueueEntry, 1);
++    visit_type_Netdev(v, NULL, &nd->nd, &error_fatal);
++    visit_free(v);
++    loc_save(&nd->loc);
++
++    QSIMPLEQ_INSERT_TAIL(&nd_queue, nd, entry);
++}
++
+ void net_client_parse(QemuOptsList *opts_list, const char *optarg)
+ {
+     if (!qemu_opts_parse_noisily(opts_list, optarg, true)) {
+diff --git a/softmmu/vl.c b/softmmu/vl.c
+index 0478210f2e04..351798ee01bc 100644
+--- a/softmmu/vl.c
++++ b/softmmu/vl.c
+@@ -2815,7 +2815,11 @@ void qemu_init(int argc, char **argv, char **envp)
+                 break;
+             case QEMU_OPTION_netdev:
+                 default_net = 0;
+-                net_client_parse(qemu_find_opts("netdev"), optarg);
++                if (netdev_is_modern(optarg)) {
++                    netdev_parse_modern(optarg);
++                } else {
++                    net_client_parse(qemu_find_opts("netdev"), optarg);
++                }
+                 break;
+             case QEMU_OPTION_nic:
+                 default_net = 0;
+
+From patchwork Fri Jul 22 19:04:33 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
+X-Patchwork-Id: 1659743
+Return-Path: <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+X-Original-To: incoming@patchwork.ozlabs.org
+Delivered-To: patchwork-incoming@bilbo.ozlabs.org
+Authentication-Results: ozlabs.org;
+ spf=pass (sender SPF authorized) smtp.mailfrom=nongnu.org
+ (client-ip=209.51.188.17; helo=lists.gnu.org;
+ envelope-from=qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org;
+ receiver=<UNKNOWN>)
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by bilbo.ozlabs.org (Postfix) with ESMTPS id 4LqK3X4J4Mz9sGQ
+	for <incoming@patchwork.ozlabs.org>; Sat, 23 Jul 2022 05:18:32 +1000 (AEST)
+Received: from localhost ([::1]:54276 helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>)
+	id 1oEyAN-0003OS-T0
+	for incoming@patchwork.ozlabs.org; Fri, 22 Jul 2022 15:18:27 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10]:39762)
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExy0-00074z-0J
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:43 -0400
+Received: from mout.kundenserver.de ([212.227.126.130]:35273)
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxu-0005IV-85
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:39 -0400
+Received: from thinkpad.redhat.com ([82.142.8.70]) by mrelayeu.kundenserver.de
+ (mreue010 [212.227.15.167]) with ESMTPSA (Nemesis) id
+ 1Mbzhv-1neGMP0cvf-00dTDH; Fri, 22 Jul 2022 21:04:50 +0200
+From: Laurent Vivier <lvivier@redhat.com>
+To: qemu-devel@nongnu.org
+Cc: Eric Blake <eblake@redhat.com>, Thomas Huth <thuth@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>, Markus Armbruster <armbru@redhat.com>,
+ "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
+ Stefano Brivio <sbrivio@redhat.com>
+Subject: [PATCH v7 05/14] qapi: net: add stream and dgram netdevs
+Date: Fri, 22 Jul 2022 21:04:33 +0200
+Message-Id: <20220722190442.301310-6-lvivier@redhat.com>
+X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20220722190442.301310-1-lvivier@redhat.com>
+References: <20220722190442.301310-1-lvivier@redhat.com>
+MIME-Version: 1.0
+X-Provags-ID: V03:K1:UiPmV5f2S01oH9KRYLL+0SBK5u+IhfbqiOY1kCz4mpZ8Tik5fm9
+ iRpankwuky6l30hQePpRqEF5/CBXuqtSWBRpBdUkCb7Q7XiSdeXHUT7uPuRz5YyHF6uHM8C
+ phZrCYn265iNs3TZhU90wrfp3AvqMFPYtnC64ZPMSqcJXFM8bQDeAmahWyXiQ5dckwS4W9/
+ fnVu1ffZ2VkCmNLS8OMEg==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:qYYa3UfsIPw=:tulkivhNVys3tQNgt61ocs
+ SE6PB8Jysqm0mSMyLNsZ7wISImyIwpwMxrA0/8yAf71wf+x0ZeAZUtmdVkpkpKVv+teIGiP47
+ 97A1zUIMQyV4JsZ66c3tJbWZXEMwmkx8j4yqaGqQM7xJB4ouKtcF/viWDy63Hs4X0p2gG2PTh
+ ejKpPQsUq8T4sIYWBe9Poko4+DrYsswlQDx1yciHt4pc9tM0vPzN1FzU8KANtK4k+Wy3nLiUf
+ fpqOGO34XtiWsiT4bKTIkZkxz5etP2/YDKgrnSi1HP6DF1J0t7B2Qc4lTHed5A1Gx7cp9QMT2
+ eh7Cu5yAcH/blKyKAj0B6946i+JIujuwOp3nQchFIUb++Sh4BqV3SvcD5as5uZBbY3kxgB1qg
+ ALk+Q7ldShb+vmKpFENSKW9cFZfXY6dilLIfp24t8K8OOesIfnzPnu/pMRS6T6KV0sRlcLQbc
+ HEw8DY5Iqt9jj9IhU/iRydGO2raLSXsLuaLwJ+n75AWRwO0MRc0iSNWGElyptJtnT6KC9J4B+
+ up9wFo6cmkPnTzm7NIyjOy6Antf2ucidMvjtwezx5Z9VWt920hFoKHga6IwH30W39RW/czo+y
+ c7iyLwY2gIqDV3e3ePN39dutp/e2Slv4eAFq+9Vutd+NVpnuzpej3ZHQdUolAmEhG1e9pcPNc
+ eDTZW1Bi4vH/go9k38C6HlFoSbh5237ZnT8i5WVY6BNJChVsgqMY22e8JqzEqo+cXFXrLyEJy
+ XIKNUp0hRQdPj3jCrZHHvYK+9WHhl6e6+14sUQ==
+Received-SPF: permerror client-ip=212.227.126.130;
+ envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
+X-Spam_score_int: -18
+X-Spam_score: -1.9
+X-Spam_bar: -
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001, SPF_HELO_NONE=0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=no autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org
+Sender: "Qemu-devel"
+ <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+
+Copied from socket netdev file and modified to use SocketAddress
+to be able to introduce new features like unix socket.
+
+"udp" and "mcast" are squashed into dgram netdev, multicast is detected
+according to the IP address type.
+"listen" and "connect" modes are managed by stream netdev. An optional
+parameter "server" defines the mode (server by default)
+
+The two new types need to be parsed the modern way with -netdev, because
+with the traditional way, the "type" field of netdev structure collides with
+the "type" field of SocketAddress and prevents the correct evaluation of the
+command line option. Moreover the traditional way doesn't allow to use
+the same type (SocketAddress) several times with the -netdev option
+(needed to specify "local" and "remote" addresses).
+
+The previous commit paved the way for parsing the modern way, but
+omitted one detail: how to pick modern vs. traditional, in
+netdev_is_modern().
+
+We want to pick based on the value of parameter "type".  But how to
+extract it from the option argument?
+
+Parsing the option argument, either the modern or the traditional way,
+extracts it for us, but only if parsing succeeds.
+
+If parsing fails, there is no good option.  No matter which parser we
+pick, it'll be the wrong one for some arguments, and the error
+reporting will be confusing.
+
+Fortunately, the traditional parser accepts *anything* when called in
+a certain way.  This maximizes our chance to extract the value of
+"type", and in turn minimizes the risk of confusing error reporting.
+
+Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+Reviewed-by: Stefano Brivio <sbrivio@redhat.com>
+---
+ hmp-commands.hx |   2 +-
+ net/clients.h   |   6 +
+ net/dgram.c     | 631 ++++++++++++++++++++++++++++++++++++++++++++++++
+ net/hub.c       |   2 +
+ net/meson.build |   2 +
+ net/net.c       |  30 ++-
+ net/stream.c    | 423 ++++++++++++++++++++++++++++++++
+ qapi/net.json   |  63 ++++-
+ qemu-options.hx |  12 +
+ 9 files changed, 1167 insertions(+), 4 deletions(-)
+ create mode 100644 net/dgram.c
+ create mode 100644 net/stream.c
+
+diff --git a/hmp-commands.hx b/hmp-commands.hx
+index 182e639d1498..83e8d45a2a8b 100644
+--- a/hmp-commands.hx
++++ b/hmp-commands.hx
+@@ -1276,7 +1276,7 @@ ERST
+     {
+         .name       = "netdev_add",
+         .args_type  = "netdev:O",
+-        .params     = "[user|tap|socket|vde|bridge|hubport|netmap|vhost-user"
++        .params     = "[user|tap|socket|stream|dgram|vde|bridge|hubport|netmap|vhost-user"
+ #ifdef CONFIG_VMNET
+                       "|vmnet-host|vmnet-shared|vmnet-bridged"
+ #endif
+diff --git a/net/clients.h b/net/clients.h
+index c9157789f2ce..ed8bdfff1e7c 100644
+--- a/net/clients.h
++++ b/net/clients.h
+@@ -40,6 +40,12 @@ int net_init_hubport(const Netdev *netdev, const char *name,
+ int net_init_socket(const Netdev *netdev, const char *name,
+                     NetClientState *peer, Error **errp);
+ 
++int net_init_stream(const Netdev *netdev, const char *name,
++                    NetClientState *peer, Error **errp);
++
++int net_init_dgram(const Netdev *netdev, const char *name,
++                   NetClientState *peer, Error **errp);
++
+ int net_init_tap(const Netdev *netdev, const char *name,
+                  NetClientState *peer, Error **errp);
+ 
+diff --git a/net/dgram.c b/net/dgram.c
+new file mode 100644
+index 000000000000..dbe65102d174
+--- /dev/null
++++ b/net/dgram.c
+@@ -0,0 +1,631 @@
++/*
++ * QEMU System Emulator
++ *
++ * Copyright (c) 2003-2008 Fabrice Bellard
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
++ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
++ * THE SOFTWARE.
++ */
++
++#include "qemu/osdep.h"
++
++#include "net/net.h"
++#include "clients.h"
++#include "monitor/monitor.h"
++#include "qapi/error.h"
++#include "qemu/error-report.h"
++#include "qemu/option.h"
++#include "qemu/sockets.h"
++#include "qemu/iov.h"
++#include "qemu/main-loop.h"
++#include "qemu/cutils.h"
++
++typedef struct NetDgramState {
++    NetClientState nc;
++    int listen_fd;
++    int fd;
++    SocketReadState rs;
++  /* contains inet host and port destination iff connectionless (SOCK_DGRAM) */
++    struct sockaddr_in dgram_dst;
++    IOHandler *send_fn;           /* differs between SOCK_STREAM/SOCK_DGRAM */
++    bool read_poll;               /* waiting to receive data? */
++    bool write_poll;              /* waiting to transmit data? */
++} NetDgramState;
++
++static void net_dgram_accept(void *opaque);
++static void net_dgram_writable(void *opaque);
++
++static void net_dgram_update_fd_handler(NetDgramState *s)
++{
++    qemu_set_fd_handler(s->fd,
++                        s->read_poll ? s->send_fn : NULL,
++                        s->write_poll ? net_dgram_writable : NULL,
++                        s);
++}
++
++static void net_dgram_read_poll(NetDgramState *s, bool enable)
++{
++    s->read_poll = enable;
++    net_dgram_update_fd_handler(s);
++}
++
++static void net_dgram_write_poll(NetDgramState *s, bool enable)
++{
++    s->write_poll = enable;
++    net_dgram_update_fd_handler(s);
++}
++
++static void net_dgram_writable(void *opaque)
++{
++    NetDgramState *s = opaque;
++
++    net_dgram_write_poll(s, false);
++
++    qemu_flush_queued_packets(&s->nc);
++}
++
++static ssize_t net_dgram_receive_dgram(NetClientState *nc,
++                                       const uint8_t *buf, size_t size)
++{
++    NetDgramState *s = DO_UPCAST(NetDgramState, nc, nc);
++    ssize_t ret;
++
++    do {
++        if (s->dgram_dst.sin_family != AF_UNIX) {
++            ret = sendto(s->fd, buf, size, 0,
++                         (struct sockaddr *)&s->dgram_dst,
++                         sizeof(s->dgram_dst));
++        } else {
++            ret = send(s->fd, buf, size, 0);
++        }
++    } while (ret == -1 && errno == EINTR);
++
++    if (ret == -1 && errno == EAGAIN) {
++        net_dgram_write_poll(s, true);
++        return 0;
++    }
++    return ret;
++}
++
++static void net_dgram_send_completed(NetClientState *nc, ssize_t len)
++{
++    NetDgramState *s = DO_UPCAST(NetDgramState, nc, nc);
++
++    if (!s->read_poll) {
++        net_dgram_read_poll(s, true);
++    }
++}
++
++static void net_dgram_rs_finalize(SocketReadState *rs)
++{
++    NetDgramState *s = container_of(rs, NetDgramState, rs);
++
++    if (qemu_send_packet_async(&s->nc, rs->buf,
++                               rs->packet_len,
++                               net_dgram_send_completed) == 0) {
++        net_dgram_read_poll(s, false);
++    }
++}
++
++static void net_dgram_send(void *opaque)
++{
++    NetDgramState *s = opaque;
++    int size;
++    int ret;
++    uint8_t buf1[NET_BUFSIZE];
++    const uint8_t *buf;
++
++    size = recv(s->fd, buf1, sizeof(buf1), 0);
++    if (size < 0) {
++        if (errno != EWOULDBLOCK) {
++            goto eoc;
++        }
++    } else if (size == 0) {
++        /* end of connection */
++    eoc:
++        net_dgram_read_poll(s, false);
++        net_dgram_write_poll(s, false);
++        if (s->listen_fd != -1) {
++            qemu_set_fd_handler(s->listen_fd, net_dgram_accept, NULL, s);
++        }
++        closesocket(s->fd);
++
++        s->fd = -1;
++        net_socket_rs_init(&s->rs, net_dgram_rs_finalize, false);
++        s->nc.link_down = true;
++        memset(s->nc.info_str, 0, sizeof(s->nc.info_str));
++
++        return;
++    }
++    buf = buf1;
++
++    ret = net_fill_rstate(&s->rs, buf, size);
++
++    if (ret == -1) {
++        goto eoc;
++    }
++}
++
++static void net_dgram_send_dgram(void *opaque)
++{
++    NetDgramState *s = opaque;
++    int size;
++
++    size = recv(s->fd, s->rs.buf, sizeof(s->rs.buf), 0);
++    if (size < 0) {
++        return;
++    }
++    if (size == 0) {
++        /* end of connection */
++        net_dgram_read_poll(s, false);
++        net_dgram_write_poll(s, false);
++        return;
++    }
++    if (qemu_send_packet_async(&s->nc, s->rs.buf, size,
++                               net_dgram_send_completed) == 0) {
++        net_dgram_read_poll(s, false);
++    }
++}
++
++static int net_dgram_mcast_create(struct sockaddr_in *mcastaddr,
++                                  struct in_addr *localaddr,
++                                  Error **errp)
++{
++    struct ip_mreq imr;
++    int fd;
++    int val, ret;
++#ifdef __OpenBSD__
++    unsigned char loop;
++#else
++    int loop;
++#endif
++
++    if (!IN_MULTICAST(ntohl(mcastaddr->sin_addr.s_addr))) {
++        error_setg(errp, "specified mcastaddr %s (0x%08x) "
++                   "does not contain a multicast address",
++                   inet_ntoa(mcastaddr->sin_addr),
++                   (int)ntohl(mcastaddr->sin_addr.s_addr));
++        return -1;
++    }
++
++    fd = qemu_socket(PF_INET, SOCK_DGRAM, 0);
++    if (fd < 0) {
++        error_setg_errno(errp, errno, "can't create datagram socket");
++        return -1;
++    }
++
++    /*
++     * Allow multiple sockets to bind the same multicast ip and port by setting
++     * SO_REUSEADDR. This is the only situation where SO_REUSEADDR should be set
++     * on windows. Use socket_set_fast_reuse otherwise as it sets SO_REUSEADDR
++     * only on posix systems.
++     */
++    val = 1;
++    ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
++    if (ret < 0) {
++        error_setg_errno(errp, errno, "can't set socket option SO_REUSEADDR");
++        goto fail;
++    }
++
++    ret = bind(fd, (struct sockaddr *)mcastaddr, sizeof(*mcastaddr));
++    if (ret < 0) {
++        error_setg_errno(errp, errno, "can't bind ip=%s to socket",
++                         inet_ntoa(mcastaddr->sin_addr));
++        goto fail;
++    }
++
++    /* Add host to multicast group */
++    imr.imr_multiaddr = mcastaddr->sin_addr;
++    if (localaddr) {
++        imr.imr_interface = *localaddr;
++    } else {
++        imr.imr_interface.s_addr = htonl(INADDR_ANY);
++    }
++
++    ret = setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
++                     &imr, sizeof(struct ip_mreq));
++    if (ret < 0) {
++        error_setg_errno(errp, errno,
++                         "can't add socket to multicast group %s",
++                         inet_ntoa(imr.imr_multiaddr));
++        goto fail;
++    }
++
++    /* Force mcast msgs to loopback (eg. several QEMUs in same host */
++    loop = 1;
++    ret = setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP,
++                     &loop, sizeof(loop));
++    if (ret < 0) {
++        error_setg_errno(errp, errno,
++                         "can't force multicast message to loopback");
++        goto fail;
++    }
++
++    /* If a bind address is given, only send packets from that address */
++    if (localaddr != NULL) {
++        ret = setsockopt(fd, IPPROTO_IP, IP_MULTICAST_IF,
++                         localaddr, sizeof(*localaddr));
++        if (ret < 0) {
++            error_setg_errno(errp, errno,
++                             "can't set the default network send interface");
++            goto fail;
++        }
++    }
++
++    qemu_socket_set_nonblock(fd);
++    return fd;
++fail:
++    if (fd >= 0) {
++        closesocket(fd);
++    }
++    return -1;
++}
++
++static void net_dgram_cleanup(NetClientState *nc)
++{
++    NetDgramState *s = DO_UPCAST(NetDgramState, nc, nc);
++    if (s->fd != -1) {
++        net_dgram_read_poll(s, false);
++        net_dgram_write_poll(s, false);
++        close(s->fd);
++        s->fd = -1;
++    }
++    if (s->listen_fd != -1) {
++        qemu_set_fd_handler(s->listen_fd, NULL, NULL, NULL);
++        closesocket(s->listen_fd);
++        s->listen_fd = -1;
++    }
++}
++
++static NetClientInfo net_dgram_socket_info = {
++    .type = NET_CLIENT_DRIVER_DGRAM,
++    .size = sizeof(NetDgramState),
++    .receive = net_dgram_receive_dgram,
++    .cleanup = net_dgram_cleanup,
++};
++
++static NetDgramState *net_dgram_fd_init_dgram(NetClientState *peer,
++                                              const char *model,
++                                              const char *name,
++                                              int fd, int is_fd,
++                                              SocketAddress *mcast,
++                                              Error **errp)
++{
++    struct sockaddr_in saddr;
++    int newfd;
++    NetClientState *nc;
++    NetDgramState *s;
++    SocketAddress *sa;
++    SocketAddressType sa_type;
++
++    sa = socket_local_address(fd, errp);
++    if (!sa) {
++        return NULL;
++    }
++    sa_type = sa->type;
++    qapi_free_SocketAddress(sa);
++
++    /*
++     * fd passed: multicast: "learn" dgram_dst address from bound address and
++     * save it. Because this may be "shared" socket from a "master" process,
++     * datagrams would be recv() by ONLY ONE process: we must "clone" this
++     * dgram socket --jjo
++     */
++
++    if (is_fd && mcast != NULL) {
++            if (convert_host_port(&saddr, mcast->u.inet.host,
++                                  mcast->u.inet.port, errp) < 0) {
++                goto err;
++            }
++            /* must be bound */
++            if (saddr.sin_addr.s_addr == 0) {
++                error_setg(errp, "can't setup multicast destination address");
++                goto err;
++            }
++            /* clone dgram socket */
++            newfd = net_dgram_mcast_create(&saddr, NULL, errp);
++            if (newfd < 0) {
++                goto err;
++            }
++            /* clone newfd to fd, close newfd */
++            dup2(newfd, fd);
++            close(newfd);
++
++    }
++
++    nc = qemu_new_net_client(&net_dgram_socket_info, peer, model, name);
++
++    s = DO_UPCAST(NetDgramState, nc, nc);
++
++    s->fd = fd;
++    s->listen_fd = -1;
++    s->send_fn = net_dgram_send_dgram;
++    net_socket_rs_init(&s->rs, net_dgram_rs_finalize, false);
++    net_dgram_read_poll(s, true);
++
++    /* mcast: save bound address as dst */
++    if (is_fd && mcast != NULL) {
++        s->dgram_dst = saddr;
++        snprintf(nc->info_str, sizeof(nc->info_str),
++                 "fd=%d (cloned mcast=%s:%d)",
++                 fd, inet_ntoa(saddr.sin_addr), ntohs(saddr.sin_port));
++    } else {
++        if (sa_type == SOCKET_ADDRESS_TYPE_UNIX) {
++            s->dgram_dst.sin_family = AF_UNIX;
++        }
++
++        snprintf(nc->info_str, sizeof(nc->info_str), "fd=%d %s", fd,
++                 SocketAddressType_str(sa_type));
++    }
++
++    return s;
++
++err:
++    closesocket(fd);
++    return NULL;
++}
++
++static void net_dgram_connect(void *opaque)
++{
++    NetDgramState *s = opaque;
++    s->send_fn = net_dgram_send;
++    net_dgram_read_poll(s, true);
++}
++
++static void net_dgram_accept(void *opaque)
++{
++    NetDgramState *s = opaque;
++    struct sockaddr_in saddr;
++    socklen_t len;
++    int fd;
++
++    for (;;) {
++        len = sizeof(saddr);
++        fd = qemu_accept(s->listen_fd, (struct sockaddr *)&saddr, &len);
++        if (fd < 0 && errno != EINTR) {
++            return;
++        } else if (fd >= 0) {
++            qemu_set_fd_handler(s->listen_fd, NULL, NULL, NULL);
++            break;
++        }
++    }
++
++    s->fd = fd;
++    s->nc.link_down = false;
++    net_dgram_connect(s);
++    snprintf(s->nc.info_str, sizeof(s->nc.info_str), "connection from %s:%d",
++             inet_ntoa(saddr.sin_addr), ntohs(saddr.sin_port));
++}
++
++static int net_dgram_mcast_init(NetClientState *peer,
++                                const char *model,
++                                const char *name,
++                                SocketAddress *remote,
++                                SocketAddress *local,
++                                Error **errp)
++{
++    NetDgramState *s;
++    int fd, ret;
++    struct sockaddr_in saddr;
++
++    if (remote->type != SOCKET_ADDRESS_TYPE_INET) {
++        error_setg(errp, "multicast only support inet type");
++        return -1;
++    }
++
++    if (convert_host_port(&saddr, remote->u.inet.host, remote->u.inet.port,
++                          errp) < 0) {
++        return -1;
++    }
++
++    if (!local) {
++        fd = net_dgram_mcast_create(&saddr, NULL, errp);
++        if (fd < 0) {
++            return -1;
++        }
++    } else {
++        switch (local->type) {
++        case SOCKET_ADDRESS_TYPE_INET: {
++            struct in_addr localaddr;
++
++            if (inet_aton(local->u.inet.host, &localaddr) == 0) {
++                error_setg(errp, "localaddr '%s' is not a valid IPv4 address",
++                           local->u.inet.host);
++                return -1;
++            }
++
++            fd = net_dgram_mcast_create(&saddr, &localaddr, errp);
++            if (fd < 0) {
++                return -1;
++            }
++            break;
++        }
++        case SOCKET_ADDRESS_TYPE_FD:
++            fd = monitor_fd_param(monitor_cur(), local->u.fd.str, errp);
++            if (fd == -1) {
++                return -1;
++            }
++            ret = qemu_socket_try_set_nonblock(fd);
++            if (ret < 0) {
++                error_setg_errno(errp, -ret, "%s: Can't use file descriptor %d",
++                                 name, fd);
++                return -1;
++            }
++            break;
++        default:
++            error_setg(errp, "only support inet or fd type for local");
++            return -1;
++        }
++    }
++
++    s = net_dgram_fd_init_dgram(peer, model, name, fd,
++                                 local->type == SOCKET_ADDRESS_TYPE_FD,
++                                 remote, errp);
++    if (!s) {
++        return -1;
++    }
++
++    s->dgram_dst = saddr;
++
++    snprintf(s->nc.info_str, sizeof(s->nc.info_str), "mcast=%s:%d",
++             inet_ntoa(saddr.sin_addr), ntohs(saddr.sin_port));
++    return 0;
++
++}
++
++static int net_dgram_udp_init(NetClientState *peer,
++                              const char *model,
++                              const char *name,
++                              SocketAddress *remote,
++                              SocketAddress *local,
++                              Error **errp)
++{
++    NetDgramState *s;
++    int fd, ret;
++    struct sockaddr_in raddr_in;
++    gchar *info_str;
++
++    if (remote) {
++        if (local->type == SOCKET_ADDRESS_TYPE_FD) {
++            error_setg(errp, "don't set remote with local.fd");
++            return -1;
++        }
++        if (remote->type != local->type) {
++            error_setg(errp, "remote and local types must be the same");
++            return -1;
++        }
++    } else {
++        if (local->type != SOCKET_ADDRESS_TYPE_FD) {
++            error_setg(errp, "type=inet requires remote parameter");
++            return -1;
++        }
++    }
++
++    switch (local->type) {
++    case SOCKET_ADDRESS_TYPE_INET: {
++        struct sockaddr_in laddr_in;
++
++        if (convert_host_port(&laddr_in, local->u.inet.host, local->u.inet.port,
++                              errp) < 0) {
++            return -1;
++        }
++
++        if (convert_host_port(&raddr_in, remote->u.inet.host,
++                              remote->u.inet.port, errp) < 0) {
++            return -1;
++        }
++
++        fd = qemu_socket(PF_INET, SOCK_DGRAM, 0);
++        if (fd < 0) {
++            error_setg_errno(errp, errno, "can't create datagram socket");
++            return -1;
++        }
++
++        ret = socket_set_fast_reuse(fd);
++        if (ret < 0) {
++            error_setg_errno(errp, errno,
++                             "can't set socket option SO_REUSEADDR");
++            closesocket(fd);
++            return -1;
++        }
++        ret = bind(fd, (struct sockaddr *)&laddr_in, sizeof(laddr_in));
++        if (ret < 0) {
++            error_setg_errno(errp, errno, "can't bind ip=%s to socket",
++                             inet_ntoa(laddr_in.sin_addr));
++            closesocket(fd);
++            return -1;
++        }
++        qemu_socket_set_nonblock(fd);
++
++        info_str = g_strdup_printf("udp=%s:%d/%s:%d",
++                 inet_ntoa(laddr_in.sin_addr), ntohs(laddr_in.sin_port),
++                 inet_ntoa(raddr_in.sin_addr), ntohs(raddr_in.sin_port));
++
++        break;
++    }
++    case SOCKET_ADDRESS_TYPE_FD:
++        fd = monitor_fd_param(monitor_cur(), local->u.fd.str, errp);
++        if (fd == -1) {
++            return -1;
++        }
++        ret = qemu_socket_try_set_nonblock(fd);
++        if (ret < 0) {
++            error_setg_errno(errp, -ret, "%s: Can't use file descriptor %d",
++                             name, fd);
++            return -1;
++        }
++        break;
++    default:
++        error_setg(errp, "only support inet or fd type for local");
++        return -1;
++    }
++
++    s = net_dgram_fd_init_dgram(peer, model, name, fd, 0, NULL, errp);
++    if (!s) {
++        return -1;
++    }
++
++    if (remote) {
++        s->dgram_dst = raddr_in;
++
++        pstrcpy(s->nc.info_str, sizeof(s->nc.info_str), info_str);
++        g_free(info_str);
++    }
++    return 0;
++}
++
++static int net_dgram_init(NetClientState *peer,
++                          const char *model,
++                          const char *name,
++                          SocketAddress *remote,
++                          SocketAddress *local,
++                          Error **errp)
++{
++    /* detect multicast address */
++    if (remote && remote->type == SOCKET_ADDRESS_TYPE_INET) {
++        struct sockaddr_in mcastaddr;
++
++        if (convert_host_port(&mcastaddr, remote->u.inet.host,
++                              remote->u.inet.port, errp) < 0) {
++            return -1;
++        }
++
++        if (IN_MULTICAST(ntohl(mcastaddr.sin_addr.s_addr))) {
++            return net_dgram_mcast_init(peer, model, name, remote, local,
++                                           errp);
++        }
++    }
++    /* unicast address */
++    if (!local) {
++        error_setg(errp, "dgram requires local= parameter");
++        return -1;
++    }
++    return net_dgram_udp_init(peer, model, name, remote, local, errp);
++}
++
++int net_init_dgram(const Netdev *netdev, const char *name,
++                   NetClientState *peer, Error **errp)
++{
++    const NetdevDgramOptions *sock;
++
++    assert(netdev->type == NET_CLIENT_DRIVER_DGRAM);
++    sock = &netdev->u.dgram;
++
++    return net_dgram_init(peer, "dgram", name, sock->remote, sock->local,
++                          errp);
++}
+diff --git a/net/hub.c b/net/hub.c
+index 1375738bf121..67ca53485638 100644
+--- a/net/hub.c
++++ b/net/hub.c
+@@ -313,6 +313,8 @@ void net_hub_check_clients(void)
+             case NET_CLIENT_DRIVER_USER:
+             case NET_CLIENT_DRIVER_TAP:
+             case NET_CLIENT_DRIVER_SOCKET:
++            case NET_CLIENT_DRIVER_STREAM:
++            case NET_CLIENT_DRIVER_DGRAM:
+             case NET_CLIENT_DRIVER_VDE:
+             case NET_CLIENT_DRIVER_VHOST_USER:
+                 has_host_dev = 1;
+diff --git a/net/meson.build b/net/meson.build
+index d1be76daf361..6cd1e3dab3a6 100644
+--- a/net/meson.build
++++ b/net/meson.build
+@@ -13,6 +13,8 @@ softmmu_ss.add(files(
+   'net.c',
+   'queue.c',
+   'socket.c',
++  'stream.c',
++  'dgram.c',
+   'util.c',
+ ))
+ 
+diff --git a/net/net.c b/net/net.c
+index ffe3e5a2cf1d..79e54e6228e8 100644
+--- a/net/net.c
++++ b/net/net.c
+@@ -48,6 +48,7 @@
+ #include "qemu/qemu-print.h"
+ #include "qemu/main-loop.h"
+ #include "qemu/option.h"
++#include "qemu/keyval.h"
+ #include "qapi/error.h"
+ #include "qapi/opts-visitor.h"
+ #include "sysemu/runstate.h"
+@@ -1014,6 +1015,8 @@ static int (* const net_client_init_fun[NET_CLIENT_DRIVER__MAX])(
+ #endif
+         [NET_CLIENT_DRIVER_TAP]       = net_init_tap,
+         [NET_CLIENT_DRIVER_SOCKET]    = net_init_socket,
++        [NET_CLIENT_DRIVER_STREAM]    = net_init_stream,
++        [NET_CLIENT_DRIVER_DGRAM]     = net_init_dgram,
+ #ifdef CONFIG_VDE
+         [NET_CLIENT_DRIVER_VDE]       = net_init_vde,
+ #endif
+@@ -1101,6 +1104,8 @@ void show_netdevs(void)
+     int idx;
+     const char *available_netdevs[] = {
+         "socket",
++        "stream",
++        "dgram",
+         "hubport",
+         "tap",
+ #ifdef CONFIG_SLIRP
+@@ -1613,7 +1618,30 @@ void net_init_clients(void)
+  */
+ bool netdev_is_modern(const char *optarg)
+ {
+-    return false;
++    QemuOpts *opts;
++    bool is_modern;
++    const char *type;
++    static QemuOptsList dummy_opts = {
++        .name = "netdev",
++        .implied_opt_name = "type",
++        .head = QTAILQ_HEAD_INITIALIZER(dummy_opts.head),
++        .desc = { { } },
++    };
++
++    if (optarg[0] == '{') {
++        /* This is JSON, which means it's modern syntax */
++        return true;
++    }
++
++    opts = qemu_opts_create(&dummy_opts, NULL, false, &error_abort);
++    qemu_opts_do_parse(opts, optarg, dummy_opts.implied_opt_name,
++                       &error_abort);
++    type = qemu_opt_get(opts, "type");
++    is_modern = !g_strcmp0(type, "stream") || !g_strcmp0(type, "dgram");
++
++    qemu_opts_reset(&dummy_opts);
++
++    return is_modern;
+ }
+ 
+ /*
+diff --git a/net/stream.c b/net/stream.c
+new file mode 100644
+index 000000000000..0851e90becca
+--- /dev/null
++++ b/net/stream.c
+@@ -0,0 +1,423 @@
++/*
++ * QEMU System Emulator
++ *
++ * Copyright (c) 2003-2008 Fabrice Bellard
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
++ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
++ * THE SOFTWARE.
++ */
++
++#include "qemu/osdep.h"
++
++#include "net/net.h"
++#include "clients.h"
++#include "monitor/monitor.h"
++#include "qapi/error.h"
++#include "qemu/error-report.h"
++#include "qemu/option.h"
++#include "qemu/sockets.h"
++#include "qemu/iov.h"
++#include "qemu/main-loop.h"
++#include "qemu/cutils.h"
++
++typedef struct NetStreamState {
++    NetClientState nc;
++    int listen_fd;
++    int fd;
++    SocketReadState rs;
++    unsigned int send_index;      /* number of bytes sent*/
++    IOHandler *send_fn;
++    bool read_poll;               /* waiting to receive data? */
++    bool write_poll;              /* waiting to transmit data? */
++} NetStreamState;
++
++static void net_stream_accept(void *opaque);
++static void net_stream_writable(void *opaque);
++
++static void net_stream_update_fd_handler(NetStreamState *s)
++{
++    qemu_set_fd_handler(s->fd,
++                        s->read_poll ? s->send_fn : NULL,
++                        s->write_poll ? net_stream_writable : NULL,
++                        s);
++}
++
++static void net_stream_read_poll(NetStreamState *s, bool enable)
++{
++    s->read_poll = enable;
++    net_stream_update_fd_handler(s);
++}
++
++static void net_stream_write_poll(NetStreamState *s, bool enable)
++{
++    s->write_poll = enable;
++    net_stream_update_fd_handler(s);
++}
++
++static void net_stream_writable(void *opaque)
++{
++    NetStreamState *s = opaque;
++
++    net_stream_write_poll(s, false);
++
++    qemu_flush_queued_packets(&s->nc);
++}
++
++static ssize_t net_stream_receive(NetClientState *nc, const uint8_t *buf,
++                                  size_t size)
++{
++    NetStreamState *s = DO_UPCAST(NetStreamState, nc, nc);
++    uint32_t len = htonl(size);
++    struct iovec iov[] = {
++        {
++            .iov_base = &len,
++            .iov_len  = sizeof(len),
++        }, {
++            .iov_base = (void *)buf,
++            .iov_len  = size,
++        },
++    };
++    size_t remaining;
++    ssize_t ret;
++
++    remaining = iov_size(iov, 2) - s->send_index;
++    ret = iov_send(s->fd, iov, 2, s->send_index, remaining);
++
++    if (ret == -1 && errno == EAGAIN) {
++        ret = 0; /* handled further down */
++    }
++    if (ret == -1) {
++        s->send_index = 0;
++        return -errno;
++    }
++    if (ret < (ssize_t)remaining) {
++        s->send_index += ret;
++        net_stream_write_poll(s, true);
++        return 0;
++    }
++    s->send_index = 0;
++    return size;
++}
++
++static void net_stream_send_completed(NetClientState *nc, ssize_t len)
++{
++    NetStreamState *s = DO_UPCAST(NetStreamState, nc, nc);
++
++    if (!s->read_poll) {
++        net_stream_read_poll(s, true);
++    }
++}
++
++static void net_stream_rs_finalize(SocketReadState *rs)
++{
++    NetStreamState *s = container_of(rs, NetStreamState, rs);
++
++    if (qemu_send_packet_async(&s->nc, rs->buf,
++                               rs->packet_len,
++                               net_stream_send_completed) == 0) {
++        net_stream_read_poll(s, false);
++    }
++}
++
++static void net_stream_send(void *opaque)
++{
++    NetStreamState *s = opaque;
++    int size;
++    int ret;
++    uint8_t buf1[NET_BUFSIZE];
++    const uint8_t *buf;
++
++    size = recv(s->fd, buf1, sizeof(buf1), 0);
++    if (size < 0) {
++        if (errno != EWOULDBLOCK) {
++            goto eoc;
++        }
++    } else if (size == 0) {
++        /* end of connection */
++    eoc:
++        net_stream_read_poll(s, false);
++        net_stream_write_poll(s, false);
++        if (s->listen_fd != -1) {
++            qemu_set_fd_handler(s->listen_fd, net_stream_accept, NULL, s);
++        }
++        closesocket(s->fd);
++
++        s->fd = -1;
++        net_socket_rs_init(&s->rs, net_stream_rs_finalize, false);
++        s->nc.link_down = true;
++        memset(s->nc.info_str, 0, sizeof(s->nc.info_str));
++
++        return;
++    }
++    buf = buf1;
++
++    ret = net_fill_rstate(&s->rs, buf, size);
++
++    if (ret == -1) {
++        goto eoc;
++    }
++}
++
++static void net_stream_cleanup(NetClientState *nc)
++{
++    NetStreamState *s = DO_UPCAST(NetStreamState, nc, nc);
++    if (s->fd != -1) {
++        net_stream_read_poll(s, false);
++        net_stream_write_poll(s, false);
++        close(s->fd);
++        s->fd = -1;
++    }
++    if (s->listen_fd != -1) {
++        qemu_set_fd_handler(s->listen_fd, NULL, NULL, NULL);
++        closesocket(s->listen_fd);
++        s->listen_fd = -1;
++    }
++}
++
++static void net_stream_connect(void *opaque)
++{
++    NetStreamState *s = opaque;
++    s->send_fn = net_stream_send;
++    net_stream_read_poll(s, true);
++}
++
++static NetClientInfo net_stream_info = {
++    .type = NET_CLIENT_DRIVER_STREAM,
++    .size = sizeof(NetStreamState),
++    .receive = net_stream_receive,
++    .cleanup = net_stream_cleanup,
++};
++
++static NetStreamState *net_stream_fd_init_stream(NetClientState *peer,
++                                                 const char *model,
++                                                 const char *name,
++                                                 int fd, int is_connected)
++{
++    NetClientState *nc;
++    NetStreamState *s;
++
++    nc = qemu_new_net_client(&net_stream_info, peer, model, name);
++
++    snprintf(nc->info_str, sizeof(nc->info_str), "fd=%d", fd);
++
++    s = DO_UPCAST(NetStreamState, nc, nc);
++
++    s->fd = fd;
++    s->listen_fd = -1;
++    net_socket_rs_init(&s->rs, net_stream_rs_finalize, false);
++
++    /* Disable Nagle algorithm on TCP sockets to reduce latency */
++    socket_set_nodelay(fd);
++
++    if (is_connected) {
++        net_stream_connect(s);
++    } else {
++        qemu_set_fd_handler(s->fd, NULL, net_stream_connect, s);
++    }
++    return s;
++}
++
++static void net_stream_accept(void *opaque)
++{
++    NetStreamState *s = opaque;
++    struct sockaddr_in saddr;
++    socklen_t len;
++    int fd;
++
++    for (;;) {
++        len = sizeof(saddr);
++        fd = qemu_accept(s->listen_fd, (struct sockaddr *)&saddr, &len);
++        if (fd < 0 && errno != EINTR) {
++            return;
++        } else if (fd >= 0) {
++            qemu_set_fd_handler(s->listen_fd, NULL, NULL, NULL);
++            break;
++        }
++    }
++
++    s->fd = fd;
++    s->nc.link_down = false;
++    net_stream_connect(s);
++    snprintf(s->nc.info_str, sizeof(s->nc.info_str),
++             "connection from %s:%d",
++             inet_ntoa(saddr.sin_addr), ntohs(saddr.sin_port));
++}
++
++static int net_stream_server_init(NetClientState *peer,
++                                  const char *model,
++                                  const char *name,
++                                  SocketAddress *addr,
++                                  Error **errp)
++{
++    NetClientState *nc;
++    NetStreamState *s;
++    int fd, ret;
++
++    switch (addr->type) {
++    case SOCKET_ADDRESS_TYPE_INET: {
++        struct sockaddr_in saddr_in;
++
++        if (convert_host_port(&saddr_in, addr->u.inet.host, addr->u.inet.port,
++                              errp) < 0) {
++            return -1;
++        }
++
++        fd = qemu_socket(PF_INET, SOCK_STREAM, 0);
++        if (fd < 0) {
++            error_setg_errno(errp, errno, "can't create stream socket");
++            return -1;
++        }
++        qemu_socket_set_nonblock(fd);
++
++        socket_set_fast_reuse(fd);
++
++        ret = bind(fd, (struct sockaddr *)&saddr_in, sizeof(saddr_in));
++        if (ret < 0) {
++            error_setg_errno(errp, errno, "can't bind ip=%s to socket",
++                             inet_ntoa(saddr_in.sin_addr));
++            closesocket(fd);
++            return -1;
++        }
++        break;
++    }
++    case SOCKET_ADDRESS_TYPE_FD:
++        fd = monitor_fd_param(monitor_cur(), addr->u.fd.str, errp);
++        if (fd == -1) {
++            return -1;
++        }
++        ret = qemu_socket_try_set_nonblock(fd);
++        if (ret < 0) {
++            error_setg_errno(errp, -ret, "%s: Can't use file descriptor %d",
++                             name, fd);
++            return -1;
++        }
++        break;
++    default:
++        error_setg(errp, "only support inet or fd type");
++        return -1;
++    }
++
++    ret = listen(fd, 0);
++    if (ret < 0) {
++        error_setg_errno(errp, errno, "can't listen on socket");
++        closesocket(fd);
++        return -1;
++    }
++
++    nc = qemu_new_net_client(&net_stream_info, peer, model, name);
++    s = DO_UPCAST(NetStreamState, nc, nc);
++    s->fd = -1;
++    s->listen_fd = fd;
++    s->nc.link_down = true;
++    net_socket_rs_init(&s->rs, net_stream_rs_finalize, false);
++
++    qemu_set_fd_handler(s->listen_fd, net_stream_accept, NULL, s);
++    return 0;
++}
++
++static int net_stream_client_init(NetClientState *peer,
++                                  const char *model,
++                                  const char *name,
++                                  SocketAddress *addr,
++                                  Error **errp)
++{
++    NetStreamState *s;
++    int fd, connected, ret;
++    gchar *info_str;
++
++    switch (addr->type) {
++    case SOCKET_ADDRESS_TYPE_INET: {
++        struct sockaddr_in saddr_in;
++
++        if (convert_host_port(&saddr_in, addr->u.inet.host, addr->u.inet.port,
++                              errp) < 0) {
++            return -1;
++        }
++
++        fd = qemu_socket(PF_INET, SOCK_STREAM, 0);
++        if (fd < 0) {
++            error_setg_errno(errp, errno, "can't create stream socket");
++            return -1;
++        }
++        qemu_socket_set_nonblock(fd);
++
++        connected = 0;
++        for (;;) {
++            ret = connect(fd, (struct sockaddr *)&saddr_in, sizeof(saddr_in));
++            if (ret < 0) {
++                if (errno == EINTR || errno == EWOULDBLOCK) {
++                    /* continue */
++                } else if (errno == EINPROGRESS ||
++                           errno == EALREADY ||
++                           errno == EINVAL) {
++                    break;
++                } else {
++                    error_setg_errno(errp, errno, "can't connect socket");
++                    closesocket(fd);
++                    return -1;
++                }
++            } else {
++                connected = 1;
++                break;
++            }
++        }
++        info_str = g_strdup_printf("connect to %s:%d",
++                                   inet_ntoa(saddr_in.sin_addr),
++                                   ntohs(saddr_in.sin_port));
++        break;
++    }
++    case SOCKET_ADDRESS_TYPE_FD:
++        fd = monitor_fd_param(monitor_cur(), addr->u.fd.str, errp);
++        if (fd == -1) {
++            return -1;
++        }
++        ret = qemu_socket_try_set_nonblock(fd);
++        if (ret < 0) {
++            error_setg_errno(errp, -ret, "%s: Can't use file descriptor %d",
++                             name, fd);
++            return -1;
++        }
++        connected = 1;
++        info_str = g_strdup_printf("connect to fd %d", fd);
++        break;
++    default:
++        error_setg(errp, "only support inet or fd type");
++        return -1;
++    }
++
++    s = net_stream_fd_init_stream(peer, model, name, fd, connected);
++
++    pstrcpy(s->nc.info_str, sizeof(s->nc.info_str), info_str);
++    g_free(info_str);
++
++    return 0;
++}
++
++int net_init_stream(const Netdev *netdev, const char *name,
++                    NetClientState *peer, Error **errp)
++{
++    const NetdevStreamOptions *sock;
++
++    assert(netdev->type == NET_CLIENT_DRIVER_STREAM);
++    sock = &netdev->u.stream;
++
++    if (!sock->has_server || sock->server) {
++        return net_stream_server_init(peer, "stream", name, sock->addr, errp);
++    }
++    return net_stream_client_init(peer, "stream", name, sock->addr, errp);
++}
+diff --git a/qapi/net.json b/qapi/net.json
+index 75ba2cb98901..a7506a40ff12 100644
+--- a/qapi/net.json
++++ b/qapi/net.json
+@@ -7,6 +7,7 @@
+ ##
+ 
+ { 'include': 'common.json' }
++{ 'include': 'sockets.json' }
+ 
+ ##
+ # @set_link:
+@@ -573,6 +574,61 @@
+     '*isolated':  'bool' },
+   'if': 'CONFIG_VMNET' }
+ 
++##
++# @NetdevStreamOptions:
++#
++# Configuration info for stream socket netdev
++#
++# @addr: socket address to listen on (server=true)
++#        or connect to (server=false)
++# @server: create server socket (default: true)
++#
++# Only SocketAddress types 'inet' and 'fd' are supported.
++#
++# Since: 7.1
++##
++{ 'struct': 'NetdevStreamOptions',
++  'data': {
++    'addr':   'SocketAddress',
++    '*server': 'bool' } }
++
++##
++# @NetdevDgramOptions:
++#
++# Configuration info for datagram socket netdev.
++#
++# @remote: remote address
++# @local: local address
++#
++# Only SocketAddress types 'inet' and 'fd' are supported.
++#
++# The code checks there is at least one of these options and reports an error
++# if not. If remote address is present and it's a multicast address, local
++# address is optional. Otherwise local address is required and remote address
++# is optional.
++#
++# .. table:: Valid parameters combination table
++#    :widths: auto
++#
++#    =============  ========  =====
++#    remote         local     okay?
++#    =============  ========  =====
++#    absent         absent    no
++#    absent         not fd    no
++#    absent         fd        yes
++#    multicast      absent    yes
++#    multicast      present   yes
++#    not multicast  absent    no
++#    not multicast  present   yes
++#    =============  ========  =====
++#
++# Since: 7.1
++##
++{ 'struct': 'NetdevDgramOptions',
++  'data': {
++    '*local':  'SocketAddress',
++    '*remote': 'SocketAddress' } }
++
+ ##
+ # @NetClientDriver:
+ #
+@@ -586,8 +642,9 @@
+ #        @vmnet-bridged since 7.1
+ ##
+ { 'enum': 'NetClientDriver',
+-  'data': [ 'none', 'nic', 'user', 'tap', 'l2tpv3', 'socket', 'vde',
+-            'bridge', 'hubport', 'netmap', 'vhost-user', 'vhost-vdpa',
++  'data': [ 'none', 'nic', 'user', 'tap', 'l2tpv3', 'socket', 'stream',
++            'dgram', 'vde', 'bridge', 'hubport', 'netmap', 'vhost-user',
++            'vhost-vdpa',
+             { 'name': 'vmnet-host', 'if': 'CONFIG_VMNET' },
+             { 'name': 'vmnet-shared', 'if': 'CONFIG_VMNET' },
+             { 'name': 'vmnet-bridged', 'if': 'CONFIG_VMNET' }] }
+@@ -617,6 +674,8 @@
+     'tap':      'NetdevTapOptions',
+     'l2tpv3':   'NetdevL2TPv3Options',
+     'socket':   'NetdevSocketOptions',
++    'stream':   'NetdevStreamOptions',
++    'dgram':    'NetdevDgramOptions',
+     'vde':      'NetdevVdeOptions',
+     'bridge':   'NetdevBridgeOptions',
+     'hubport':  'NetdevHubPortOptions',
+diff --git a/qemu-options.hx b/qemu-options.hx
+index 79e00916a11f..170117e1adf0 100644
+--- a/qemu-options.hx
++++ b/qemu-options.hx
+@@ -2726,6 +2726,18 @@ DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
+     "-netdev socket,id=str[,fd=h][,udp=host:port][,localaddr=host:port]\n"
+     "                configure a network backend to connect to another network\n"
+     "                using an UDP tunnel\n"
++    "-netdev stream,id=str[,server=on|off],addr.type=inet,addr.host=host,addr.port=port\n"
++    "-netdev stream,id=str[,server=on|off],addr.type=fd,addr.str=h\n"
++    "                configure a network backend to connect to another network\n"
++    "                using a socket connection in stream mode.\n"
++    "-netdev dgram,id=str,remote.type=inet,remote.host=maddr,remote.port=port[,local.type=inet,local.host=addr]\n"
++    "-netdev dgram,id=str,remote.type=inet,remote.host=maddr,remote.port=port[,local.type=fd,local.str=h]\n"
++    "                configure a network backend to connect to a multicast maddr and port\n"
++    "                use ``local.host=addr`` to specify the host address to send packets from\n"
++    "-netdev dgram,id=str,local.type=inet,local.host=addr,local.port=port[,remote.type=inet,remote.host=addr,remote.port=port]\n"
++    "-netdev dgram,id=str,local.type=fd,local.str=h\n"
++    "                configure a network backend to connect to another network\n"
++    "                using an UDP tunnel\n"
+ #ifdef CONFIG_VDE
+     "-netdev vde,id=str[,sock=socketpath][,port=n][,group=groupname][,mode=octalmode]\n"
+     "                configure a network backend to connect to port 'n' of a vde switch\n"
+
+From patchwork Fri Jul 22 19:04:34 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
+X-Patchwork-Id: 1659745
+Return-Path: <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+X-Original-To: incoming@patchwork.ozlabs.org
+Delivered-To: patchwork-incoming@bilbo.ozlabs.org
+Authentication-Results: ozlabs.org;
+ spf=pass (sender SPF authorized) smtp.mailfrom=nongnu.org
+ (client-ip=209.51.188.17; helo=lists.gnu.org;
+ envelope-from=qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org;
+ receiver=<UNKNOWN>)
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by bilbo.ozlabs.org (Postfix) with ESMTPS id 4LqK3x6KdZz9sGQ
+	for <incoming@patchwork.ozlabs.org>; Sat, 23 Jul 2022 05:18:53 +1000 (AEST)
+Received: from localhost ([::1]:55252 helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>)
+	id 1oEyAl-00043R-Nl
+	for incoming@patchwork.ozlabs.org; Fri, 22 Jul 2022 15:18:51 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10]:39772)
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExy0-00075R-FS
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:43 -0400
+Received: from mout.kundenserver.de ([212.227.126.134]:42017)
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxz-0005Ja-0D
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:40 -0400
+Received: from thinkpad.redhat.com ([82.142.8.70]) by mrelayeu.kundenserver.de
+ (mreue010 [212.227.15.167]) with ESMTPSA (Nemesis) id
+ 1MofPt-1ni3zB026z-00p4aL; Fri, 22 Jul 2022 21:04:52 +0200
+From: Laurent Vivier <lvivier@redhat.com>
+To: qemu-devel@nongnu.org
+Cc: Eric Blake <eblake@redhat.com>, Thomas Huth <thuth@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>, Markus Armbruster <armbru@redhat.com>,
+ "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
+ Stefano Brivio <sbrivio@redhat.com>
+Subject: [PATCH v7 06/14] net: stream: Don't ignore EINVAL on netdev socket
+ connection
+Date: Fri, 22 Jul 2022 21:04:34 +0200
+Message-Id: <20220722190442.301310-7-lvivier@redhat.com>
+X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20220722190442.301310-1-lvivier@redhat.com>
+References: <20220722190442.301310-1-lvivier@redhat.com>
+MIME-Version: 1.0
+X-Provags-ID: V03:K1:99Wk36CqkFIlPROD5LHzLuXOhiqq3plOfTiqCz2xrv7hOq62Kge
+ oOYfrGQgIyx7DUbcNiO+R8ZNDo+xw1qPUXsZMGjqZKZB1SszB3zO/QlW1UONLKZsGlyKcHk
+ RBAEKOCC1GJV3ccr+Jz3h4TMJEvxVlP2ECHMQFFdf1HPzXPsu3jIyzWr2fR7jTZq7ZOIiiD
+ G3rDUIqu9Pq9M8Umzk07A==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:2ws3I3Z6ldg=:sTo8CzQiKwqCw+VDfAluXW
+ OYgk5/RrwL5UFF1uUzzfChVQVQshAMDjiCh5PQdalz+LXfWBid4z3NC6/FH1BoZ0c+Dwzld/0
+ rWMk15ZujEiZstmHnAriBbPar9NrsPHczmaFayizlsZI8LGxvFBLNk+FkFzcNNj524tpZqfyy
+ kl/O3LxMNrwDMKekOIVHdXS0yJgI55ciFbIqRhh4hozB5G7ufztk7UFX6edI4mtlXYL1EhKCc
+ /VZ94Ue8eZDlqt/0ms6v3i2kyvrkio3LORzfldFNY9PP0xiyTCG7tGf3EQE0Iyw1BatY1E6vL
+ egSOPlFxHre2RXOBYOsB1uDRvYg//pzwWZqJ6i5J7H0XnidOwsw36rKbt/Iu5Scm0Nsh+C3fJ
+ NRlwjA4EF+V2tEz+BAN9B6Wt9NKikGqJ7pTrnnIKROj5DN32Recri8PfUVJqW6JbvmZ/bzImi
+ RXLJBenR2vP2lThh7y1bEIX/MR8CvPdpkOXq7VAXAB35f4wtj4UqfNY0G8Edaj727jCql1Eg3
+ CE2s1ukmO0TGN9w6XG92mNm0tYcQNyLJJPA9GLtho/lB+Pn1m4YsLnSv2iG/je2ulUmTJ/kti
+ V2rrXs/bZfpSrowSqHZJbkVDNx7yAD+N8lJ8qCPqSXxPNNhMlm4WlgTWwKlAby7nUSFsxCWI/
+ eI0wt+4qFuEzLhPMHEnNhGiYsJqxwvOXOc//NZHaFRVuqkZNl2O5JdVAyMEA/r9+dOycC/SnB
+ FPSvsQZKqX47SnjM1djEJFhlL3XCfXgguuTNAQ==
+Received-SPF: permerror client-ip=212.227.126.134;
+ envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
+X-Spam_score_int: -18
+X-Spam_score: -1.9
+X-Spam_bar: -
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001, SPF_HELO_NONE=0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=no autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org
+Sender: "Qemu-devel"
+ <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+
+From: Stefano Brivio <sbrivio@redhat.com>
+
+Other errors are treated as failure by net_stream_client_init(),
+but if connect() returns EINVAL, we'll fail silently. Remove the
+related exception.
+
+Signed-off-by: Stefano Brivio <sbrivio@redhat.com>
+[lvivier: applied to net/stream.c]
+Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+Reviewed-by: Daniel P. Berrangé <berrange@redhat.com>
+---
+ net/stream.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/net/stream.c b/net/stream.c
+index 0851e90becca..e8afbaca50b6 100644
+--- a/net/stream.c
++++ b/net/stream.c
+@@ -363,8 +363,7 @@ static int net_stream_client_init(NetClientState *peer,
+                 if (errno == EINTR || errno == EWOULDBLOCK) {
+                     /* continue */
+                 } else if (errno == EINPROGRESS ||
+-                           errno == EALREADY ||
+-                           errno == EINVAL) {
++                           errno == EALREADY) {
+                     break;
+                 } else {
+                     error_setg_errno(errp, errno, "can't connect socket");
+
+From patchwork Fri Jul 22 19:04:35 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
+X-Patchwork-Id: 1659749
+Return-Path: <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+X-Original-To: incoming@patchwork.ozlabs.org
+Delivered-To: patchwork-incoming@bilbo.ozlabs.org
+Authentication-Results: ozlabs.org;
+ spf=pass (sender SPF authorized) smtp.mailfrom=nongnu.org
+ (client-ip=209.51.188.17; helo=lists.gnu.org;
+ envelope-from=qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org;
+ receiver=<UNKNOWN>)
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by bilbo.ozlabs.org (Postfix) with ESMTPS id 4LqK5r0pnTz9sGQ
+	for <incoming@patchwork.ozlabs.org>; Sat, 23 Jul 2022 05:20:32 +1000 (AEST)
+Received: from localhost ([::1]:60996 helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>)
+	id 1oEyCL-00080E-G7
+	for incoming@patchwork.ozlabs.org; Fri, 22 Jul 2022 15:20:29 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10]:39784)
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExy1-00075c-V9
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:43 -0400
+Received: from mout.kundenserver.de ([212.227.126.130]:51485)
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxz-0005Jy-V2
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:41 -0400
+Received: from thinkpad.redhat.com ([82.142.8.70]) by mrelayeu.kundenserver.de
+ (mreue010 [212.227.15.167]) with ESMTPSA (Nemesis) id
+ 1Mwfn8-1nGo3T0BVi-00yBWQ; Fri, 22 Jul 2022 21:04:53 +0200
+From: Laurent Vivier <lvivier@redhat.com>
+To: qemu-devel@nongnu.org
+Cc: Eric Blake <eblake@redhat.com>, Thomas Huth <thuth@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>, Markus Armbruster <armbru@redhat.com>,
+ "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
+ Stefano Brivio <sbrivio@redhat.com>
+Subject: [PATCH v7 07/14] net: stream: add unix socket
+Date: Fri, 22 Jul 2022 21:04:35 +0200
+Message-Id: <20220722190442.301310-8-lvivier@redhat.com>
+X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20220722190442.301310-1-lvivier@redhat.com>
+References: <20220722190442.301310-1-lvivier@redhat.com>
+MIME-Version: 1.0
+X-Provags-ID: V03:K1:p+qY4YgTwZ9Bnznc88dBTc67dioIYx3XtvVNnctEjmqnif/lT7U
+ 3cEJKkrex8knHm8wF/TwMnHvf5bAWd1PfblXEmlz7MGdnNKfxNlfM8AkZqvfgeb0nkkLypU
+ rhhhsVTZOT+LwTYdmYFaPP4N5HrwGnIe0zwA+Qw5MlFpH+yiNEV+Ow+z8b/MsBe1q36zuij
+ N+Je5Muj8F1eBShG3MXeQ==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:sYeHBZ0J7ng=:/+vNc7uvX4K2HR0yFscjN3
+ TDNyK26VU3OF6puDtMsgSgPvDMDk2633Wjmd2xVecnERFQ5vv3snFjWXnOzpuJAPfgYTdoqGC
+ nYK58oXARluhFW9c2W5d20zOoTXB7MeabDGbX4QWanp3qcfABF7iXT8MTdD7bhqhG49WWp9ZT
+ EBEITveQ3cD4YFH5a4qSD3AcLotyDIxD+tQTww8OqFE4LEBA+0LMUkkmuFPxE9FFktpL4cQqB
+ F4RpXJ/roNiTr1uDvpzRzl2CANfVbaeIXW5ucdx7YMUgHOqwALWmNxSAU4Z6n7wbHKIIbpq+S
+ mpBiRnGtKsd/uuUZnHkV+jQgf51DiHd/q1V95suQl0OdKplfLFk44HoyV0De0qT4d2eU640i3
+ jhizzbLKfA8Rnbb38+5ERcmzG/EfhKvhRCW10hOJB1BZGw0bII0eJ/3TVfjWp18phfjSBucBE
+ qdFbXsi4/H+8RZh0SV65gxGXhl+8pB7Bwl3Gu/pAVMtNp+npbZmSoiIxEd5N81EIpnSSUNOXe
+ AqveGTQEYDLWNkV4a92n1jTk4xqIeB97eHtdXJe6NVyERI6vU1bjaXpZ5+1v6vfHbsLgOqSPb
+ auaM5+vmyw+GiuAdEbZHH3PkCVzVwwjCq+I+Vu7gMEUHqAkOlfTtcXeqR+230YnbJV/RUN/Cd
+ /wRFQdYdWL7P7WB0mwDB9BwZAue8j2DryCDCM2f+LpSp8lkzbP4JAl9u/2NOsOJXwjBLSU1BF
+ o9PCi507capuAcL/PDq0iT+tEoLJzUOMwruJ6A==
+Received-SPF: permerror client-ip=212.227.126.130;
+ envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
+X-Spam_score_int: -18
+X-Spam_score: -1.9
+X-Spam_bar: -
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001, SPF_HELO_NONE=0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=no autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org
+Sender: "Qemu-devel"
+ <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+
+Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+Reviewed-by: Stefano Brivio <sbrivio@redhat.com>
+---
+ net/stream.c    | 108 +++++++++++++++++++++++++++++++++++++++++++++---
+ qapi/net.json   |   2 +-
+ qemu-options.hx |   1 +
+ 3 files changed, 105 insertions(+), 6 deletions(-)
+
+diff --git a/net/stream.c b/net/stream.c
+index e8afbaca50b6..0f91ff20df61 100644
+--- a/net/stream.c
++++ b/net/stream.c
+@@ -235,7 +235,7 @@ static NetStreamState *net_stream_fd_init_stream(NetClientState *peer,
+ static void net_stream_accept(void *opaque)
+ {
+     NetStreamState *s = opaque;
+-    struct sockaddr_in saddr;
++    struct sockaddr_storage saddr;
+     socklen_t len;
+     int fd;
+ 
+@@ -253,9 +253,27 @@ static void net_stream_accept(void *opaque)
+     s->fd = fd;
+     s->nc.link_down = false;
+     net_stream_connect(s);
+-    snprintf(s->nc.info_str, sizeof(s->nc.info_str),
+-             "connection from %s:%d",
+-             inet_ntoa(saddr.sin_addr), ntohs(saddr.sin_port));
++    switch (saddr.ss_family) {
++    case AF_INET: {
++        struct sockaddr_in *saddr_in = (struct sockaddr_in *)&saddr;
++
++        snprintf(s->nc.info_str, sizeof(s->nc.info_str),
++                 "connection from %s:%d",
++                 inet_ntoa(saddr_in->sin_addr), ntohs(saddr_in->sin_port));
++        break;
++    }
++    case AF_UNIX: {
++        struct sockaddr_un saddr_un;
++
++        len = sizeof(saddr_un);
++        getsockname(s->listen_fd, (struct sockaddr *)&saddr_un, &len);
++        snprintf(s->nc.info_str, sizeof(s->nc.info_str),
++                 "connect from %s", saddr_un.sun_path);
++        break;
++    }
++    default:
++        g_assert_not_reached();
++    }
+ }
+ 
+ static int net_stream_server_init(NetClientState *peer,
+@@ -295,6 +313,43 @@ static int net_stream_server_init(NetClientState *peer,
+         }
+         break;
+     }
++    case SOCKET_ADDRESS_TYPE_UNIX: {
++        struct sockaddr_un saddr_un;
++
++        ret = unlink(addr->u.q_unix.path);
++        if (ret < 0 && errno != ENOENT) {
++            error_setg_errno(errp, errno, "failed to unlink socket %s",
++                             addr->u.q_unix.path);
++            return -1;
++        }
++
++        saddr_un.sun_family = PF_UNIX;
++        ret = snprintf(saddr_un.sun_path, sizeof(saddr_un.sun_path), "%s",
++                       addr->u.q_unix.path);
++        if (ret < 0 || ret >= sizeof(saddr_un.sun_path)) {
++            error_setg(errp, "UNIX socket path '%s' is too long",
++                       addr->u.q_unix.path);
++            error_append_hint(errp, "Path must be less than %zu bytes\n",
++                              sizeof(saddr_un.sun_path));
++            return -1;
++        }
++
++        fd = qemu_socket(PF_UNIX, SOCK_STREAM, 0);
++        if (fd < 0) {
++            error_setg_errno(errp, errno, "can't create stream socket");
++            return -1;
++        }
++        qemu_socket_set_nonblock(fd);
++
++        ret = bind(fd, (struct sockaddr *)&saddr_un, sizeof(saddr_un));
++        if (ret < 0) {
++            error_setg_errno(errp, errno, "can't create socket with path: %s",
++                             saddr_un.sun_path);
++            closesocket(fd);
++            return -1;
++        }
++        break;
++    }
+     case SOCKET_ADDRESS_TYPE_FD:
+         fd = monitor_fd_param(monitor_cur(), addr->u.fd.str, errp);
+         if (fd == -1) {
+@@ -380,6 +435,49 @@ static int net_stream_client_init(NetClientState *peer,
+                                    ntohs(saddr_in.sin_port));
+         break;
+     }
++    case SOCKET_ADDRESS_TYPE_UNIX: {
++        struct sockaddr_un saddr_un;
++
++        saddr_un.sun_family = PF_UNIX;
++        ret = snprintf(saddr_un.sun_path, sizeof(saddr_un.sun_path), "%s",
++                       addr->u.q_unix.path);
++        if (ret < 0 || ret >= sizeof(saddr_un.sun_path)) {
++            error_setg(errp, "UNIX socket path '%s' is too long",
++                       addr->u.q_unix.path);
++            error_append_hint(errp, "Path must be less than %zu bytes\n",
++                              sizeof(saddr_un.sun_path));
++            return -1;
++        }
++
++        fd = qemu_socket(PF_UNIX, SOCK_STREAM, 0);
++        if (fd < 0) {
++            error_setg_errno(errp, errno, "can't create stream socket");
++            return -1;
++        }
++        qemu_socket_set_nonblock(fd);
++
++        connected = 0;
++        for (;;) {
++            ret = connect(fd, (struct sockaddr *)&saddr_un, sizeof(saddr_un));
++            if (ret < 0) {
++                if (errno == EINTR || errno == EWOULDBLOCK) {
++                    /* continue */
++                } else if (errno == EAGAIN ||
++                           errno == EALREADY) {
++                    break;
++                } else {
++                    error_setg_errno(errp, errno, "can't connect socket");
++                    closesocket(fd);
++                    return -1;
++                }
++            } else {
++                connected = 1;
++                break;
++            }
++        }
++        info_str = g_strdup_printf(" connect to %s", saddr_un.sun_path);
++        break;
++    }
+     case SOCKET_ADDRESS_TYPE_FD:
+         fd = monitor_fd_param(monitor_cur(), addr->u.fd.str, errp);
+         if (fd == -1) {
+@@ -395,7 +493,7 @@ static int net_stream_client_init(NetClientState *peer,
+         info_str = g_strdup_printf("connect to fd %d", fd);
+         break;
+     default:
+-        error_setg(errp, "only support inet or fd type");
++        error_setg(errp, "only support inet, unix or fd type");
+         return -1;
+     }
+ 
+diff --git a/qapi/net.json b/qapi/net.json
+index a7506a40ff12..518f288758b0 100644
+--- a/qapi/net.json
++++ b/qapi/net.json
+@@ -583,7 +583,7 @@
+ #        or connect to (server=false)
+ # @server: create server socket (default: true)
+ #
+-# Only SocketAddress types 'inet' and 'fd' are supported.
++# Only SocketAddress types 'unix', 'inet' and 'fd' are supported.
+ #
+ # Since: 7.1
+ ##
+diff --git a/qemu-options.hx b/qemu-options.hx
+index 170117e1adf0..827a951a9ef2 100644
+--- a/qemu-options.hx
++++ b/qemu-options.hx
+@@ -2727,6 +2727,7 @@ DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
+     "                configure a network backend to connect to another network\n"
+     "                using an UDP tunnel\n"
+     "-netdev stream,id=str[,server=on|off],addr.type=inet,addr.host=host,addr.port=port\n"
++    "-netdev stream,id=str[,server=on|off],addr.type=unix,addr.path=path\n"
+     "-netdev stream,id=str[,server=on|off],addr.type=fd,addr.str=h\n"
+     "                configure a network backend to connect to another network\n"
+     "                using a socket connection in stream mode.\n"
+
+From patchwork Fri Jul 22 19:04:36 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
+X-Patchwork-Id: 1659721
+Return-Path: <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+X-Original-To: incoming@patchwork.ozlabs.org
+Delivered-To: patchwork-incoming@bilbo.ozlabs.org
+Authentication-Results: ozlabs.org;
+ spf=pass (sender SPF authorized) smtp.mailfrom=nongnu.org
+ (client-ip=209.51.188.17; helo=lists.gnu.org;
+ envelope-from=qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org;
+ receiver=<UNKNOWN>)
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by bilbo.ozlabs.org (Postfix) with ESMTPS id 4LqJpD2pmVz9sGH
+	for <incoming@patchwork.ozlabs.org>; Sat, 23 Jul 2022 05:06:59 +1000 (AEST)
+Received: from localhost ([::1]:52040 helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>)
+	id 1oExzF-0007Th-H2
+	for incoming@patchwork.ozlabs.org; Fri, 22 Jul 2022 15:06:57 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10]:39130)
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxQ-0005uJ-42
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:04 -0400
+Received: from mout.kundenserver.de ([212.227.126.134]:38547)
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxM-0004Yk-Hb
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:03 -0400
+Received: from thinkpad.redhat.com ([82.142.8.70]) by mrelayeu.kundenserver.de
+ (mreue010 [212.227.15.167]) with ESMTPSA (Nemesis) id
+ 1MJVU0-1nv6go0InY-00JshA; Fri, 22 Jul 2022 21:04:54 +0200
+From: Laurent Vivier <lvivier@redhat.com>
+To: qemu-devel@nongnu.org
+Cc: Eric Blake <eblake@redhat.com>, Thomas Huth <thuth@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>, Markus Armbruster <armbru@redhat.com>,
+ "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
+ Stefano Brivio <sbrivio@redhat.com>
+Subject: [PATCH v7 08/14] net: dgram: make dgram_dst generic
+Date: Fri, 22 Jul 2022 21:04:36 +0200
+Message-Id: <20220722190442.301310-9-lvivier@redhat.com>
+X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20220722190442.301310-1-lvivier@redhat.com>
+References: <20220722190442.301310-1-lvivier@redhat.com>
+MIME-Version: 1.0
+X-Provags-ID: V03:K1:hRtven82zU3c0/wcLHFJC75W4kyIMhIOQVIFSJwPlxnaA4684B+
+ B6zg5SWgFBwMjlu84Xw1/zwosi724G/3XxAzXv6KwWEybG8N4HbkQZvN62S0WbNKG/nOdVw
+ jMv36C+Y78poJO2n6vCK4e5MsoQ3y6mBot7zvp+weJsPqhNTx2Kfei0nmjoelzYEj3yZMz8
+ v0ZWD+bCPpEuVV+R8gF3A==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:F8lrqomQoLk=:qiUKOV0IU5CNXLKD+uVhCa
+ eAug3MdwrN8ANuyFxxs2di6FePey/ftLAxQ36R0yI0uyEayUvHXIRUx/s6jbwAq/fHNGZOQl4
+ ngauaHUdfTfwNRV5BTWztAYzwGv8Cjx0jMBKQiIydBt/7Nyj6FgrI2YR1jgYjgnyJhRU+3IAA
+ mEXWE7RS57AEPolYLw0iehmhfOrcIXUf0gv8J1i0+HXj/MC61WFRZ50XVuHbcgkOVD/hVAxz1
+ Ya0BIjB7ri/J09HpCHW1QvWDsMNYn1VI9ZQJBPVwN9LSoJ2vkSiFRf5039b3WZniDpign8JLR
+ Cq35p9CbqBIROMm3HQvmwcv+UnGc/+/30xZWWc2dKVqo0lv/Sc/O/ZjdtF2B3od2WzfKeQwsI
+ 7/ptt8cMcURm8Qrtzg5uB68qeg3WCVBw7wwJCZK4KykaJTMDcdH/9r1iqtRecCYziCmqBduPz
+ tPr2SqZTII9qXWzeoshft4+DKfjZRm800KV4PPv0owSuHmega3RAfitonv6xwjh4Vk6qZE9mw
+ /Rj699smcZJUnzlBz9ZOta0Of17aKf+9WQBqUEJBzsjE9dLwVrvCu9fO3UTdji6HXKB0Q0QZt
+ +103y/r5xCX7Gj7f+xG0BQF9rGnkC6miUwODxcSL6/jny94Svps3jN+rwgeZVP/5lv0cYVJUw
+ QVVZZYn5AlHQaAbTZxLCJZodFyr/JUBfJN/B+of2xlEbjP0VA+WQbplldjR6PEWMGN/1H+WC7
+ 3XKCDwzZecL1+dB6n7aMdwvLUkTAHGC8eY17WQ==
+Received-SPF: permerror client-ip=212.227.126.134;
+ envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
+X-Spam_score_int: -18
+X-Spam_score: -1.9
+X-Spam_bar: -
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001, SPF_HELO_NONE=0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=no autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org
+Sender: "Qemu-devel"
+ <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+
+dgram_dst is a sockaddr_in structure. To be able to use it with
+unix socket, use a pointer to a generic sockaddr structure.
+
+Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+Reviewed-by: Stefano Brivio <sbrivio@redhat.com>
+---
+ net/dgram.c | 76 +++++++++++++++++++++++++++++++----------------------
+ 1 file changed, 45 insertions(+), 31 deletions(-)
+
+diff --git a/net/dgram.c b/net/dgram.c
+index dbe65102d174..dcc2205305c5 100644
+--- a/net/dgram.c
++++ b/net/dgram.c
+@@ -40,9 +40,8 @@ typedef struct NetDgramState {
+     int listen_fd;
+     int fd;
+     SocketReadState rs;
+-  /* contains inet host and port destination iff connectionless (SOCK_DGRAM) */
+-    struct sockaddr_in dgram_dst;
+-    IOHandler *send_fn;           /* differs between SOCK_STREAM/SOCK_DGRAM */
++    struct sockaddr *dgram_dst; /* contains destination iff connectionless */
++    IOHandler *send_fn;
+     bool read_poll;               /* waiting to receive data? */
+     bool write_poll;              /* waiting to transmit data? */
+ } NetDgramState;
+@@ -86,10 +85,9 @@ static ssize_t net_dgram_receive_dgram(NetClientState *nc,
+     ssize_t ret;
+ 
+     do {
+-        if (s->dgram_dst.sin_family != AF_UNIX) {
+-            ret = sendto(s->fd, buf, size, 0,
+-                         (struct sockaddr *)&s->dgram_dst,
+-                         sizeof(s->dgram_dst));
++        if (s->dgram_dst) {
++            ret = sendto(s->fd, buf, size, 0, s->dgram_dst,
++                         sizeof(struct sockaddr_in));
+         } else {
+             ret = send(s->fd, buf, size, 0);
+         }
+@@ -290,6 +288,8 @@ static void net_dgram_cleanup(NetClientState *nc)
+         closesocket(s->listen_fd);
+         s->listen_fd = -1;
+     }
++    g_free(s->dgram_dst);
++    s->dgram_dst = NULL;
+ }
+ 
+ static NetClientInfo net_dgram_socket_info = {
+@@ -306,7 +306,7 @@ static NetDgramState *net_dgram_fd_init_dgram(NetClientState *peer,
+                                               SocketAddress *mcast,
+                                               Error **errp)
+ {
+-    struct sockaddr_in saddr;
++    struct sockaddr_in *saddr = NULL;
+     int newfd;
+     NetClientState *nc;
+     NetDgramState *s;
+@@ -328,24 +328,25 @@ static NetDgramState *net_dgram_fd_init_dgram(NetClientState *peer,
+      */
+ 
+     if (is_fd && mcast != NULL) {
+-            if (convert_host_port(&saddr, mcast->u.inet.host,
+-                                  mcast->u.inet.port, errp) < 0) {
++            saddr = g_new(struct sockaddr_in, 1);
++
++            if (convert_host_port(saddr, mcast->u.inet.host, mcast->u.inet.port,
++                                  errp) < 0) {
+                 goto err;
+             }
+             /* must be bound */
+-            if (saddr.sin_addr.s_addr == 0) {
++            if (saddr->sin_addr.s_addr == 0) {
+                 error_setg(errp, "can't setup multicast destination address");
+                 goto err;
+             }
+             /* clone dgram socket */
+-            newfd = net_dgram_mcast_create(&saddr, NULL, errp);
++            newfd = net_dgram_mcast_create(saddr, NULL, errp);
+             if (newfd < 0) {
+                 goto err;
+             }
+             /* clone newfd to fd, close newfd */
+             dup2(newfd, fd);
+             close(newfd);
+-
+     }
+ 
+     nc = qemu_new_net_client(&net_dgram_socket_info, peer, model, name);
+@@ -359,16 +360,13 @@ static NetDgramState *net_dgram_fd_init_dgram(NetClientState *peer,
+     net_dgram_read_poll(s, true);
+ 
+     /* mcast: save bound address as dst */
+-    if (is_fd && mcast != NULL) {
+-        s->dgram_dst = saddr;
++    if (saddr) {
++        g_assert(s->dgram_dst == NULL);
++        s->dgram_dst = (struct sockaddr *)saddr;
+         snprintf(nc->info_str, sizeof(nc->info_str),
+                  "fd=%d (cloned mcast=%s:%d)",
+-                 fd, inet_ntoa(saddr.sin_addr), ntohs(saddr.sin_port));
++                 fd, inet_ntoa(saddr->sin_addr), ntohs(saddr->sin_port));
+     } else {
+-        if (sa_type == SOCKET_ADDRESS_TYPE_UNIX) {
+-            s->dgram_dst.sin_family = AF_UNIX;
+-        }
+-
+         snprintf(nc->info_str, sizeof(nc->info_str), "fd=%d %s", fd,
+                  SocketAddressType_str(sa_type));
+     }
+@@ -376,6 +374,7 @@ static NetDgramState *net_dgram_fd_init_dgram(NetClientState *peer,
+     return s;
+ 
+ err:
++    g_free(saddr);
+     closesocket(fd);
+     return NULL;
+ }
+@@ -421,21 +420,24 @@ static int net_dgram_mcast_init(NetClientState *peer,
+ {
+     NetDgramState *s;
+     int fd, ret;
+-    struct sockaddr_in saddr;
++    struct sockaddr_in *saddr;
+ 
+     if (remote->type != SOCKET_ADDRESS_TYPE_INET) {
+         error_setg(errp, "multicast only support inet type");
+         return -1;
+     }
+ 
+-    if (convert_host_port(&saddr, remote->u.inet.host, remote->u.inet.port,
++    saddr = g_new(struct sockaddr_in, 1);
++    if (convert_host_port(saddr, remote->u.inet.host, remote->u.inet.port,
+                           errp) < 0) {
++        g_free(saddr);
+         return -1;
+     }
+ 
+     if (!local) {
+-        fd = net_dgram_mcast_create(&saddr, NULL, errp);
++        fd = net_dgram_mcast_create(saddr, NULL, errp);
+         if (fd < 0) {
++            g_free(saddr);
+             return -1;
+         }
+     } else {
+@@ -444,13 +446,15 @@ static int net_dgram_mcast_init(NetClientState *peer,
+             struct in_addr localaddr;
+ 
+             if (inet_aton(local->u.inet.host, &localaddr) == 0) {
++                g_free(saddr);
+                 error_setg(errp, "localaddr '%s' is not a valid IPv4 address",
+                            local->u.inet.host);
+                 return -1;
+             }
+ 
+-            fd = net_dgram_mcast_create(&saddr, &localaddr, errp);
++            fd = net_dgram_mcast_create(saddr, &localaddr, errp);
+             if (fd < 0) {
++                g_free(saddr);
+                 return -1;
+             }
+             break;
+@@ -458,16 +462,19 @@ static int net_dgram_mcast_init(NetClientState *peer,
+         case SOCKET_ADDRESS_TYPE_FD:
+             fd = monitor_fd_param(monitor_cur(), local->u.fd.str, errp);
+             if (fd == -1) {
++                g_free(saddr);
+                 return -1;
+             }
+             ret = qemu_socket_try_set_nonblock(fd);
+             if (ret < 0) {
++                g_free(saddr);
+                 error_setg_errno(errp, -ret, "%s: Can't use file descriptor %d",
+                                  name, fd);
+                 return -1;
+             }
+             break;
+         default:
++            g_free(saddr);
+             error_setg(errp, "only support inet or fd type for local");
+             return -1;
+         }
+@@ -477,13 +484,16 @@ static int net_dgram_mcast_init(NetClientState *peer,
+                                  local->type == SOCKET_ADDRESS_TYPE_FD,
+                                  remote, errp);
+     if (!s) {
++        g_free(saddr);
+         return -1;
+     }
+ 
+-    s->dgram_dst = saddr;
++    g_assert(s->dgram_dst == NULL);
++    s->dgram_dst = (struct sockaddr *)saddr;
+ 
+     snprintf(s->nc.info_str, sizeof(s->nc.info_str), "mcast=%s:%d",
+-             inet_ntoa(saddr.sin_addr), ntohs(saddr.sin_port));
++             inet_ntoa(saddr->sin_addr), ntohs(saddr->sin_port));
++
+     return 0;
+ 
+ }
+@@ -497,8 +507,8 @@ static int net_dgram_udp_init(NetClientState *peer,
+ {
+     NetDgramState *s;
+     int fd, ret;
+-    struct sockaddr_in raddr_in;
+     gchar *info_str;
++    struct sockaddr *dgram_dst;
+ 
+     if (remote) {
+         if (local->type == SOCKET_ADDRESS_TYPE_FD) {
+@@ -518,7 +528,7 @@ static int net_dgram_udp_init(NetClientState *peer,
+ 
+     switch (local->type) {
+     case SOCKET_ADDRESS_TYPE_INET: {
+-        struct sockaddr_in laddr_in;
++        struct sockaddr_in laddr_in, raddr_in;
+ 
+         if (convert_host_port(&laddr_in, local->u.inet.host, local->u.inet.port,
+                               errp) < 0) {
+@@ -552,9 +562,12 @@ static int net_dgram_udp_init(NetClientState *peer,
+         }
+         qemu_socket_set_nonblock(fd);
+ 
++        dgram_dst = g_malloc(sizeof(raddr_in));
++        memcpy(dgram_dst, &raddr_in, sizeof(raddr_in));
++
+         info_str = g_strdup_printf("udp=%s:%d/%s:%d",
+-                 inet_ntoa(laddr_in.sin_addr), ntohs(laddr_in.sin_port),
+-                 inet_ntoa(raddr_in.sin_addr), ntohs(raddr_in.sin_port));
++                        inet_ntoa(laddr_in.sin_addr), ntohs(laddr_in.sin_port),
++                        inet_ntoa(raddr_in.sin_addr), ntohs(raddr_in.sin_port));
+ 
+         break;
+     }
+@@ -581,7 +594,8 @@ static int net_dgram_udp_init(NetClientState *peer,
+     }
+ 
+     if (remote) {
+-        s->dgram_dst = raddr_in;
++        g_assert(s->dgram_dst == NULL);
++        s->dgram_dst = dgram_dst;
+ 
+         pstrcpy(s->nc.info_str, sizeof(s->nc.info_str), info_str);
+         g_free(info_str);
+
+From patchwork Fri Jul 22 19:04:37 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
+X-Patchwork-Id: 1659733
+Return-Path: <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+X-Original-To: incoming@patchwork.ozlabs.org
+Delivered-To: patchwork-incoming@bilbo.ozlabs.org
+Authentication-Results: ozlabs.org;
+ spf=pass (sender SPF authorized) smtp.mailfrom=nongnu.org
+ (client-ip=209.51.188.17; helo=lists.gnu.org;
+ envelope-from=qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org;
+ receiver=<UNKNOWN>)
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by bilbo.ozlabs.org (Postfix) with ESMTPS id 4LqJxd2lxtz9sGQ
+	for <incoming@patchwork.ozlabs.org>; Sat, 23 Jul 2022 05:13:25 +1000 (AEST)
+Received: from localhost ([::1]:41146 helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>)
+	id 1oEy5T-0002ed-1g
+	for incoming@patchwork.ozlabs.org; Fri, 22 Jul 2022 15:13:23 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10]:39108)
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxO-0005sU-Tp
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:02 -0400
+Received: from mout.kundenserver.de ([212.227.126.134]:43255)
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxM-0004Z3-HO
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:02 -0400
+Received: from thinkpad.redhat.com ([82.142.8.70]) by mrelayeu.kundenserver.de
+ (mreue010 [212.227.15.167]) with ESMTPSA (Nemesis) id
+ 1M72bv-1o9BKC0IaV-008YJ1; Fri, 22 Jul 2022 21:04:55 +0200
+From: Laurent Vivier <lvivier@redhat.com>
+To: qemu-devel@nongnu.org
+Cc: Eric Blake <eblake@redhat.com>, Thomas Huth <thuth@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>, Markus Armbruster <armbru@redhat.com>,
+ "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
+ Stefano Brivio <sbrivio@redhat.com>
+Subject: [PATCH v7 09/14] net: dgram: move mcast specific code from
+ net_socket_fd_init_dgram()
+Date: Fri, 22 Jul 2022 21:04:37 +0200
+Message-Id: <20220722190442.301310-10-lvivier@redhat.com>
+X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20220722190442.301310-1-lvivier@redhat.com>
+References: <20220722190442.301310-1-lvivier@redhat.com>
+MIME-Version: 1.0
+X-Provags-ID: V03:K1:ar7Zinkv2xWE08cZjBzQ+98C1nJeyBzDgxvMGGqZgZRB/GHYNRh
+ 9wE9jPU6RIfhYiU4fxqWWpJ96IrT9Vow2eSCwQRfX5ia1E6cJkh2PWkuJzKXaIYjBvONjm7
+ TG91NLXUB7roN+MCNC7XiJvkNEHho8W0hcI77HBPa9UbzVaheOclI8Nl/916OJy72RCftfG
+ vsew9yljqCpPWZxkDIIeQ==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:Qh4n5YTfJbg=:LUYrWvnw+xVeCK9ndhVaaz
+ AQnn22iLpZ3umo4RSIDPLddm3hkoci+Z/L/QdBORAHKqNoaU+oI05oz6hNBXHdVawFh4Uu6Ro
+ nw+Pr7MueSMAsZtD+AK0yWRuLNzXwaRhEE6F3BX12ujU/AGDVHj3sXn3xbaoSD9723iY6FVKs
+ /WcnfmrpDBeBYkK+eRGiENeOuJ/Xi8jthml2rjMR7Oh1FYWloS5L4Q7IniOraUVUXHaAtg/HQ
+ OL4j2GTmW6zhiocSCuHBFYWTBgtzZssPArX+kKpciLWfaRz0Ut+bw67/NCL/QWHsnqt9AizCn
+ 7Jl9yKu7BJCNDF5MBGSkWusfepSiV0hwXWqonn6x23d4/QczqxOG9oUahPjvl+BXLzQDgkd+A
+ 5rIVvpB6zsHVmY6qQw2Ak+R4c/0Aoy8dtY0R7SIIlrft0r10bQ8SVQMxeD77B3BGPkYPRTlZ2
+ Noa0hcGdp9qiX1tFiVK8txrFKlX31IM5aJ1Dwa6u9MPuklCa7ME5PutpW3fVq7bXKGbfZKmiN
+ opTIN9AwHwu08K4AAk2QbTtO0sV++k24Db0YEny9+ZVwIF3UawwpkeFlZ45JWFnmiDYIFwHhN
+ Dit+c1jnlQj0002YE0GoFJJVB+s2KooKvZYeS9uE1UtUS9BHVQ9+Da4Brpjz1Pm6UZDbt2bZ0
+ fyCdJt4XCYjsdWd/caRs4rqeb81g+7qjVE1ixFucxSCoxrObCNdJvt/9ByL02brnwCVMLmePC
+ Kk+EAjiAzrNxvWdP3BXZyiMG8JPazxpAwmcIGQ==
+Received-SPF: permerror client-ip=212.227.126.134;
+ envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
+X-Spam_score_int: -18
+X-Spam_score: -1.9
+X-Spam_bar: -
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001, SPF_HELO_NONE=0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=no autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org
+Sender: "Qemu-devel"
+ <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+
+It is less complex to manage special cases directly in
+net_dgram_mcast_init() and net_dgram_udp_init().
+
+Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+Reviewed-by: Stefano Brivio <sbrivio@redhat.com>
+---
+ net/dgram.c | 143 +++++++++++++++++++++++++++-------------------------
+ 1 file changed, 73 insertions(+), 70 deletions(-)
+
+diff --git a/net/dgram.c b/net/dgram.c
+index dcc2205305c5..16e2d909755c 100644
+--- a/net/dgram.c
++++ b/net/dgram.c
+@@ -302,52 +302,11 @@ static NetClientInfo net_dgram_socket_info = {
+ static NetDgramState *net_dgram_fd_init_dgram(NetClientState *peer,
+                                               const char *model,
+                                               const char *name,
+-                                              int fd, int is_fd,
+-                                              SocketAddress *mcast,
++                                              int fd,
+                                               Error **errp)
+ {
+-    struct sockaddr_in *saddr = NULL;
+-    int newfd;
+     NetClientState *nc;
+     NetDgramState *s;
+-    SocketAddress *sa;
+-    SocketAddressType sa_type;
+-
+-    sa = socket_local_address(fd, errp);
+-    if (!sa) {
+-        return NULL;
+-    }
+-    sa_type = sa->type;
+-    qapi_free_SocketAddress(sa);
+-
+-    /*
+-     * fd passed: multicast: "learn" dgram_dst address from bound address and
+-     * save it. Because this may be "shared" socket from a "master" process,
+-     * datagrams would be recv() by ONLY ONE process: we must "clone" this
+-     * dgram socket --jjo
+-     */
+-
+-    if (is_fd && mcast != NULL) {
+-            saddr = g_new(struct sockaddr_in, 1);
+-
+-            if (convert_host_port(saddr, mcast->u.inet.host, mcast->u.inet.port,
+-                                  errp) < 0) {
+-                goto err;
+-            }
+-            /* must be bound */
+-            if (saddr->sin_addr.s_addr == 0) {
+-                error_setg(errp, "can't setup multicast destination address");
+-                goto err;
+-            }
+-            /* clone dgram socket */
+-            newfd = net_dgram_mcast_create(saddr, NULL, errp);
+-            if (newfd < 0) {
+-                goto err;
+-            }
+-            /* clone newfd to fd, close newfd */
+-            dup2(newfd, fd);
+-            close(newfd);
+-    }
+ 
+     nc = qemu_new_net_client(&net_dgram_socket_info, peer, model, name);
+ 
+@@ -359,24 +318,7 @@ static NetDgramState *net_dgram_fd_init_dgram(NetClientState *peer,
+     net_socket_rs_init(&s->rs, net_dgram_rs_finalize, false);
+     net_dgram_read_poll(s, true);
+ 
+-    /* mcast: save bound address as dst */
+-    if (saddr) {
+-        g_assert(s->dgram_dst == NULL);
+-        s->dgram_dst = (struct sockaddr *)saddr;
+-        snprintf(nc->info_str, sizeof(nc->info_str),
+-                 "fd=%d (cloned mcast=%s:%d)",
+-                 fd, inet_ntoa(saddr->sin_addr), ntohs(saddr->sin_port));
+-    } else {
+-        snprintf(nc->info_str, sizeof(nc->info_str), "fd=%d %s", fd,
+-                 SocketAddressType_str(sa_type));
+-    }
+-
+     return s;
+-
+-err:
+-    g_free(saddr);
+-    closesocket(fd);
+-    return NULL;
+ }
+ 
+ static void net_dgram_connect(void *opaque)
+@@ -421,6 +363,7 @@ static int net_dgram_mcast_init(NetClientState *peer,
+     NetDgramState *s;
+     int fd, ret;
+     struct sockaddr_in *saddr;
++    gchar *info_str;
+ 
+     if (remote->type != SOCKET_ADDRESS_TYPE_INET) {
+         error_setg(errp, "multicast only support inet type");
+@@ -440,6 +383,9 @@ static int net_dgram_mcast_init(NetClientState *peer,
+             g_free(saddr);
+             return -1;
+         }
++        info_str = g_strdup_printf("mcast=%s:%d",
++                                   inet_ntoa(saddr->sin_addr),
++                                   ntohs(saddr->sin_port));
+     } else {
+         switch (local->type) {
+         case SOCKET_ADDRESS_TYPE_INET: {
+@@ -457,9 +403,14 @@ static int net_dgram_mcast_init(NetClientState *peer,
+                 g_free(saddr);
+                 return -1;
+             }
++            info_str = g_strdup_printf("mcast=%s:%d",
++                                       inet_ntoa(saddr->sin_addr),
++                                       ntohs(saddr->sin_port));
+             break;
+         }
+-        case SOCKET_ADDRESS_TYPE_FD:
++        case SOCKET_ADDRESS_TYPE_FD: {
++            int newfd;
++
+             fd = monitor_fd_param(monitor_cur(), local->u.fd.str, errp);
+             if (fd == -1) {
+                 g_free(saddr);
+@@ -472,7 +423,46 @@ static int net_dgram_mcast_init(NetClientState *peer,
+                                  name, fd);
+                 return -1;
+             }
++
++            /*
++             * fd passed: multicast: "learn" dgram_dst address from bound
++             * address and save it. Because this may be "shared" socket from a
++             * "master" process, datagrams would be recv() by ONLY ONE process:
++             * we must "clone" this dgram socket --jjo
++             */
++
++            saddr = g_new(struct sockaddr_in, 1);
++
++            if (convert_host_port(saddr, local->u.inet.host, local->u.inet.port,
++                                  errp) < 0) {
++                g_free(saddr);
++                closesocket(fd);
++                return -1;
++            }
++
++            /* must be bound */
++            if (saddr->sin_addr.s_addr == 0) {
++                error_setg(errp, "can't setup multicast destination address");
++                g_free(saddr);
++                closesocket(fd);
++                return -1;
++            }
++            /* clone dgram socket */
++            newfd = net_dgram_mcast_create(saddr, NULL, errp);
++            if (newfd < 0) {
++                g_free(saddr);
++                closesocket(fd);
++                return -1;
++            }
++            /* clone newfd to fd, close newfd */
++            dup2(newfd, fd);
++            close(newfd);
++
++            info_str = g_strdup_printf("fd=%d (cloned mcast=%s:%d)",
++                                       fd, inet_ntoa(saddr->sin_addr),
++                                       ntohs(saddr->sin_port));
+             break;
++        }
+         default:
+             g_free(saddr);
+             error_setg(errp, "only support inet or fd type for local");
+@@ -480,9 +470,7 @@ static int net_dgram_mcast_init(NetClientState *peer,
+         }
+     }
+ 
+-    s = net_dgram_fd_init_dgram(peer, model, name, fd,
+-                                 local->type == SOCKET_ADDRESS_TYPE_FD,
+-                                 remote, errp);
++    s = net_dgram_fd_init_dgram(peer, model, name, fd, errp);
+     if (!s) {
+         g_free(saddr);
+         return -1;
+@@ -491,8 +479,8 @@ static int net_dgram_mcast_init(NetClientState *peer,
+     g_assert(s->dgram_dst == NULL);
+     s->dgram_dst = (struct sockaddr *)saddr;
+ 
+-    snprintf(s->nc.info_str, sizeof(s->nc.info_str), "mcast=%s:%d",
+-             inet_ntoa(saddr->sin_addr), ntohs(saddr->sin_port));
++    pstrcpy(s->nc.info_str, sizeof(s->nc.info_str), info_str);
++    g_free(info_str);
+ 
+     return 0;
+ 
+@@ -571,7 +559,10 @@ static int net_dgram_udp_init(NetClientState *peer,
+ 
+         break;
+     }
+-    case SOCKET_ADDRESS_TYPE_FD:
++    case SOCKET_ADDRESS_TYPE_FD: {
++        SocketAddress *sa;
++        SocketAddressType sa_type;
++
+         fd = monitor_fd_param(monitor_cur(), local->u.fd.str, errp);
+         if (fd == -1) {
+             return -1;
+@@ -582,23 +573,35 @@ static int net_dgram_udp_init(NetClientState *peer,
+                              name, fd);
+             return -1;
+         }
++
++        sa = socket_local_address(fd, errp);
++        if (sa) {
++            sa_type = sa->type;
++            qapi_free_SocketAddress(sa);
++
++            info_str = g_strdup_printf("fd=%d %s", fd,
++                                       SocketAddressType_str(sa_type));
++        } else {
++            info_str = g_strdup_printf("fd=%d", fd);
++        }
+         break;
++    }
+     default:
+         error_setg(errp, "only support inet or fd type for local");
+         return -1;
+     }
+ 
+-    s = net_dgram_fd_init_dgram(peer, model, name, fd, 0, NULL, errp);
++    s = net_dgram_fd_init_dgram(peer, model, name, fd, errp);
+     if (!s) {
+         return -1;
+     }
+ 
++    pstrcpy(s->nc.info_str, sizeof(s->nc.info_str), info_str);
++    g_free(info_str);
++
+     if (remote) {
+         g_assert(s->dgram_dst == NULL);
+         s->dgram_dst = dgram_dst;
+-
+-        pstrcpy(s->nc.info_str, sizeof(s->nc.info_str), info_str);
+-        g_free(info_str);
+     }
+     return 0;
+ }
+
+From patchwork Fri Jul 22 19:04:38 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
+X-Patchwork-Id: 1659722
+Return-Path: <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+X-Original-To: incoming@patchwork.ozlabs.org
+Delivered-To: patchwork-incoming@bilbo.ozlabs.org
+Authentication-Results: ozlabs.org;
+ spf=pass (sender SPF authorized) smtp.mailfrom=nongnu.org
+ (client-ip=209.51.188.17; helo=lists.gnu.org;
+ envelope-from=qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org;
+ receiver=<UNKNOWN>)
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by bilbo.ozlabs.org (Postfix) with ESMTPS id 4LqJpH0DnBz9sGH
+	for <incoming@patchwork.ozlabs.org>; Sat, 23 Jul 2022 05:07:03 +1000 (AEST)
+Received: from localhost ([::1]:52456 helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>)
+	id 1oExzI-0007q7-R0
+	for incoming@patchwork.ozlabs.org; Fri, 22 Jul 2022 15:07:00 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10]:39138)
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxQ-0005vM-3g
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:04 -0400
+Received: from mout.kundenserver.de ([212.227.126.131]:36205)
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxN-0004cg-Sb
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:03 -0400
+Received: from thinkpad.redhat.com ([82.142.8.70]) by mrelayeu.kundenserver.de
+ (mreue010 [212.227.15.167]) with ESMTPSA (Nemesis) id
+ 1MMoKq-1nyOTc08Cy-00IlhY; Fri, 22 Jul 2022 21:04:56 +0200
+From: Laurent Vivier <lvivier@redhat.com>
+To: qemu-devel@nongnu.org
+Cc: Eric Blake <eblake@redhat.com>, Thomas Huth <thuth@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>, Markus Armbruster <armbru@redhat.com>,
+ "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
+ Stefano Brivio <sbrivio@redhat.com>
+Subject: [PATCH v7 10/14] net: dgram: add unix socket
+Date: Fri, 22 Jul 2022 21:04:38 +0200
+Message-Id: <20220722190442.301310-11-lvivier@redhat.com>
+X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20220722190442.301310-1-lvivier@redhat.com>
+References: <20220722190442.301310-1-lvivier@redhat.com>
+MIME-Version: 1.0
+X-Provags-ID: V03:K1:cRHNFwfg8klj+rwLzz7CQdEEOIYFMwmeaJ3V7Dg1IU3rC4zozAE
+ R4dy6YxEbh/VXHJgGif2j8v0AX6FUVLotWhFulOmzrZ86yphR+j7XNogXurgfoQGG6diFz7
+ RIwAuFcCl+WXgWeW9tzJ9PUPbA3GJSA2vfkY2FouIx8pb6fotpcOIVQoKkcEOlnNx2Rs/Ka
+ 8DWNZDc7+KoIBV/6eA65w==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:Clpt+ujrTg8=:CkboqXC3WfE3XMf+CU3AZt
+ J+VKd2imi/ugNxWy5x5cjAnjpeWJpUFKLbZ+68OrENCo6wrlcp9TfRLaCk/Is30kNuZSvbpM9
+ +4QvYtyFXdgexxq3yJKoXD6IxRrRDoyQ2s8B4VDyuXvn62Pc9kC/DHTeVNhHODF9BQog1Xa5O
+ 5rCgVRzubW7nWy2thQea7d/P+QkvNZFCs5d5DaIGkD6PNOw98BesR0xe+DPWZE/lrL7LlOnX1
+ ISjNUeA+/1cQBMrgm+sUTQ739QgimJhn0atieIP+Hvok6vi6KVWvpwsLUntBA7nVtFPHdpUkz
+ OqvyBG4oHUVNcp/m+E9bcy1zxi5LLHK/nlSUuamF0BGlbeFuperqNbp+XrUePLj4Q3g3uLH9n
+ N87IH17tE7iY2VZ/vFu3JoatoZH1Hfpe3rvWmXWduXjnvykaV6zM6kEawIK1YLlC3xX9GEBNL
+ GZyyBAbQW+eyZ9FvdT9lYn9UqU0BCMjtBAcYoZ0ks1LT1T2WSCqW9n4u8ku/ceGRJnsr977D0
+ mS/f6yeHxh8OjCaZLSMpzT+sEGUWkNFRTlMpAgysyXA0whDF9Snr1U/Qi1134b1cg5AYr6noB
+ A+MCAx5P74f80ZxW2d4ETRuvcG5jjEqtcQjp5Y6N6b9DAlHUOi9QtuvVIRNfYJ52NrgjZe+kW
+ fNIzwRCfOAxBAPqK6eHpNYlheqHhCZW3qz2iMjatW6uzD1RTrJgnpUaOwJyCbxE3WYPRKrhJh
+ WliEHhgNRbIoJ41CSA3jX6DaeZl+QnrHgyGAIg==
+Received-SPF: permerror client-ip=212.227.126.131;
+ envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
+X-Spam_score_int: -18
+X-Spam_score: -1.9
+X-Spam_bar: -
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001, SPF_HELO_NONE=0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=no autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org
+Sender: "Qemu-devel"
+ <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+
+Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+Reviewed-by: Stefano Brivio <sbrivio@redhat.com>
+---
+ net/dgram.c     | 65 ++++++++++++++++++++++++++++++++++++++++++++++---
+ qapi/net.json   |  2 +-
+ qemu-options.hx |  1 +
+ 3 files changed, 64 insertions(+), 4 deletions(-)
+
+diff --git a/net/dgram.c b/net/dgram.c
+index 16e2d909755c..9f3eafee3b67 100644
+--- a/net/dgram.c
++++ b/net/dgram.c
+@@ -86,8 +86,15 @@ static ssize_t net_dgram_receive_dgram(NetClientState *nc,
+ 
+     do {
+         if (s->dgram_dst) {
+-            ret = sendto(s->fd, buf, size, 0, s->dgram_dst,
+-                         sizeof(struct sockaddr_in));
++            socklen_t len;
++
++            if (s->dgram_dst->sa_family == AF_INET) {
++                len = sizeof(struct sockaddr_in);
++            } else {
++                len = sizeof(struct sockaddr_un);
++            }
++
++            ret = sendto(s->fd, buf, size, 0, s->dgram_dst, len);
+         } else {
+             ret = send(s->fd, buf, size, 0);
+         }
+@@ -509,7 +516,7 @@ static int net_dgram_udp_init(NetClientState *peer,
+         }
+     } else {
+         if (local->type != SOCKET_ADDRESS_TYPE_FD) {
+-            error_setg(errp, "type=inet requires remote parameter");
++            error_setg(errp, "type=inet or unix require remote parameter");
+             return -1;
+         }
+     }
+@@ -559,6 +566,58 @@ static int net_dgram_udp_init(NetClientState *peer,
+ 
+         break;
+     }
++    case SOCKET_ADDRESS_TYPE_UNIX: {
++        struct sockaddr_un laddr_un, raddr_un;
++
++        ret = unlink(local->u.q_unix.path);
++        if (ret < 0 && errno != ENOENT) {
++            error_setg_errno(errp, errno, "failed to unlink socket %s",
++                             local->u.q_unix.path);
++            return -1;
++        }
++
++        laddr_un.sun_family = PF_UNIX;
++        ret = snprintf(laddr_un.sun_path, sizeof(laddr_un.sun_path), "%s",
++                       local->u.q_unix.path);
++        if (ret < 0 || ret >= sizeof(laddr_un.sun_path)) {
++            error_setg(errp, "UNIX socket path '%s' is too long",
++                       local->u.q_unix.path);
++            error_append_hint(errp, "Path must be less than %zu bytes\n",
++                              sizeof(laddr_un.sun_path));
++        }
++
++        raddr_un.sun_family = PF_UNIX;
++        ret = snprintf(raddr_un.sun_path, sizeof(raddr_un.sun_path), "%s",
++                       remote->u.q_unix.path);
++        if (ret < 0 || ret >= sizeof(raddr_un.sun_path)) {
++            error_setg(errp, "UNIX socket path '%s' is too long",
++                       remote->u.q_unix.path);
++            error_append_hint(errp, "Path must be less than %zu bytes\n",
++                              sizeof(raddr_un.sun_path));
++        }
++
++        fd = qemu_socket(PF_UNIX, SOCK_DGRAM, 0);
++        if (fd < 0) {
++            error_setg_errno(errp, errno, "can't create datagram socket");
++            return -1;
++        }
++
++        ret = bind(fd, (struct sockaddr *)&laddr_un, sizeof(laddr_un));
++        if (ret < 0) {
++            error_setg_errno(errp, errno, "can't bind unix=%s to socket",
++                             laddr_un.sun_path);
++            closesocket(fd);
++            return -1;
++        }
++        qemu_socket_set_nonblock(fd);
++
++        dgram_dst = g_malloc(sizeof(raddr_un));
++        memcpy(dgram_dst, &raddr_un, sizeof(raddr_un));
++
++        info_str = g_strdup_printf("udp=%s:%s",
++                                   laddr_un.sun_path, raddr_un.sun_path);
++        break;
++    }
+     case SOCKET_ADDRESS_TYPE_FD: {
+         SocketAddress *sa;
+         SocketAddressType sa_type;
+diff --git a/qapi/net.json b/qapi/net.json
+index 518f288758b0..894c06a82b1b 100644
+--- a/qapi/net.json
++++ b/qapi/net.json
+@@ -600,7 +600,7 @@
+ # @remote: remote address
+ # @local: local address
+ #
+-# Only SocketAddress types 'inet' and 'fd' are supported.
++# Only SocketAddress types 'unix', 'inet' and 'fd' are supported.
+ #
+ # The code checks there is at least one of these options and reports an error
+ # if not. If remote address is present and it's a multicast address, local
+diff --git a/qemu-options.hx b/qemu-options.hx
+index 827a951a9ef2..33c5bd72af21 100644
+--- a/qemu-options.hx
++++ b/qemu-options.hx
+@@ -2736,6 +2736,7 @@ DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
+     "                configure a network backend to connect to a multicast maddr and port\n"
+     "                use ``local.host=addr`` to specify the host address to send packets from\n"
+     "-netdev dgram,id=str,local.type=inet,local.host=addr,local.port=port[,remote.type=inet,remote.host=addr,remote.port=port]\n"
++    "-netdev dgram,id=str,local.type=unix,local.path=path[,remote.type=unix,remote.path=path]\n"
+     "-netdev dgram,id=str,local.type=fd,local.str=h\n"
+     "                configure a network backend to connect to another network\n"
+     "                using an UDP tunnel\n"
+
+From patchwork Fri Jul 22 19:04:39 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
+X-Patchwork-Id: 1659737
+Return-Path: <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+X-Original-To: incoming@patchwork.ozlabs.org
+Delivered-To: patchwork-incoming@bilbo.ozlabs.org
+Authentication-Results: ozlabs.org;
+ spf=pass (sender SPF authorized) smtp.mailfrom=nongnu.org
+ (client-ip=209.51.188.17; helo=lists.gnu.org;
+ envelope-from=qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org;
+ receiver=<UNKNOWN>)
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by bilbo.ozlabs.org (Postfix) with ESMTPS id 4LqK0Z1wl2z9sGQ
+	for <incoming@patchwork.ozlabs.org>; Sat, 23 Jul 2022 05:15:58 +1000 (AEST)
+Received: from localhost ([::1]:48534 helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>)
+	id 1oEy7w-0007kn-4Z
+	for incoming@patchwork.ozlabs.org; Fri, 22 Jul 2022 15:15:56 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10]:39142)
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxQ-0005wl-Ek
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:04 -0400
+Received: from mout.kundenserver.de ([212.227.126.133]:49343)
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxO-0004d2-HK
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:04 -0400
+Received: from thinkpad.redhat.com ([82.142.8.70]) by mrelayeu.kundenserver.de
+ (mreue010 [212.227.15.167]) with ESMTPSA (Nemesis) id
+ 1N1OsF-1nUGSh3s4p-012sLf; Fri, 22 Jul 2022 21:04:57 +0200
+From: Laurent Vivier <lvivier@redhat.com>
+To: qemu-devel@nongnu.org
+Cc: Eric Blake <eblake@redhat.com>, Thomas Huth <thuth@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>, Markus Armbruster <armbru@redhat.com>,
+ "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>
+Subject: [PATCH v7 11/14] qemu-sockets: move and rename SocketAddress_to_str()
+Date: Fri, 22 Jul 2022 21:04:39 +0200
+Message-Id: <20220722190442.301310-12-lvivier@redhat.com>
+X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20220722190442.301310-1-lvivier@redhat.com>
+References: <20220722190442.301310-1-lvivier@redhat.com>
+MIME-Version: 1.0
+X-Provags-ID: V03:K1:x2v5an+/iIrecv2m0hVT0IwGhx0EGejVo1UrHE8nDjhohv3yZnk
+ TMyJG1bRdLS7nR0AbQeLm/PBq+EOoFlBdFZMf8w1z6BzVydR4pnjI9Wmy88lufHyxVBBCeR
+ mrRMTCwWnwdqkXJltPpyJB1TK3znetDhZD35cNWcs5DR3CS6wpxCmAkdTS2OTbdR2fATHuY
+ HTJAPAdxPMsDGHoadkWAw==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:3+5HjOGboFI=:WPb6+PMjxNRFTorkcpJdJP
+ sVD2LbUm/LF8+g++WSocq0iinLthUoFMRdABLthbV7vRWpcU8qTkdzCYjqfV60uIDNDDJw/Uk
+ AU3dSIjum4054RpT/yHc7cKVTQ8rg21ueb8EqOdz+Kw4wCCUv0m2ntOu44vNn34X6H/ZtPDz5
+ G5sAyhQPE+CLJaBFLZ8nOamEgOVQGPKQi951UH8f+kSIbA7jkIyXw39fRL4oN5yGEd+ZHKtpK
+ B1KyHHBDrmyBJP8R+lLrG8yBlJrwIk6MxrSAwYuPWX98ICDpIi0YEPXbvGyg5UnDuYo2JKib3
+ 7g5l5kj/D2wep44VBNYGdU9fQAlWSieka++HG3TEPELvq31UFd+mRc+V/RThgWL2ehdvnB0/n
+ Y2D5dv3053/ip+pOXDwGHkNZS2Vg+486wBZiQu5QUijhvrwzDcVl9256TRf4J6FBw4EQK51zy
+ oPnQHQWOly6hLXfobiBPvTAoJWQTNEmyOZdCViTzYJrfl9wDe7WIBNnJ8S/KTnqnzRt+rJxXK
+ 3ND0z9ikRyJeWwH59zrFbJPJ70NVZ3Fock6sopEgTlAjhZcFT+uuW6uEOFlE8aCn4lxpiaxjd
+ RcQLTDKnB8gIlIwOFTkC8x36sqcawCJ4BMnFcaYlfpQu8zWUILmBQcrsl5K5KWntysWOihvd/
+ zkpd/nU0B4m76G6VESOd042kiDoEi4OoDLeNbaOwx9pSM0RIpXtopwY+nZDJR9BrfI+eo0PPg
+ 7QYJqsT+3c1ulPHm9QlPRPKANu5uZAQdWJBKcA==
+Received-SPF: permerror client-ip=212.227.126.133;
+ envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
+X-Spam_score_int: -18
+X-Spam_score: -1.9
+X-Spam_bar: -
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ SPF_FAIL=0.001, SPF_HELO_NONE=0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=no autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org
+Sender: "Qemu-devel"
+ <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+
+Rename SocketAddress_to_str() to socket_uri() and move it to
+util/qemu-sockets.c close to socket_parse().
+
+socket_uri() generates a string from a SocketAddress while
+socket_parse() generates a SocketAddress from a string.
+
+Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+---
+ include/qemu/sockets.h |  2 +-
+ monitor/hmp-cmds.c     | 23 +----------------------
+ util/qemu-sockets.c    | 20 ++++++++++++++++++++
+ 3 files changed, 22 insertions(+), 23 deletions(-)
+
+diff --git a/include/qemu/sockets.h b/include/qemu/sockets.h
+index 47194b9732f8..e5a06d2e3729 100644
+--- a/include/qemu/sockets.h
++++ b/include/qemu/sockets.h
+@@ -40,6 +40,7 @@ NetworkAddressFamily inet_netfamily(int family);
+ int unix_listen(const char *path, Error **errp);
+ int unix_connect(const char *path, Error **errp);
+ 
++char *socket_uri(SocketAddress *addr);
+ SocketAddress *socket_parse(const char *str, Error **errp);
+ int socket_connect(SocketAddress *addr, Error **errp);
+ int socket_listen(SocketAddress *addr, int num, Error **errp);
+@@ -123,5 +124,4 @@ SocketAddress *socket_address_flatten(SocketAddressLegacy *addr);
+  * Return 0 on success.
+  */
+ int socket_address_parse_named_fd(SocketAddress *addr, Error **errp);
+-
+ #endif /* QEMU_SOCKETS_H */
+diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
+index c6cd6f91dde6..cb35059c2d45 100644
+--- a/monitor/hmp-cmds.c
++++ b/monitor/hmp-cmds.c
+@@ -197,27 +197,6 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
+     qapi_free_MouseInfoList(mice_list);
+ }
+ 
+-static char *SocketAddress_to_str(SocketAddress *addr)
+-{
+-    switch (addr->type) {
+-    case SOCKET_ADDRESS_TYPE_INET:
+-        return g_strdup_printf("tcp:%s:%s",
+-                               addr->u.inet.host,
+-                               addr->u.inet.port);
+-    case SOCKET_ADDRESS_TYPE_UNIX:
+-        return g_strdup_printf("unix:%s",
+-                               addr->u.q_unix.path);
+-    case SOCKET_ADDRESS_TYPE_FD:
+-        return g_strdup_printf("fd:%s", addr->u.fd.str);
+-    case SOCKET_ADDRESS_TYPE_VSOCK:
+-        return g_strdup_printf("tcp:%s:%s",
+-                               addr->u.vsock.cid,
+-                               addr->u.vsock.port);
+-    default:
+-        return g_strdup("unknown address type");
+-    }
+-}
+-
+ void hmp_info_migrate(Monitor *mon, const QDict *qdict)
+ {
+     MigrationInfo *info;
+@@ -380,7 +359,7 @@ void hmp_info_migrate(Monitor *mon, const QDict *qdict)
+         monitor_printf(mon, "socket address: [\n");
+ 
+         for (addr = info->socket_address; addr; addr = addr->next) {
+-            char *s = SocketAddress_to_str(addr->value);
++            char *s = socket_uri(addr->value);
+             monitor_printf(mon, "\t%s\n", s);
+             g_free(s);
+         }
+diff --git a/util/qemu-sockets.c b/util/qemu-sockets.c
+index 13b5b197f9ea..870a36eb0e93 100644
+--- a/util/qemu-sockets.c
++++ b/util/qemu-sockets.c
+@@ -1098,6 +1098,26 @@ int unix_connect(const char *path, Error **errp)
+     return sock;
+ }
+ 
++char *socket_uri(SocketAddress *addr)
++{
++    switch (addr->type) {
++    case SOCKET_ADDRESS_TYPE_INET:
++        return g_strdup_printf("tcp:%s:%s",
++                               addr->u.inet.host,
++                               addr->u.inet.port);
++    case SOCKET_ADDRESS_TYPE_UNIX:
++        return g_strdup_printf("unix:%s",
++                               addr->u.q_unix.path);
++    case SOCKET_ADDRESS_TYPE_FD:
++        return g_strdup_printf("fd:%s", addr->u.fd.str);
++    case SOCKET_ADDRESS_TYPE_VSOCK:
++        return g_strdup_printf("tcp:%s:%s",
++                               addr->u.vsock.cid,
++                               addr->u.vsock.port);
++    default:
++        return g_strdup("unknown address type");
++    }
++}
+ 
+ SocketAddress *socket_parse(const char *str, Error **errp)
+ {
+
+From patchwork Fri Jul 22 19:04:40 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
+X-Patchwork-Id: 1659726
+Return-Path: <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+X-Original-To: incoming@patchwork.ozlabs.org
+Delivered-To: patchwork-incoming@bilbo.ozlabs.org
+Authentication-Results: ozlabs.org;
+ spf=pass (sender SPF authorized) smtp.mailfrom=nongnu.org
+ (client-ip=209.51.188.17; helo=lists.gnu.org;
+ envelope-from=qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org;
+ receiver=<UNKNOWN>)
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by bilbo.ozlabs.org (Postfix) with ESMTPS id 4LqJs9111cz9sGP
+	for <incoming@patchwork.ozlabs.org>; Sat, 23 Jul 2022 05:09:32 +1000 (AEST)
+Received: from localhost ([::1]:60420 helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>)
+	id 1oEy1h-0004rI-Ch
+	for incoming@patchwork.ozlabs.org; Fri, 22 Jul 2022 15:09:29 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10]:39164)
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxR-0005zU-Hq
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:05 -0400
+Received: from mout.kundenserver.de ([212.227.126.130]:59095)
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxP-0004de-H4
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:05 -0400
+Received: from thinkpad.redhat.com ([82.142.8.70]) by mrelayeu.kundenserver.de
+ (mreue010 [212.227.15.167]) with ESMTPSA (Nemesis) id
+ 1MryGj-1nlLm03b9B-00nxaj; Fri, 22 Jul 2022 21:04:58 +0200
+From: Laurent Vivier <lvivier@redhat.com>
+To: qemu-devel@nongnu.org
+Cc: Eric Blake <eblake@redhat.com>, Thomas Huth <thuth@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>, Markus Armbruster <armbru@redhat.com>,
+ "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>
+Subject: [PATCH v7 12/14] qemu-sockets: update socket_uri() and socket_parse()
+ to be consistent
+Date: Fri, 22 Jul 2022 21:04:40 +0200
+Message-Id: <20220722190442.301310-13-lvivier@redhat.com>
+X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20220722190442.301310-1-lvivier@redhat.com>
+References: <20220722190442.301310-1-lvivier@redhat.com>
+MIME-Version: 1.0
+X-Provags-ID: V03:K1:Fkz1pgwktjZ5f2d9BBnl0xXF4qh4fPFr8coTkBdPqz7znpCiWbD
+ MNME+DQGoYBjMP+Msb/cORQJ/ZNOLpr92hN5F2d7A3ny2uzVmM8fV9ntpbgb831RsPlRZLc
+ 8B1bHy4GyRPf9O8pubma3Zd/a7IpMbT6dZ++paV81OVs/d+6l/lXzC7jg73SIb3Kt84/vhr
+ TUd7rZDcm8Klm+v+Vyvpw==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:iQSCW53r6Yc=:4g6vthf7t96Rjw48K/N9jT
+ 6/GJ4YB/hcL8F0mMCwaNljS3vl9s8Vs8M/vaRuFSay7opJ5ZpF51pw+U7DlESFxHf7OC58lHi
+ 4p0ao8tNFg1weA/PS0Vr6tw9GhcGIXdlxecBKUYdF3vdvNYfWXRIyfdDeBn6wrfSExaCUmbC1
+ Gjwb79MPuKY1IDbn48OiTgHCecZCYmEQE776pF3q6b6YiyobVoygOhyce6yudplJp1ATjZFjZ
+ 1gSnQ4NBLUw7xqpdDv8Xrt2Nxi4KA5Z7lQHERdmrbM850v27agZ6gkRzDP8kkddCaniqqGyKc
+ xkIEXaXAU3ChNegxv7xhksHmGxC99Ih8ZE5Lfb+/nUeFN+zPL4/tyEOhXdbXpCXx5b9ZEzm8j
+ w74olAb/VoZou6reVaX6EVGsdNa7IKVoncwrKtx0KOzG4Ol+FAwVP8O8VMKypIIjRP6ggG+Nv
+ cV3CNRjWRUT4GnsqxFzfQkJnowM69D4AlIdp/vJJ4VwUPL4hjdsQgUHZT71OEae5DrqPQwXRx
+ qz/b6xYJfSZd/I1BoRZgFUlfKEajTujlu1s4LFGRZ62pqMQHrkpKChBPAK5izI9nuosZS4KZr
+ 101mGHP81CJXrhyFqBnlmrHZYusk071n7Am3ezYrNxi2euJtX9I3d1DW2hnCoy69VkWZSrM81
+ h7ds/8hWVNzz0mPEiDugJf0udUddoAZhOf99VjOMuyoITSVcnun88XMs04fO97FDXNGDbgxlh
+ o8tXeAHUq1TuHR7iCXQPXZx+7EU2JJLcIX+GWg==
+Received-SPF: permerror client-ip=212.227.126.130;
+ envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
+X-Spam_score_int: -18
+X-Spam_score: -1.9
+X-Spam_bar: -
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001, SPF_HELO_NONE=0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=no autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org
+Sender: "Qemu-devel"
+ <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+
+To be consistent with socket_uri(), add 'tcp:' prefix for inet type in
+socket_parse(), by default socket_parse() use tcp when no prefix is
+provided (format is host:port).
+
+In socket_uri(), use 'vsock:' prefix for vsock type rather than 'tcp:'
+because it makes a vsock address look like an inet address with CID
+misinterpreted as host.
+Goes back to commit 9aca82ba31 "migration: Create socket-address parameter"
+
+Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+---
+ util/qemu-sockets.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/util/qemu-sockets.c b/util/qemu-sockets.c
+index 870a36eb0e93..4531b13dbdbf 100644
+--- a/util/qemu-sockets.c
++++ b/util/qemu-sockets.c
+@@ -1111,7 +1111,7 @@ char *socket_uri(SocketAddress *addr)
+     case SOCKET_ADDRESS_TYPE_FD:
+         return g_strdup_printf("fd:%s", addr->u.fd.str);
+     case SOCKET_ADDRESS_TYPE_VSOCK:
+-        return g_strdup_printf("tcp:%s:%s",
++        return g_strdup_printf("vsock:%s:%s",
+                                addr->u.vsock.cid,
+                                addr->u.vsock.port);
+     default:
+@@ -1145,6 +1145,11 @@ SocketAddress *socket_parse(const char *str, Error **errp)
+         if (vsock_parse(&addr->u.vsock, str + strlen("vsock:"), errp)) {
+             goto fail;
+         }
++    } else if (strstart(str, "tcp:", NULL)) {
++        addr->type = SOCKET_ADDRESS_TYPE_INET;
++        if (inet_parse(&addr->u.inet, str + strlen("tcp:"), errp)) {
++            goto fail;
++        }
+     } else {
+         addr->type = SOCKET_ADDRESS_TYPE_INET;
+         if (inet_parse(&addr->u.inet, str, errp)) {
+
+From patchwork Fri Jul 22 19:04:41 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
+X-Patchwork-Id: 1659744
+Return-Path: <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+X-Original-To: incoming@patchwork.ozlabs.org
+Delivered-To: patchwork-incoming@bilbo.ozlabs.org
+Authentication-Results: ozlabs.org;
+ spf=pass (sender SPF authorized) smtp.mailfrom=nongnu.org
+ (client-ip=209.51.188.17; helo=lists.gnu.org;
+ envelope-from=qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org;
+ receiver=<UNKNOWN>)
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by bilbo.ozlabs.org (Postfix) with ESMTPS id 4LqK3r27Y1z9sGQ
+	for <incoming@patchwork.ozlabs.org>; Sat, 23 Jul 2022 05:18:48 +1000 (AEST)
+Received: from localhost ([::1]:54738 helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>)
+	id 1oEyAf-0003hb-JU
+	for incoming@patchwork.ozlabs.org; Fri, 22 Jul 2022 15:18:45 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10]:39192)
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxT-00063Z-7g
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:07 -0400
+Received: from mout.kundenserver.de ([212.227.126.134]:60885)
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxQ-0004jm-8w
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:06 -0400
+Received: from thinkpad.redhat.com ([82.142.8.70]) by mrelayeu.kundenserver.de
+ (mreue010 [212.227.15.167]) with ESMTPSA (Nemesis) id
+ 1MPXta-1nsKjI2wUs-00Mdqg; Fri, 22 Jul 2022 21:04:59 +0200
+From: Laurent Vivier <lvivier@redhat.com>
+To: qemu-devel@nongnu.org
+Cc: Eric Blake <eblake@redhat.com>, Thomas Huth <thuth@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>, Markus Armbruster <armbru@redhat.com>,
+ "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>
+Subject: [PATCH v7 13/14] net: stream: move to QIO
+Date: Fri, 22 Jul 2022 21:04:41 +0200
+Message-Id: <20220722190442.301310-14-lvivier@redhat.com>
+X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20220722190442.301310-1-lvivier@redhat.com>
+References: <20220722190442.301310-1-lvivier@redhat.com>
+MIME-Version: 1.0
+X-Provags-ID: V03:K1:ENp1YCLDcV+Ez6dEs0d5B7oOU1l7b1+Kr8kJeSulcH5hm2c6gRc
+ mKLcACqlxscZsBxkj0R7ildvF7ZZB2H8XmdaxTMg1Fs0jj+rmzHTJopQIw/G7nP0+XxBXku
+ 3RstQ4C2Kx2uXTmnETcJDqlhGO0zA0qHh3RCo3xwVxHd2Mzne+zvEStVz94ZYieuU4YGngh
+ cymP9nfcqVbdhHixtfu+w==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:Oe8vAh7UxK8=:uByqdyfpvUR8XWAQkiJXDZ
+ iGKaaeYYxcKAOTutjCBmXO39V80O/xeM9cADqJybt4OhsBPmIzqrW3WJ3HV1nMzNTekkScU/F
+ IS2PnJMxbtiGByhSw4Gzny6lBCDeGZ+49x5kSDf6r3iwYdZC9DbENy1j7E3NmmQviDysUe7+R
+ uiYnxC019kGO8p09xUjm2sI0O0gfA1Bosza0YNoOj3MKJn8dRHepwF+g/gqbfj5ekeZb4NUot
+ tqhuK2zmk38H9RPw7jjF4svGU5k4XfhwHf4pioFbO/tUOavzZbh1+8vK098eqQeJ5oEZ7QRZL
+ Sb6AWHtkEnBIIDQ/A/Rn0MABD53G4A2iyBuM/zQgOJxdxRVJZAqtJvEpgfqwaVu+AwIw2N5Bf
+ CjHmcrdI8hkg/bF2CG5Sr+mJZaR54mIpjtiUFmAp4WJsctXm8qVJ8MJ1J3hu1qrVvHDAeGNLT
+ 4esCoe89VNXNLOXzt/cWtOTKMxj2+LdPAENdBAl90bvCyDDWK+vgEZ411Wi4o0zdABeQOkSR1
+ 7c73OEbN2ar+5sG02JyntB7g0PY9YPl0ioxiyIvokla9mRJE/F9U0M/T8zMauQr9loUniUurp
+ cmitFODzviu6bXHvPkjTbLlR17G56J5LtoV6J4PpGpglYCM1/Bj08ODHDjOzXPILw4iQVRKYL
+ SDdL2fQRkK9BLIHfdEcOx7/4hlocHSfM9wI/USt88fGcM37nOuav3HEMQIAKNBGyBjj2xd4bD
+ cMVMJuXQmP020fHvyojP+wUixb98QLiMv98sdw==
+Received-SPF: permerror client-ip=212.227.126.134;
+ envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
+X-Spam_score_int: -18
+X-Spam_score: -1.9
+X-Spam_bar: -
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001, SPF_HELO_NONE=0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=no autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org
+Sender: "Qemu-devel"
+ <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+
+Use QIOChannel, QIOChannelSocket and QIONetListener.
+
+Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+---
+ net/stream.c | 480 ++++++++++++++++++---------------------------------
+ 1 file changed, 168 insertions(+), 312 deletions(-)
+
+diff --git a/net/stream.c b/net/stream.c
+index 0f91ff20df61..c4ddb44fc3ed 100644
+--- a/net/stream.c
++++ b/net/stream.c
+@@ -34,48 +34,36 @@
+ #include "qemu/iov.h"
+ #include "qemu/main-loop.h"
+ #include "qemu/cutils.h"
++#include "io/channel.h"
++#include "io/channel-socket.h"
++#include "io/net-listener.h"
+ 
+ typedef struct NetStreamState {
+     NetClientState nc;
+-    int listen_fd;
+-    int fd;
++    QIOChannel *listen_ioc;
++    QIONetListener *listener;
++    QIOChannel *ioc;
++    guint ioc_read_tag;
++    guint ioc_write_tag;
+     SocketReadState rs;
+     unsigned int send_index;      /* number of bytes sent*/
+-    IOHandler *send_fn;
+-    bool read_poll;               /* waiting to receive data? */
+-    bool write_poll;              /* waiting to transmit data? */
+ } NetStreamState;
+ 
+-static void net_stream_accept(void *opaque);
+-static void net_stream_writable(void *opaque);
++static void net_stream_listen(QIONetListener *listener,
++                              QIOChannelSocket *cioc,
++                              void *opaque);
+ 
+-static void net_stream_update_fd_handler(NetStreamState *s)
++static gboolean net_stream_writable(QIOChannel *ioc,
++                                    GIOCondition condition,
++                                    gpointer data)
+ {
+-    qemu_set_fd_handler(s->fd,
+-                        s->read_poll ? s->send_fn : NULL,
+-                        s->write_poll ? net_stream_writable : NULL,
+-                        s);
+-}
++    NetStreamState *s = data;
+ 
+-static void net_stream_read_poll(NetStreamState *s, bool enable)
+-{
+-    s->read_poll = enable;
+-    net_stream_update_fd_handler(s);
+-}
+-
+-static void net_stream_write_poll(NetStreamState *s, bool enable)
+-{
+-    s->write_poll = enable;
+-    net_stream_update_fd_handler(s);
+-}
+-
+-static void net_stream_writable(void *opaque)
+-{
+-    NetStreamState *s = opaque;
+-
+-    net_stream_write_poll(s, false);
++    s->ioc_write_tag = 0;
+ 
+     qemu_flush_queued_packets(&s->nc);
++
++    return G_SOURCE_REMOVE;
+ }
+ 
+ static ssize_t net_stream_receive(NetClientState *nc, const uint8_t *buf,
+@@ -92,12 +80,15 @@ static ssize_t net_stream_receive(NetClientState *nc, const uint8_t *buf,
+             .iov_len  = size,
+         },
+     };
++    struct iovec local_iov[2];
++    unsigned int nlocal_iov;
+     size_t remaining;
+     ssize_t ret;
+ 
+-    remaining = iov_size(iov, 2) - s->send_index;
+-    ret = iov_send(s->fd, iov, 2, s->send_index, remaining);
+ 
++    remaining = iov_size(iov, 2) - s->send_index;
++    nlocal_iov = iov_copy(local_iov, 2, iov, 2, s->send_index, remaining);
++    ret = qio_channel_writev(s->ioc, local_iov, nlocal_iov, NULL);
+     if (ret == -1 && errno == EAGAIN) {
+         ret = 0; /* handled further down */
+     }
+@@ -107,19 +98,25 @@ static ssize_t net_stream_receive(NetClientState *nc, const uint8_t *buf,
+     }
+     if (ret < (ssize_t)remaining) {
+         s->send_index += ret;
+-        net_stream_write_poll(s, true);
++        s->ioc_write_tag = qio_channel_add_watch(s->ioc, G_IO_OUT,
++                                                 net_stream_writable, s, NULL);
+         return 0;
+     }
+     s->send_index = 0;
+     return size;
+ }
+ 
++static gboolean net_stream_send(QIOChannel *ioc,
++                                GIOCondition condition,
++                                gpointer data);
++
+ static void net_stream_send_completed(NetClientState *nc, ssize_t len)
+ {
+     NetStreamState *s = DO_UPCAST(NetStreamState, nc, nc);
+ 
+-    if (!s->read_poll) {
+-        net_stream_read_poll(s, true);
++    if (!s->ioc_read_tag) {
++        s->ioc_read_tag = qio_channel_add_watch(s->ioc, G_IO_IN,
++                                                net_stream_send, s, NULL);
+     }
+ }
+ 
+@@ -130,19 +127,24 @@ static void net_stream_rs_finalize(SocketReadState *rs)
+     if (qemu_send_packet_async(&s->nc, rs->buf,
+                                rs->packet_len,
+                                net_stream_send_completed) == 0) {
+-        net_stream_read_poll(s, false);
++        if (s->ioc_read_tag) {
++            g_source_remove(s->ioc_read_tag);
++            s->ioc_read_tag = 0;
++        }
+     }
+ }
+ 
+-static void net_stream_send(void *opaque)
++static gboolean net_stream_send(QIOChannel *ioc,
++                                GIOCondition condition,
++                                gpointer data)
+ {
+-    NetStreamState *s = opaque;
++    NetStreamState *s = data;
+     int size;
+     int ret;
+-    uint8_t buf1[NET_BUFSIZE];
+-    const uint8_t *buf;
++    char buf1[NET_BUFSIZE];
++    const char *buf;
+ 
+-    size = recv(s->fd, buf1, sizeof(buf1), 0);
++    size = qio_channel_read(s->ioc, buf1, sizeof(buf1), NULL);
+     if (size < 0) {
+         if (errno != EWOULDBLOCK) {
+             goto eoc;
+@@ -150,52 +152,63 @@ static void net_stream_send(void *opaque)
+     } else if (size == 0) {
+         /* end of connection */
+     eoc:
+-        net_stream_read_poll(s, false);
+-        net_stream_write_poll(s, false);
+-        if (s->listen_fd != -1) {
+-            qemu_set_fd_handler(s->listen_fd, net_stream_accept, NULL, s);
++        s->ioc_read_tag = 0;
++        if (s->ioc_write_tag) {
++            g_source_remove(s->ioc_write_tag);
++            s->ioc_write_tag = 0;
+         }
+-        closesocket(s->fd);
++        if (s->listener) {
++            qio_net_listener_set_client_func(s->listener, net_stream_listen,
++                                             s, NULL);
++        }
++        object_unref(OBJECT(s->ioc));
++        s->ioc = NULL;
+ 
+-        s->fd = -1;
+         net_socket_rs_init(&s->rs, net_stream_rs_finalize, false);
+         s->nc.link_down = true;
+         memset(s->nc.info_str, 0, sizeof(s->nc.info_str));
+ 
+-        return;
++        return G_SOURCE_REMOVE;
+     }
+     buf = buf1;
+ 
+-    ret = net_fill_rstate(&s->rs, buf, size);
++    ret = net_fill_rstate(&s->rs, (const uint8_t *)buf, size);
+ 
+     if (ret == -1) {
+         goto eoc;
+     }
++
++    return G_SOURCE_CONTINUE;
+ }
+ 
+ static void net_stream_cleanup(NetClientState *nc)
+ {
+     NetStreamState *s = DO_UPCAST(NetStreamState, nc, nc);
+-    if (s->fd != -1) {
+-        net_stream_read_poll(s, false);
+-        net_stream_write_poll(s, false);
+-        close(s->fd);
+-        s->fd = -1;
++    if (s->ioc) {
++        if (QIO_CHANNEL_SOCKET(s->ioc)->fd != -1) {
++            if (s->ioc_read_tag) {
++                g_source_remove(s->ioc_read_tag);
++                s->ioc_read_tag = 0;
++            }
++            if (s->ioc_write_tag) {
++                g_source_remove(s->ioc_write_tag);
++                s->ioc_write_tag = 0;
++            }
++        }
++        object_unref(OBJECT(s->ioc));
++        s->ioc = NULL;
+     }
+-    if (s->listen_fd != -1) {
+-        qemu_set_fd_handler(s->listen_fd, NULL, NULL, NULL);
+-        closesocket(s->listen_fd);
+-        s->listen_fd = -1;
++    if (s->listen_ioc) {
++        if (s->listener) {
++            qio_net_listener_disconnect(s->listener);
++            object_unref(OBJECT(s->listener));
++            s->listener = NULL;
++        }
++        object_unref(OBJECT(s->listen_ioc));
++        s->listen_ioc = NULL;
+     }
+ }
+ 
+-static void net_stream_connect(void *opaque)
+-{
+-    NetStreamState *s = opaque;
+-    s->send_fn = net_stream_send;
+-    net_stream_read_poll(s, true);
+-}
+-
+ static NetClientInfo net_stream_info = {
+     .type = NET_CLIENT_DRIVER_STREAM,
+     .size = sizeof(NetStreamState),
+@@ -203,77 +216,68 @@ static NetClientInfo net_stream_info = {
+     .cleanup = net_stream_cleanup,
+ };
+ 
+-static NetStreamState *net_stream_fd_init_stream(NetClientState *peer,
+-                                                 const char *model,
+-                                                 const char *name,
+-                                                 int fd, int is_connected)
++static void net_stream_listen(QIONetListener *listener,
++                              QIOChannelSocket *cioc,
++                              void *opaque)
+ {
+-    NetClientState *nc;
+-    NetStreamState *s;
+-
+-    nc = qemu_new_net_client(&net_stream_info, peer, model, name);
++    NetStreamState *s = opaque;
++    SocketAddress *addr;
++    char *uri;
+ 
+-    snprintf(nc->info_str, sizeof(nc->info_str), "fd=%d", fd);
++    object_ref(OBJECT(cioc));
+ 
+-    s = DO_UPCAST(NetStreamState, nc, nc);
++    qio_net_listener_set_client_func(s->listener, NULL, s, NULL);
+ 
+-    s->fd = fd;
+-    s->listen_fd = -1;
+-    net_socket_rs_init(&s->rs, net_stream_rs_finalize, false);
++    s->ioc = QIO_CHANNEL(cioc);
++    qio_channel_set_name(s->ioc, "stream-server");
++    s->nc.link_down = false;
+ 
+-    /* Disable Nagle algorithm on TCP sockets to reduce latency */
+-    socket_set_nodelay(fd);
++    s->ioc_read_tag = qio_channel_add_watch(s->ioc, G_IO_IN, net_stream_send,
++                                            s, NULL);
+ 
+-    if (is_connected) {
+-        net_stream_connect(s);
++    if (cioc->localAddr.ss_family == AF_UNIX) {
++        addr = qio_channel_socket_get_local_address(cioc, NULL);
+     } else {
+-        qemu_set_fd_handler(s->fd, NULL, net_stream_connect, s);
++        addr = qio_channel_socket_get_remote_address(cioc, NULL);
+     }
+-    return s;
++    g_assert(addr != NULL);
++    uri = socket_uri(addr);
++    pstrcpy(s->nc.info_str, sizeof(s->nc.info_str), uri);
++    g_free(uri);
++    qapi_free_SocketAddress(addr);
++
+ }
+ 
+-static void net_stream_accept(void *opaque)
++static void net_stream_server_listening(QIOTask *task, gpointer opaque)
+ {
+     NetStreamState *s = opaque;
+-    struct sockaddr_storage saddr;
+-    socklen_t len;
+-    int fd;
+-
+-    for (;;) {
+-        len = sizeof(saddr);
+-        fd = qemu_accept(s->listen_fd, (struct sockaddr *)&saddr, &len);
+-        if (fd < 0 && errno != EINTR) {
+-            return;
+-        } else if (fd >= 0) {
+-            qemu_set_fd_handler(s->listen_fd, NULL, NULL, NULL);
+-            break;
+-        }
+-    }
+-
+-    s->fd = fd;
+-    s->nc.link_down = false;
+-    net_stream_connect(s);
+-    switch (saddr.ss_family) {
+-    case AF_INET: {
+-        struct sockaddr_in *saddr_in = (struct sockaddr_in *)&saddr;
++    QIOChannelSocket *listen_sioc = QIO_CHANNEL_SOCKET(s->listen_ioc);
++    SocketAddress *addr;
++    int ret;
+ 
+-        snprintf(s->nc.info_str, sizeof(s->nc.info_str),
+-                 "connection from %s:%d",
+-                 inet_ntoa(saddr_in->sin_addr), ntohs(saddr_in->sin_port));
+-        break;
++    if (listen_sioc->fd < 0) {
++        snprintf(s->nc.info_str, sizeof(s->nc.info_str), "connection error");
++        return;
+     }
+-    case AF_UNIX: {
+-        struct sockaddr_un saddr_un;
+ 
+-        len = sizeof(saddr_un);
+-        getsockname(s->listen_fd, (struct sockaddr *)&saddr_un, &len);
++    addr = qio_channel_socket_get_local_address(listen_sioc, NULL);
++    g_assert(addr != NULL);
++    ret = qemu_socket_try_set_nonblock(listen_sioc->fd);
++    if (addr->type == SOCKET_ADDRESS_TYPE_FD && ret < 0) {
+         snprintf(s->nc.info_str, sizeof(s->nc.info_str),
+-                 "connect from %s", saddr_un.sun_path);
+-        break;
+-    }
+-    default:
+-        g_assert_not_reached();
++                 "can't use file descriptor %s (errno %d)",
++                 addr->u.fd.str, -ret);
++        return;
+     }
++    g_assert(ret == 0);
++    qapi_free_SocketAddress(addr);
++
++    s->nc.link_down = true;
++    s->listener = qio_net_listener_new();
++
++    net_socket_rs_init(&s->rs, net_stream_rs_finalize, false);
++    qio_net_listener_set_client_func(s->listener, net_stream_listen, s, NULL);
++    qio_net_listener_add(s->listener, listen_sioc);
+ }
+ 
+ static int net_stream_server_init(NetClientState *peer,
+@@ -284,105 +288,55 @@ static int net_stream_server_init(NetClientState *peer,
+ {
+     NetClientState *nc;
+     NetStreamState *s;
+-    int fd, ret;
++    QIOChannelSocket *listen_sioc = qio_channel_socket_new();
+ 
+-    switch (addr->type) {
+-    case SOCKET_ADDRESS_TYPE_INET: {
+-        struct sockaddr_in saddr_in;
++    nc = qemu_new_net_client(&net_stream_info, peer, model, name);
++    s = DO_UPCAST(NetStreamState, nc, nc);
+ 
+-        if (convert_host_port(&saddr_in, addr->u.inet.host, addr->u.inet.port,
+-                              errp) < 0) {
+-            return -1;
+-        }
++    s->listen_ioc = QIO_CHANNEL(listen_sioc);
++    qio_channel_socket_listen_async(listen_sioc, addr, 0,
++                                    net_stream_server_listening, s,
++                                    NULL, NULL);
+ 
+-        fd = qemu_socket(PF_INET, SOCK_STREAM, 0);
+-        if (fd < 0) {
+-            error_setg_errno(errp, errno, "can't create stream socket");
+-            return -1;
+-        }
+-        qemu_socket_set_nonblock(fd);
++    return 0;
++}
+ 
+-        socket_set_fast_reuse(fd);
++static void net_stream_client_connected(QIOTask *task, gpointer opaque)
++{
++    NetStreamState *s = opaque;
++    QIOChannelSocket *sioc = QIO_CHANNEL_SOCKET(s->ioc);
++    SocketAddress *addr;
++    gchar *uri;
++    int ret;
+ 
+-        ret = bind(fd, (struct sockaddr *)&saddr_in, sizeof(saddr_in));
+-        if (ret < 0) {
+-            error_setg_errno(errp, errno, "can't bind ip=%s to socket",
+-                             inet_ntoa(saddr_in.sin_addr));
+-            closesocket(fd);
+-            return -1;
+-        }
+-        break;
++    if (sioc->fd < 0) {
++        snprintf(s->nc.info_str, sizeof(s->nc.info_str), "connection error");
++        return;
+     }
+-    case SOCKET_ADDRESS_TYPE_UNIX: {
+-        struct sockaddr_un saddr_un;
+-
+-        ret = unlink(addr->u.q_unix.path);
+-        if (ret < 0 && errno != ENOENT) {
+-            error_setg_errno(errp, errno, "failed to unlink socket %s",
+-                             addr->u.q_unix.path);
+-            return -1;
+-        }
+-
+-        saddr_un.sun_family = PF_UNIX;
+-        ret = snprintf(saddr_un.sun_path, sizeof(saddr_un.sun_path), "%s",
+-                       addr->u.q_unix.path);
+-        if (ret < 0 || ret >= sizeof(saddr_un.sun_path)) {
+-            error_setg(errp, "UNIX socket path '%s' is too long",
+-                       addr->u.q_unix.path);
+-            error_append_hint(errp, "Path must be less than %zu bytes\n",
+-                              sizeof(saddr_un.sun_path));
+-            return -1;
+-        }
+ 
+-        fd = qemu_socket(PF_UNIX, SOCK_STREAM, 0);
+-        if (fd < 0) {
+-            error_setg_errno(errp, errno, "can't create stream socket");
+-            return -1;
+-        }
+-        qemu_socket_set_nonblock(fd);
+-
+-        ret = bind(fd, (struct sockaddr *)&saddr_un, sizeof(saddr_un));
+-        if (ret < 0) {
+-            error_setg_errno(errp, errno, "can't create socket with path: %s",
+-                             saddr_un.sun_path);
+-            closesocket(fd);
+-            return -1;
+-        }
+-        break;
+-    }
+-    case SOCKET_ADDRESS_TYPE_FD:
+-        fd = monitor_fd_param(monitor_cur(), addr->u.fd.str, errp);
+-        if (fd == -1) {
+-            return -1;
+-        }
+-        ret = qemu_socket_try_set_nonblock(fd);
+-        if (ret < 0) {
+-            error_setg_errno(errp, -ret, "%s: Can't use file descriptor %d",
+-                             name, fd);
+-            return -1;
+-        }
+-        break;
+-    default:
+-        error_setg(errp, "only support inet or fd type");
+-        return -1;
+-    }
++    addr = qio_channel_socket_get_remote_address(sioc, NULL);
++    g_assert(addr != NULL);
++    uri = socket_uri(addr);
++    pstrcpy(s->nc.info_str, sizeof(s->nc.info_str), uri);
++    g_free(uri);
+ 
+-    ret = listen(fd, 0);
+-    if (ret < 0) {
+-        error_setg_errno(errp, errno, "can't listen on socket");
+-        closesocket(fd);
+-        return -1;
++    ret = qemu_socket_try_set_nonblock(sioc->fd);
++    if (addr->type == SOCKET_ADDRESS_TYPE_FD && ret < 0) {
++        snprintf(s->nc.info_str, sizeof(s->nc.info_str),
++                 "can't use file descriptor %s (errno %d)",
++                 addr->u.fd.str, -ret);
++        return;
+     }
++    g_assert(ret == 0);
++    qapi_free_SocketAddress(addr);
+ 
+-    nc = qemu_new_net_client(&net_stream_info, peer, model, name);
+-    s = DO_UPCAST(NetStreamState, nc, nc);
+-    s->fd = -1;
+-    s->listen_fd = fd;
+-    s->nc.link_down = true;
+     net_socket_rs_init(&s->rs, net_stream_rs_finalize, false);
+ 
+-    qemu_set_fd_handler(s->listen_fd, net_stream_accept, NULL, s);
+-    return 0;
++    /* Disable Nagle algorithm on TCP sockets to reduce latency */
++    qio_channel_set_delay(s->ioc, false);
++
++    s->ioc_read_tag = qio_channel_add_watch(s->ioc, G_IO_IN, net_stream_send,
++                                            s, NULL);
+ }
+ 
+ static int net_stream_client_init(NetClientState *peer,
+@@ -392,115 +346,17 @@ static int net_stream_client_init(NetClientState *peer,
+                                   Error **errp)
+ {
+     NetStreamState *s;
+-    int fd, connected, ret;
+-    gchar *info_str;
+-
+-    switch (addr->type) {
+-    case SOCKET_ADDRESS_TYPE_INET: {
+-        struct sockaddr_in saddr_in;
+-
+-        if (convert_host_port(&saddr_in, addr->u.inet.host, addr->u.inet.port,
+-                              errp) < 0) {
+-            return -1;
+-        }
+-
+-        fd = qemu_socket(PF_INET, SOCK_STREAM, 0);
+-        if (fd < 0) {
+-            error_setg_errno(errp, errno, "can't create stream socket");
+-            return -1;
+-        }
+-        qemu_socket_set_nonblock(fd);
+-
+-        connected = 0;
+-        for (;;) {
+-            ret = connect(fd, (struct sockaddr *)&saddr_in, sizeof(saddr_in));
+-            if (ret < 0) {
+-                if (errno == EINTR || errno == EWOULDBLOCK) {
+-                    /* continue */
+-                } else if (errno == EINPROGRESS ||
+-                           errno == EALREADY) {
+-                    break;
+-                } else {
+-                    error_setg_errno(errp, errno, "can't connect socket");
+-                    closesocket(fd);
+-                    return -1;
+-                }
+-            } else {
+-                connected = 1;
+-                break;
+-            }
+-        }
+-        info_str = g_strdup_printf("connect to %s:%d",
+-                                   inet_ntoa(saddr_in.sin_addr),
+-                                   ntohs(saddr_in.sin_port));
+-        break;
+-    }
+-    case SOCKET_ADDRESS_TYPE_UNIX: {
+-        struct sockaddr_un saddr_un;
+-
+-        saddr_un.sun_family = PF_UNIX;
+-        ret = snprintf(saddr_un.sun_path, sizeof(saddr_un.sun_path), "%s",
+-                       addr->u.q_unix.path);
+-        if (ret < 0 || ret >= sizeof(saddr_un.sun_path)) {
+-            error_setg(errp, "UNIX socket path '%s' is too long",
+-                       addr->u.q_unix.path);
+-            error_append_hint(errp, "Path must be less than %zu bytes\n",
+-                              sizeof(saddr_un.sun_path));
+-            return -1;
+-        }
++    NetClientState *nc;
++    QIOChannelSocket *sioc = qio_channel_socket_new();
+ 
+-        fd = qemu_socket(PF_UNIX, SOCK_STREAM, 0);
+-        if (fd < 0) {
+-            error_setg_errno(errp, errno, "can't create stream socket");
+-            return -1;
+-        }
+-        qemu_socket_set_nonblock(fd);
+-
+-        connected = 0;
+-        for (;;) {
+-            ret = connect(fd, (struct sockaddr *)&saddr_un, sizeof(saddr_un));
+-            if (ret < 0) {
+-                if (errno == EINTR || errno == EWOULDBLOCK) {
+-                    /* continue */
+-                } else if (errno == EAGAIN ||
+-                           errno == EALREADY) {
+-                    break;
+-                } else {
+-                    error_setg_errno(errp, errno, "can't connect socket");
+-                    closesocket(fd);
+-                    return -1;
+-                }
+-            } else {
+-                connected = 1;
+-                break;
+-            }
+-        }
+-        info_str = g_strdup_printf(" connect to %s", saddr_un.sun_path);
+-        break;
+-    }
+-    case SOCKET_ADDRESS_TYPE_FD:
+-        fd = monitor_fd_param(monitor_cur(), addr->u.fd.str, errp);
+-        if (fd == -1) {
+-            return -1;
+-        }
+-        ret = qemu_socket_try_set_nonblock(fd);
+-        if (ret < 0) {
+-            error_setg_errno(errp, -ret, "%s: Can't use file descriptor %d",
+-                             name, fd);
+-            return -1;
+-        }
+-        connected = 1;
+-        info_str = g_strdup_printf("connect to fd %d", fd);
+-        break;
+-    default:
+-        error_setg(errp, "only support inet, unix or fd type");
+-        return -1;
+-    }
++    nc = qemu_new_net_client(&net_stream_info, peer, model, name);
++    s = DO_UPCAST(NetStreamState, nc, nc);
+ 
+-    s = net_stream_fd_init_stream(peer, model, name, fd, connected);
++    s->ioc = QIO_CHANNEL(sioc);
+ 
+-    pstrcpy(s->nc.info_str, sizeof(s->nc.info_str), info_str);
+-    g_free(info_str);
++    qio_channel_socket_connect_async(sioc, addr,
++                                     net_stream_client_connected, s,
++                                     NULL, NULL);
+ 
+     return 0;
+ }
+
+From patchwork Fri Jul 22 19:04:42 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
+X-Patchwork-Id: 1659736
+Return-Path: <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+X-Original-To: incoming@patchwork.ozlabs.org
+Delivered-To: patchwork-incoming@bilbo.ozlabs.org
+Authentication-Results: ozlabs.org;
+ spf=pass (sender SPF authorized) smtp.mailfrom=nongnu.org
+ (client-ip=209.51.188.17; helo=lists.gnu.org;
+ envelope-from=qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org;
+ receiver=<UNKNOWN>)
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by bilbo.ozlabs.org (Postfix) with ESMTPS id 4LqK065gTyz9sGQ
+	for <incoming@patchwork.ozlabs.org>; Sat, 23 Jul 2022 05:15:33 +1000 (AEST)
+Received: from localhost ([::1]:48062 helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>)
+	id 1oEy7W-0007PJ-Sp
+	for incoming@patchwork.ozlabs.org; Fri, 22 Jul 2022 15:15:30 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10]:39738)
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxy-00073z-49
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:39 -0400
+Received: from mout.kundenserver.de ([212.227.126.135]:53045)
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
+ id 1oExxw-0005Ic-22
+ for qemu-devel@nongnu.org; Fri, 22 Jul 2022 15:05:37 -0400
+Received: from thinkpad.redhat.com ([82.142.8.70]) by mrelayeu.kundenserver.de
+ (mreue010 [212.227.15.167]) with ESMTPSA (Nemesis) id
+ 1MnaY1-1nplcs3Q1N-00jXkP; Fri, 22 Jul 2022 21:05:00 +0200
+From: Laurent Vivier <lvivier@redhat.com>
+To: qemu-devel@nongnu.org
+Cc: Eric Blake <eblake@redhat.com>, Thomas Huth <thuth@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>, Markus Armbruster <armbru@redhat.com>,
+ "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>
+Subject: [PATCH v7 14/14] tests/qtest: netdev: test stream and dgram backends
+Date: Fri, 22 Jul 2022 21:04:42 +0200
+Message-Id: <20220722190442.301310-15-lvivier@redhat.com>
+X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20220722190442.301310-1-lvivier@redhat.com>
+References: <20220722190442.301310-1-lvivier@redhat.com>
+MIME-Version: 1.0
+X-Provags-ID: V03:K1:ELY4IKiVQiAkd7e4bRFEdVTjMz1ixhJ2mA4Y0dgHHXFBrfDK49z
+ QHKzBcyxbp4JqUwY5hjJwXWPpURVVGjqHGOg8mc6HvxmhEp+xYU860usP9eetfsADOoMdy/
+ ltyZZANuGmd3gFBVCUwkgLXH2RuDRw18e7KEmScXy83sddQKuZbuJQt8KrIarfCbr+JWsVK
+ Sx/UHJOpvd+m9wuLb/Lqg==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:rdE+B56JoU0=:Id8P2qntOdeHfX8FOo3X1Z
+ ruOTtAO2yDGueRBpugwYyM+56fMkGsJ8B8rmYqCBxLJkimCfU/Jq/uN9rCHaMZf91oW6D5lin
+ CUep1M/4kbJFRtMUvdJEtdVhMZSepLtx6pfCYsnoj9k0USytSA6uEM0pJP2Ck4GLspiKbfz6I
+ AoSVC0FWPFjKICqRKahcsfg2RRUnOaSaq7B5AceAnvMyuBoxaTybbyDz4vDxCRwfllWfhXx2b
+ yiB7n1M9hBdFj0LptFE7hPi8jC3XRYVR/6cyIdrnnKXgd+wta4teM9e4O3KkLWhC8QGXyZ+qr
+ PyFWjEzRX1MEgKcfuKI4UgSuh4wcpE++AZgPoM9QaxgA+3xE+NTJfAHdfPjWoQuD+I5m7DOfC
+ xY6o3VAN6JCAUL7Fl6UEJv78R1MaYmzCyIjuXtSAizhT5REQP5mM6hxTs6HRHwweNQ60UPPJ5
+ VvZ38yaR/B5PS8pQxAme3ESuEy1jwN1/KSuM56XQK3zmYYbhYd8DNZtxELMwKUE/FmeSI6/9L
+ Pm/DiAJanqb+O8yAfaIYTNwDOmiAOuKZX8iclkK2wEieOzEx88HAK6Iv6wtcjlzo4Tx9exn+q
+ OJji2BZVGE5YqGX7VA/Ok7igKuDq+tvRgorDwnvJCowbFJX5178JbbkMIhLa5X4ATOpE+khaO
+ ipLkT2bmGePgUZbwp99Rfjs6RksHEKU1zNo7xe8YhQQ4ESOCdMEQ11N4QK/PLNRFKaCpdV2x8
+ TJyxQ4G6PpjOdrS1O13dJkXVUpDgRJiX1CkXNg==
+Received-SPF: permerror client-ip=212.227.126.135;
+ envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
+X-Spam_score_int: -18
+X-Spam_score: -1.9
+X-Spam_bar: -
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001, SPF_HELO_NONE=0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=no autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org
+Sender: "Qemu-devel"
+ <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+
+Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+---
+ tests/qtest/meson.build     |   1 +
+ tests/qtest/netdev-socket.c | 322 ++++++++++++++++++++++++++++++++++++
+ 2 files changed, 323 insertions(+)
+ create mode 100644 tests/qtest/netdev-socket.c
+
+diff --git a/tests/qtest/meson.build b/tests/qtest/meson.build
+index 3a474010e49f..b0790873ecbf 100644
+--- a/tests/qtest/meson.build
++++ b/tests/qtest/meson.build
+@@ -26,7 +26,8 @@ qtests_generic = [
+   'qom-test',
+   'test-hmp',
+   'qos-test',
+   'readconfig-test',
++  'netdev-socket',
+ ]
+ if config_host.has_key('CONFIG_MODULES')
+   qtests_generic += [ 'modules-test' ]
+diff --git a/tests/qtest/netdev-socket.c b/tests/qtest/netdev-socket.c
+new file mode 100644
+index 000000000000..bceb30718812
+--- /dev/null
++++ b/tests/qtest/netdev-socket.c
+@@ -0,0 +1,322 @@
++/*
++ * QTest testcase for netdev stream and dgram
++ *
++ * Copyright (c) 2022 Red Hat, Inc.
++ *
++ * SPDX-License-Identifier: GPL-2.0-or-later
++ */
++
++#include "qemu/osdep.h"
++#include <glib.h>
++#include "libqtest.h"
++
++#define CONNECTION_TIMEOUT    5
++
++#define EXPECT_STATE(q, e, t)                             \
++do {                                                      \
++    char *resp = qtest_hmp(q, "info network");            \
++    if (t) {                                              \
++        strrchr(resp, t)[0] = 0;                          \
++    }                                                     \
++    g_test_timer_start();                                 \
++    while (g_test_timer_elapsed() < CONNECTION_TIMEOUT) { \
++        if (strcmp(resp, e) == 0) {                       \
++            break;                                        \
++        }                                                 \
++        g_free(resp);                                     \
++        resp = qtest_hmp(q, "info network");              \
++        if (t) {                                          \
++            strrchr(resp, t)[0] = 0;                      \
++        }                                                 \
++    }                                                     \
++    g_assert_cmpstr(resp, ==, e);                         \
++    g_free(resp);                                         \
++} while (0)
++
++static int inet_get_free_port(void)
++{
++    int sock;
++    struct sockaddr_in addr;
++    socklen_t len;
++    int port;
++
++    sock = socket(AF_INET, SOCK_STREAM, 0);
++    if (sock < 0) {
++        return -1;
++    }
++
++    memset(&addr, 0, sizeof(addr));
++    addr.sin_family = AF_INET;
++    addr.sin_addr.s_addr = INADDR_ANY;
++    addr.sin_port = 0;
++    if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
++        return -1;
++    }
++
++    len = sizeof(addr);
++    if (getsockname(sock,  (struct sockaddr *)&addr, &len) < 0) {
++        return -1;
++    }
++
++    port = ntohs(addr.sin_port);
++
++    close(sock);
++
++    return port;
++}
++
++static void test_stream_inet(void)
++{
++    QTestState *qts0, *qts1;
++    char *expect;
++    int port;
++
++    port = inet_get_free_port();
++    qts0 = qtest_initf("-nodefaults "
++                       "-netdev stream,id=st0,addr.type=inet,"
++                       "addr.host=localhost,addr.port=%d", port);
++
++    EXPECT_STATE(qts0, "st0: index=0,type=stream,\r\n", 0);
++
++    qts1 = qtest_initf("-nodefaults "
++                       "-netdev stream,server=false,id=st0,addr.type=inet,"
++                       "addr.host=localhost,addr.port=%d", port);
++
++    expect = g_strdup_printf("st0: index=0,type=stream,tcp:127.0.0.1:%d\r\n",
++                             port);
++    EXPECT_STATE(qts1, expect, 0);
++    g_free(expect);
++
++    /* the port is unknown, check only the address */
++    EXPECT_STATE(qts0, "st0: index=0,type=stream,tcp:127.0.0.1", ':');
++
++    qtest_quit(qts1);
++    qtest_quit(qts0);
++}
++
++static void test_stream_unix(void)
++{
++    QTestState *qts0, *qts1;
++    char *expect;
++    gchar *path;
++    int ret;
++
++    ret = g_file_open_tmp("netdev-XXXXXX", &path, NULL);
++    g_assert_true(ret >= 0);
++    close(ret);
++
++    qts0 = qtest_initf("-nodefaults "
++                       "-netdev stream,id=st0,addr.type=unix,addr.path=%s",
++                       path);
++
++    EXPECT_STATE(qts0, "st0: index=0,type=stream,\r\n", 0);
++
++    qts1 = qtest_initf("-nodefaults "
++                       "-netdev stream,id=st0,server=false,addr.type=unix,addr.path=%s",
++                       path);
++
++    expect = g_strdup_printf("st0: index=0,type=stream,unix:%s\r\n", path);
++    EXPECT_STATE(qts1, expect, 0);
++    EXPECT_STATE(qts0, expect, 0);
++    g_free(expect);
++    g_free(path);
++
++    qtest_quit(qts1);
++    qtest_quit(qts0);
++}
++
++static void test_stream_fd(void)
++{
++    QTestState *qts0, *qts1;
++    char *expect;
++    int ret, sock0, sock1;
++    struct sockaddr_un addr;
++    gchar *path;
++
++    ret = g_file_open_tmp("netdev-XXXXXX", &path, NULL);
++    g_assert_true(ret >= 0);
++    close(ret);
++    addr.sun_family = AF_UNIX;
++    strcpy(addr.sun_path, path);
++
++    unlink(addr.sun_path);
++    sock0 = socket(AF_LOCAL, SOCK_STREAM, 0);
++    g_assert_cmpint(sock0, !=, -1);
++
++    ret = bind(sock0, (struct sockaddr *)&addr, sizeof(addr));
++    g_assert_cmpint(ret, !=, -1);
++
++    qts0 = qtest_initf("-nodefaults "
++                       "-netdev stream,id=st0,addr.type=fd,addr.str=%d",
++                       sock0);
++
++    EXPECT_STATE(qts0, "st0: index=0,type=stream,\r\n", 0);
++
++    sock1 = socket(AF_LOCAL, SOCK_STREAM, 0);
++    g_assert_cmpint(sock1, !=, -1);
++
++    ret = connect(sock1, (struct sockaddr *)&addr, sizeof(addr));
++    g_assert_cmpint(ret, !=, -1);
++
++    qts1 = qtest_initf("-nodefaults "
++                       "-netdev stream,id=st0,server=off,addr.type=fd,addr.str=%d",
++                       sock1);
++
++
++    expect = g_strdup_printf("st0: index=0,type=stream,unix:%s\r\n", path);
++    EXPECT_STATE(qts1, expect, 0);
++    EXPECT_STATE(qts0, expect, 0);
++    g_free(expect);
++
++    qtest_quit(qts1);
++    qtest_quit(qts0);
++
++    closesocket(sock0);
++    closesocket(sock1);
++
++    g_free(path);
++}
++
++static void test_dgram_inet(void)
++{
++    QTestState *qts0, *qts1;
++    char *expect;
++    int port0, port1;
++
++    port0 = inet_get_free_port();
++    port1 = inet_get_free_port();
++
++    qts0 = qtest_initf("-nodefaults "
++                       "-netdev dgram,id=st0,"
++                       "local.type=inet,local.host=localhost,local.port=%d,"
++                       "remote.type=inet,remote.host=localhost,remote.port=%d",
++                        port0, port1);
++
++    expect = g_strdup_printf("st0: index=0,type=dgram,"
++                             "udp=127.0.0.1:%d/127.0.0.1:%d\r\n", port0, port1);
++    EXPECT_STATE(qts0, expect, 0);
++    g_free(expect);
++
++    qts1 = qtest_initf("-nodefaults "
++                       "-netdev dgram,id=st0,"
++                       "local.type=inet,local.host=localhost,local.port=%d,"
++                       "remote.type=inet,remote.host=localhost,remote.port=%d",
++                        port1, port0);
++
++    expect = g_strdup_printf("st0: index=0,type=dgram,"
++                             "udp=127.0.0.1:%d/127.0.0.1:%d\r\n", port1, port0);
++    EXPECT_STATE(qts1, expect, 0);
++    g_free(expect);
++
++    qtest_quit(qts1);
++    qtest_quit(qts0);
++}
++
++static void test_dgram_mcast(void)
++{
++    QTestState *qts;
++
++    qts = qtest_initf("-nodefaults "
++                       "-netdev dgram,id=st0,"
++                       "remote.type=inet,remote.host=230.0.0.1,remote.port=1234");
++
++    EXPECT_STATE(qts, "st0: index=0,type=dgram,mcast=230.0.0.1:1234\r\n", 0);
++
++    qtest_quit(qts);
++}
++
++static void test_dgram_unix(void)
++{
++    QTestState *qts0, *qts1;
++    char *expect;
++    gchar *path0, *path1;
++    int ret;
++
++    ret = g_file_open_tmp("netdev-XXXXXX", &path0, NULL);
++    g_assert_true(ret >= 0);
++    close(ret);
++
++    ret = g_file_open_tmp("netdev-XXXXXX", &path1, NULL);
++    g_assert_true(ret >= 0);
++    close(ret);
++
++    qts0 = qtest_initf("-nodefaults "
++                       "-netdev dgram,id=st0,local.type=unix,local.path=%s,"
++                       "remote.type=unix,remote.path=%s",
++                       path0, path1);
++
++    expect = g_strdup_printf("st0: index=0,type=dgram,udp=%s:%s\r\n",
++                             path0, path1);
++    EXPECT_STATE(qts0, expect, 0);
++    g_free(expect);
++
++    qts1 = qtest_initf("-nodefaults "
++                       "-netdev dgram,id=st0,local.type=unix,local.path=%s,"
++                       "remote.type=unix,remote.path=%s",
++                       path1, path0);
++
++
++    expect = g_strdup_printf("st0: index=0,type=dgram,udp=%s:%s\r\n",
++                             path1, path0);
++    EXPECT_STATE(qts1, expect, 0);
++    g_free(expect);
++
++    g_free(path0);
++    g_free(path1);
++
++    qtest_quit(qts1);
++    qtest_quit(qts0);
++}
++
++static void test_dgram_fd(void)
++{
++    QTestState *qts0, *qts1;
++    char *expect;
++    int ret;
++    int sv[2];
++
++    ret = socketpair(PF_UNIX, SOCK_DGRAM, 0, sv);
++    g_assert_cmpint(ret, !=, -1);
++
++    qts0 = qtest_initf("-nodefaults "
++                       "-netdev dgram,id=st0,local.type=fd,local.str=%d",
++                       sv[0]);
++
++    expect = g_strdup_printf("st0: index=0,type=dgram,fd=%d unix\r\n", sv[0]);
++    EXPECT_STATE(qts0, expect, 0);
++    g_free(expect);
++
++    qts1 = qtest_initf("-nodefaults "
++                       "-netdev dgram,id=st0,local.type=fd,local.str=%d",
++                       sv[1]);
++
++
++    expect = g_strdup_printf("st0: index=0,type=dgram,fd=%d unix\r\n", sv[1]);
++    EXPECT_STATE(qts1, expect, 0);
++    g_free(expect);
++
++    qtest_quit(qts1);
++    qtest_quit(qts0);
++
++    close(sv[0]);
++    close(sv[1]);
++}
++
++int main(int argc, char **argv)
++{
++    int ret;
++
++    g_test_init(&argc, &argv, NULL);
++
++    qtest_add_func("/netdev/stream/inet", test_stream_inet);
++    qtest_add_func("/netdev/stream/unix", test_stream_unix);
++    qtest_add_func("/netdev/stream/fd", test_stream_fd);
++    qtest_add_func("/netdev/dgram/inet", test_dgram_inet);
++    qtest_add_func("/netdev/dgram/mcast", test_dgram_mcast);
++    qtest_add_func("/netdev/dgram/unix", test_dgram_unix);
++    qtest_add_func("/netdev/dgram/fd", test_dgram_fd);
++
++    ret = g_test_run();
++
++    return ret;
++}
