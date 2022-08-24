@@ -1,0 +1,39 @@
+name: Prepare QCW bundle
+
+on: workflow_dispatch
+
+jobs:
+
+  build:
+    runs-on: windows-latest
+    
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+
+    - name: 'Install msys2'
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MSYS
+        update: true
+        install: >-
+          make
+          git
+          base-devel
+          mingw-w64-x86_64-toolchain
+          python
+          ninja
+          mingw-w64-x86_64-glib2
+          mingw-w64-x86_64-pixman
+          python-setuptools
+          mingw-w64-x86_64-gtk3
+          mingw-w64-x86_64-SDL2
+          mingw-w64-x86_64-go
+
+    - name: 'Checkout'
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 1
+        submodules: true

@@ -1,0 +1,3 @@
+[submodule "gvisor-tap-vsock"]
+	path = gvisor-tap-vsock
+	url = https://github.com/arixmkii/gvisor-tap-vsock.git
