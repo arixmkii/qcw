@@ -39,7 +39,7 @@ jobs:
       working-directory: gvisor-tap-vsock
       shell: msys2 {0}
       run: |
-        make gvproxy
+        make gvproxy win-sshproxy
 
     - name: '🛠️ Build podman'
       working-directory: podman
@@ -70,6 +70,7 @@ jobs:
         mkdir -p qcw/podman
         cp gvisor-tap-vsock/bin/gvproxy qcw/podman/gvproxy
         cp gvisor-tap-vsock/bin/gvproxy qcw/podman/gvproxy.exe
+        cp gvisor-tap-vsock/bin/win-sshproxy.exe qcw/podman/win-sshproxy.exe
         cp podman/bin/windows/podman.exe qcw/podman/podman.exe
         cp -Lr qemu/build/qemu-bundle/a/_temp/msys64/qemu qcw/qemu
         ./add_mingw64_dlls.sh
