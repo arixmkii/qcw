@@ -25,15 +25,22 @@ as even more experimental.
 
 Ordered alphabetically
 
+* `gocat` - [Github](https://github.com/sumup-oss/gocat) multipurpose networking relay;
 * `gvisor-tap-vsock` - [Github](https://github.com/containers/gvisor-tap-vsock) the tool to provide networking for
 accessing containers from Windows;
 * `Podman` - [home page](https://podman.io/) and [Github](https://github.com/containers/podman) free and open source
 container runtime;
+* `Podman Desktop` - [home page](https://podman-desktop.io/) and [Github](https://github.com/containers/podman-desktop)
+GUI companion to Podman;
 * `QEMU` - [home page](https://www.qemu.org/) and [Github (mirror)](https://github.com/qemu/qemu) free and open source
 feature rich machine emulator;
 * `XZ Utils` - [home page](https://tukaani.org/xz/) compression utilities.
 
 ### Versions and patches
+
+#### `gocat`
+
+Built from HEAD of the development branch. Added patch for unix-to-npipe transport.
 
 #### `gvisor-tap-vsock`
 
@@ -46,6 +53,10 @@ Version `4.3.0-dev` with a set of pathes to enable using QEMU machine on Windows
 to upstream the changes, where possible. At the end this should come down to a single patch on top on a stable tag.
 Supposed to be a long living patchwork, because needs full support for some features on QEMU side (see QEMU specific
 patches).
+
+#### `Podman Desktop`
+
+Latest version (or stable later than v0.0.6) is a requirement. Should be installed via official setup mechanism.
 
 #### `QEMU`
 
@@ -60,6 +71,8 @@ Both patches have numerous reviews already and probably will move forward in the
 Version `5.2.6` w/o any changes.
 
 ## How to use
+
+### Basics
 
 Donwload the archive and unpack it into your Windows machine to some location (`C:\qcw` for example).
 Then there are 2 preconfigured shell starters in `.\shells\` directory - one for QEMU and one should be backward
@@ -96,11 +109,27 @@ And test it with `curl`
 curl http://localhost:8080
 ```
 
+### With Podman Desktop
+
+One needs to install latest Podman Desktop (setup version, not standalone one) (or stable versions later than v0.0.6)
+to use it with QEMU machine. The important requirement is that there should not be official Podman installation
+in the same system (because Podman Desktop will allways use it with if found). For WSL it is enough to just call
+the application from the shell and it will connect. For QEMU option one needs to run the additional relay in second
+shell:
+
+```bat
+start-docker-npipe
+```
+
+or (if not using default machine)
+```bat
+start-docker-npipe machine-name
+```
+
+Next just call Podman Desktop app from the shell one uses for Podman CLI.
+
 ## Missing features
 
-* `Podman Desktop` support - [home page](https://podman-desktop.io/) and [Github](https://github.com/containers/podman-desktop)
-Its windows builds are only aware of WSL2 option and can't read/write unix domain sockets opened by QEMU, but they
-are known to be working on MacOS. Need to create a patched build and add it to the bundle.
 * `9pfs` support - there is a patch set in QEMU devel mailing list, but it needs to be rebased and updated for the
 latest code changes. There are hopes that a new revision will appear during next release window.
 

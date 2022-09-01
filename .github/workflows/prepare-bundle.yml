@@ -35,6 +35,12 @@ jobs:
         fetch-depth: 1
         submodules: true
 
+    - name: '🛠️ Build gocat'
+      working-directory: gocat
+      shell: msys2 {0}
+      run: |
+        go build
+
     - name: '🛠️ Build gvproxy'
       working-directory: gvisor-tap-vsock
       shell: msys2 {0}
@@ -57,23 +63,26 @@ jobs:
         ninja
 
     - name: '📥 Download xz'
+      working-directory: xz
       shell: msys2 {0}
       run: |
-        curl -o xz.zip https://tukaani.org/xz/xz-5.2.6-windows.zip
-        unzip -d xz xz.zip
+        ./download-xz.sh
 
     - name: '📦 Pack bundle'
       shell: msys2 {0}
       run: |
         mkdir -p qcw
-        cp -Lr xz/bin_x86-64 qcw/xz
+        cp -Lr xz/dist/bin_x86-64 qcw/xz
+        mkdir -p qcw/gocat
+        cp gocat/gocat.exe qcw/gocat/gocat.exe
+        cp gocat-pack/start-docker-npipe.bat qcw/gocat/start-docker-npipe.bat
         mkdir -p qcw/podman
         cp gvisor-tap-vsock/bin/gvproxy qcw/podman/gvproxy
         cp gvisor-tap-vsock/bin/gvproxy qcw/podman/gvproxy.exe
         cp gvisor-tap-vsock/bin/win-sshproxy.exe qcw/podman/win-sshproxy.exe
         cp podman/bin/windows/podman.exe qcw/podman/podman.exe
         cp -Lr qemu/build/qemu-bundle/a/_temp/msys64/qemu qcw/qemu
-        ./add_mingw64_dlls.sh
+        ./qemu-pack/add_mingw64_dlls.sh
         cp -Lr shells qcw/shells
 
     - name: '🚀 Upload artifact'

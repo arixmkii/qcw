@@ -7,3 +7,6 @@
 [submodule "qemu"]
 	path = qemu
 	url = https://github.com/arixmkii/qemu.git
+[submodule "gocat"]
+	path = gocat
+	url = https://github.com/arixmkii/gocat.git
