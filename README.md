@@ -128,6 +128,11 @@ start-docker-npipe machine-name
 
 Next just call Podman Desktop app from the shell one uses for Podman CLI.
 
+To run Podman Desktop call this inside shell (`"` are important because of the app name having whitespace):
+```bat
+"Podman Desktop"
+```
+
 ## Missing features
 
 * `9pfs` support - there is a patch set in QEMU devel mailing list, but it needs to be rebased and updated for the
