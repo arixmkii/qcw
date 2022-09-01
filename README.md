@@ -49,7 +49,7 @@ patches).
 
 #### `QEMU`
 
-Version `7.1.0-rc4` with 2 patch sets from QEMU mailing list:
+Version `7.1.0` with 2 patch sets from QEMU mailing list:
 * one set to enable unix domain sockets on Windows;
 * one set to enable unix domain sockets backed `-netdev`.
 
