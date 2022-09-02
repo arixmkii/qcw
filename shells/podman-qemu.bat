@@ -2,7 +2,7 @@
 
 set QCW_DIR=%~dp0..
 
-set PATH=%QCW_DIR%\qemu;%QCW_DIR%\gocat;%QCW_DIR%\xz;%QCW_DIR%\podman;%LOCALAPPDATA%\Programs\podman-desktop;%PATH%
+set PATH=%QCW_DIR%\qemu;%QCW_DIR%\xz;%QCW_DIR%\podman;%LOCALAPPDATA%\Programs\podman-desktop;%PATH%
 
 set CONTAINERS_MACHINE_PROVIDER=QEMU
 
