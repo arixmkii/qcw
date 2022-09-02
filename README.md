@@ -25,7 +25,6 @@ as even more experimental.
 
 Ordered alphabetically
 
-* `gocat` - [Github](https://github.com/sumup-oss/gocat) multipurpose networking relay;
 * `gvisor-tap-vsock` - [Github](https://github.com/containers/gvisor-tap-vsock) the tool to provide networking for
 accessing containers from Windows;
 * `Podman` - [home page](https://podman.io/) and [Github](https://github.com/containers/podman) free and open source
@@ -37,10 +36,6 @@ feature rich machine emulator;
 * `XZ Utils` - [home page](https://tukaani.org/xz/) compression utilities.
 
 ### Versions and patches
-
-#### `gocat`
-
-Built from HEAD of the development branch. Added patch for unix-to-npipe transport.
 
 #### `gvisor-tap-vsock`
 
@@ -113,20 +108,8 @@ curl http://localhost:8080
 
 One needs to install latest Podman Desktop (setup version, not standalone one) (or stable versions later than v0.0.6)
 to use it with QEMU machine. The important requirement is that there should not be official Podman installation
-in the same system (because Podman Desktop will allways use it with if found). For WSL it is enough to just call
-the application from the shell and it will connect. For QEMU option one needs to run the additional relay in second
-shell:
-
-```bat
-start-docker-npipe
-```
-
-or (if not using default machine)
-```bat
-start-docker-npipe machine-name
-```
-
-Next just call Podman Desktop app from the shell one uses for Podman CLI.
+in the same system (because Podman Desktop will allways use it with if found). It is enough to just call
+the application from the shell and it will connect.
 
 To run Podman Desktop call this inside shell (`"` are important because of the app name having whitespace):
 ```bat
