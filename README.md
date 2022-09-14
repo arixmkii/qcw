@@ -44,7 +44,7 @@ allow to use version `0.5.0` w/o any patchwork.
 
 #### `Podman`
 
-Version `4.3.0-dev` with a set of pathes to enable using QEMU machine on Windows hosts. This is continuous work trying
+Version `4.3.0-dev` with a patch to enable using QEMU machine on Windows hosts. This is continuous work trying
 to upstream the changes, where possible. At the end this should come down to a single patch on top on a stable tag.
 Supposed to be a long living patchwork, because needs full support for some features on QEMU side (see QEMU specific
 patches).
@@ -55,8 +55,7 @@ Latest version (or stable later than v0.0.6) is a requirement. Should be install
 
 #### `QEMU`
 
-Version `7.1.0` with 2 patch sets from QEMU mailing list:
-* one set to enable unix domain sockets on Windows;
+Version `7.2.0-dev` with 1 patch set from QEMU mailing list:
 * one set to enable unix domain sockets backed `-netdev`.
 
 Both patches have numerous reviews already and probably will move forward in the next release window.
@@ -106,10 +105,9 @@ curl http://localhost:8080
 
 ### With Podman Desktop
 
-One needs to install latest Podman Desktop (setup version, not standalone one) (or stable versions later than v0.0.6)
-to use it with QEMU machine. The important requirement is that there should not be official Podman installation
-in the same system (because Podman Desktop will allways use it with if found). It is enough to just call
-the application from the shell and it will connect.
+One needs to install latest Podman Desktop (v0.0.7 or newer) to use it with QEMU machine. The important requirement
+is that there should not be official Podman installation in the same system (because Podman Desktop will allways use
+it with if found). It is enough to just call the application from the shell and it will connect.
 
 To run Podman Desktop call this inside shell (`"` are important because of the app name having whitespace):
 ```bat
