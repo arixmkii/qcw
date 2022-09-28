@@ -27,6 +27,7 @@ jobs:
           python-setuptools
           mingw-w64-x86_64-gtk3
           mingw-w64-x86_64-SDL2
+          mingw-w64-x86_64-libslirp
           mingw-w64-x86_64-go
 
     - name: '📝 Checkout'
