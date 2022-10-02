@@ -62,7 +62,7 @@ Both patches have numerous reviews already and probably will move forward in the
 
 #### `XZ Utils`
 
-Version `5.2.6` w/o any changes.
+Version `5.2.7` w/o any changes.
 
 ## How to use
 
