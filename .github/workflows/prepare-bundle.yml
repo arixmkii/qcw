@@ -28,6 +28,10 @@ jobs:
           mingw-w64-x86_64-gtk3
           mingw-w64-x86_64-SDL2
           mingw-w64-x86_64-libslirp
+          mingw-w64-x86_64-SDL2_image
+          mingw-w64-x86_64-curl-gnutls
+          mingw-w64-x86_64-gnutls
+          mingw-w64-x86_64-virglrenderer
           mingw-w64-x86_64-go
 
     - name: '📝 Checkout'

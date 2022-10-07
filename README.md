@@ -127,22 +127,7 @@ Machines are fully isolated, but the ssh public/private key naming scheme is not
 then only one of them would have valid keys. Workaround is not to use default names for machines if user plans to use
 both QEMU and WSL.
 
-### 2. Machine keys are not added to `known_hosts` by default
-
-They could be added manually or with some tooling.
-Using `ssh-keyscan`:
-First check on which port machine is expecting ssh with
-```bat
-podman system connection list
-```
-Then (with machine running) run (where 65103 is the port discovered)
-```bat
-ssh-keyscan -p 65103 127.0.0.1 >> %USERPROFILE%\.ssh\known_hosts
-```
-And then manually change `[127.0.0.1]` to `localhost` in `%USERPROFILE%\.ssh\known_hosts` file. This is needed because
-`ssh-keyscan` is resolving `localhost` with IPv6, but `gvisor-tap-proxy` only works with IPv4 for now.
-
-### 3. Sometimes sock files are not cleaned up (if somethign crashes)
+### 2. Sometimes sock files are not cleaned up (if somethign crashes)
 
 There could be lefovers in `%TEMP%\podman`, which prevents `QEMU` or `gvproxy` startup. Solution is to shutdown machine
 and then cleanup this location manually before starting again.
