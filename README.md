@@ -39,8 +39,7 @@ feature rich machine emulator;
 
 #### `gvisor-tap-vsock`
 
-Version `0.4.0` is used carrying a single patch for enabling unix domain sockets on Windows platform. Hopefully will
-allow to use version `0.5.0` w/o any patchwork.
+Version `0.5.0-dev` is used.
 
 #### `Podman`
 
@@ -118,6 +117,7 @@ To run Podman Desktop call this inside shell (`"` are important because of the a
 
 * `9pfs` support - there is a patch set in QEMU devel mailing list, but it needs to be rebased and updated for the
 latest code changes. There are hopes that a new revision will appear during next release window.
+Last known update https://lists.gnu.org/archive/html/qemu-devel/2022-04/msg00983.html
 
 ## Known issues
 
