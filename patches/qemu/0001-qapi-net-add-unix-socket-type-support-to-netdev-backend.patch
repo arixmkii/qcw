@@ -1,79 +1,88 @@
-From patchwork Wed Oct  5 16:20:35 2022
+From patchwork Fri Oct 21 09:09:06 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
-X-Patchwork-Id: 12999441
+X-Patchwork-Id: 13014518
 Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 59512C433F5
-	for <qemu-devel@archiver.kernel.org>; Wed,  5 Oct 2022 16:30:45 +0000 (UTC)
-Received: from localhost ([::1]:44838 helo=lists1p.gnu.org)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 9763BC4332F
+	for <qemu-devel@archiver.kernel.org>; Fri, 21 Oct 2022 09:37:05 +0000 (UTC)
+Received: from localhost ([::1] helo=lists.gnu.org)
 	by lists.gnu.org with esmtp (Exim 4.90_1)
 	(envelope-from
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
-	id 1og7IC-0006Lr-Cc
-	for qemu-devel@archiver.kernel.org; Wed, 05 Oct 2022 12:30:44 -0400
-Received: from eggs.gnu.org ([2001:470:142:3::10]:50406)
+	id 1oloSe-0007yN-8V
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:37:04 -0400
+Received: from [::1] (helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
+	id 1olo2f-00046y-Su
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:10:13 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10])
  by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og790-0007GX-D4
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:14 -0400
-Received: from mout.kundenserver.de ([212.227.17.24]:59363)
+ id 1olo2C-0003FN-Cb
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:46 -0400
+Received: from mout.kundenserver.de ([212.227.17.13])
  by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og78u-0002nK-8A
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:12 -0400
+ id 1olo2A-0001QE-CZ
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:44 -0400
 Received: from lenovo-t14s.redhat.com ([82.142.8.70]) by
- mrelayeu.kundenserver.de (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis)
- id 1MBUuP-1oUF1z2qEB-00Cze1; Wed, 05 Oct 2022 18:20:56 +0200
+ mrelayeu.kundenserver.de (mreue106 [212.227.15.183]) with ESMTPSA (Nemesis)
+ id 1MsIbU-1p58Kj0saw-00tmMU; Fri, 21 Oct 2022 11:09:27 +0200
 From: Laurent Vivier <lvivier@redhat.com>
 To: qemu-devel@nongnu.org
-Cc: Thomas Huth <thuth@redhat.com>,
- =?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
- Eric Blake <eblake@redhat.com>,
+Cc: Thomas Huth <thuth@redhat.com>, xen-devel@lists.xenproject.org,
  "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
- David Gibson <david@gibson.dropbear.id.au>, Jason Wang <jasowang@redhat.com>,
- Samuel Thibault <samuel.thibault@ens-lyon.org>,
- Markus Armbruster <armbru@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
- Stefan Weil <sw@weilnetz.de>, Greg Kurz <groug@kaod.org>,
- Laurent Vivier <lvivier@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>,
+ Anthony Perard <anthony.perard@citrix.com>, Stefan Weil <sw@weilnetz.de>,
+ David Gibson <david@gibson.dropbear.id.au>,
+ Stefano Stabellini <sstabellini@kernel.org>, Paul Durrant <paul@xen.org>,
+ Eric Blake <eblake@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+ Markus Armbruster <armbru@redhat.com>,
+ Samuel Thibault <samuel.thibault@ens-lyon.org>, Greg Kurz <groug@kaod.org>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
  Stefano Brivio <sbrivio@redhat.com>
-Subject: [PATCH v10 01/17] net: introduce convert_host_port()
-Date: Wed,  5 Oct 2022 18:20:35 +0200
-Message-Id: <20221005162051.1120041-2-lvivier@redhat.com>
+Subject: [PATCH v14 01/17] net: introduce convert_host_port()
+Date: Fri, 21 Oct 2022 11:09:06 +0200
+Message-Id: <20221021090922.170074-2-lvivier@redhat.com>
 X-Mailer: git-send-email 2.37.3
-In-Reply-To: <20221005162051.1120041-1-lvivier@redhat.com>
-References: <20221005162051.1120041-1-lvivier@redhat.com>
+In-Reply-To: <20221021090922.170074-1-lvivier@redhat.com>
+References: <20221021090922.170074-1-lvivier@redhat.com>
 MIME-Version: 1.0
-X-Provags-ID: V03:K1:GJ0hD+gVmW1BsbqtfdvsFukChvBdM1Z4/MTJabtitC8IKo5O3uL
- j+sQ1oPEkD3TEi3TMApsGxqA0aLu+tOEc7bW4zuJmG5x/Exnkgx6y5gbX8kto45+RlPGM2e
- d4LPBCe1qsZUMX6nSZP1NvSgJZtOnU+KwNQ9fmjTmkhwuBh3wRQm/y5zbFujqbj2wVPZgLt
- ox7TQ2uFikPS7lmnHghdQ==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:z+xaJoZr96s=:e3KyDLZB6vc4vjC4vx5gxL
- cReNAidqoQZ11VnUJ9pa/6+8DYgHIGdcx/9ABm+czgVIilv3XtE1GiOq0oVsmQE5u4zyLXHoz
- oPofzVFoMNtg4QyIHJFzRhCTshLf6OF9sO0eId85S1nBv/XV5frn//IQ4QkxpP72fM5BzjyxP
- f7FrOFhWWFH+LGwEGp3DwEe0TT/XyE4ic9FWetf5ymw7hsGIneb4fPfM3XUjItazMJHmMMTUJ
- QTBxgO+19gLPwW/Epr2mmSv8tzt0BfDj/RCLGNAHz/p50Dx0MFTt0LHjnRm1PWK4U0GmShRoJ
- zabLd+uRDhZ7YK/gQeb1Quc3Jva1U4GBoJrPLcZplI8CxaXVbTiJleovGLMKQglDcmcoFzNAJ
- gwvgzgmjArdq97dtw5/pTGgTvB6qoZuS7wkb4CRk5/0AHfME30R2QQCkXM34g4NEwGZf4y5zu
- itfuepmkjh3RL1QHHNRC0q2zI4kIvsgqVEfhOBVSHvC5uFAjtr4GEpmTj+JKo4uPWmgZvRifg
- CXjPtXkPQaCirQLAGMswcHFH/5MegMRomrOcKedt8eaIa8ubPkUgHBCLdKatVR7KZkMQuGJCV
- AiJS6BEKLYztlC1+atMXyhYzsHdV/NBYP+oyqUdAsDzue2meYPQvnfi1q7kIuoPRwdXUFo34a
- Eoqwe+7BbES4sL+Pv2zihyKyglFQvCnYhkR0SM0S+7RgWHiMIngnfUfWebIDDYk7QpIPtmnFy
- fAdrQI1jMS6j9DJOgYa6jxcqgNw7YMeIUSTaUGO2d+EVNE06qEH8lJsAB3OAenLgx5Z+KVjOO
- UHLnkxV
-Received-SPF: permerror client-ip=212.227.17.24;
+X-Provags-ID: V03:K1:UNmkNBqxdJnZvFveDMtqcTp2IHg/srXUbTn7wvcQ6FXdR9eHdCI
+ RymESjpbgHGgZLXTi7Cr9OYSRxR6uLn3c2MfVil4zr7qdmCHx/8lgPGug/eoDENeWDMVo/3
+ TIxSdTTk8O6yHb+ZZxasoaOAg3Uv/EhMd2YNxEoDuLo6ALd/Kd5hqO3zWj/PLYOw9ijj75m
+ g5tzGHRaQlEIpdcpZHJuA==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:s9mbqRMoCWg=:Vvu4jEFi7gSp1MxnnyOqdQ
+ uNVgBU52KTHRU95T8ixNi4iL9ETl0St7D/EOr0FJi5lFVS1hzmI2SPUvcXK0SNzVUwJtonrDh
+ pqI4uuRGIAS2liEZgp6rppwm39GXsLJhuW6qWSbLK6teWiWiIrg2bmxTDXab1itBBXETmjAoK
+ AhCr6dkliXdZpRkDTD29Qw7KH3gbaQc/SmqBmizotxYRxJYUNW07+5x+tIQwY6pHaCxjGgL+y
+ 4G37XXWiJklks26D84xZK9kiD3ZPpFOsUfpQJn2dD3LvzkWwrr9sygivnXhK7eVEQDd6s0qo+
+ sb8Kni9LeChuhiuvTjganF4tP4xpUP8sUkxXc+UwUuAH41TIa/3k45feMgJlYR2eh8GQv/kQf
+ OlyuJeEbTmMjB4fI2sJPAJYZq95X0bJYxSu5u9LCojvchYBoCJdK+BS6ajh/HlnY374JzPu60
+ KgLBPJq/+cIM8TzgnXlk+dCaiEUx3I+pSjOX9BtDWaZ9eXK8abjfTVyhArsrla4/tTlTr8qlh
+ 73J36nKWoYZjwE+oz5Nli9yGAO8QItb4+Oug4w3KiC/WGNGHres/DGo97Odnz1OEg2Icdozu9
+ xOVc/CUsBkjaJNNgJX1I+9sqvwSZxhmvkFZAw+9j/6M4/B+Lt6qQ6qGq4npvzBXrCpBzgYKLb
+ FtchoTESY4u1Mn4+n4furBDxIUWaJGOOxDakOdC+9XxYVoZvU/MWcxSN8iHz02f1PzI9hzLJ2
+ 2aHH+UOSsKFnPzLTe35+GiAYKU/1nVTWL/OYdbDpRDmRnFS1HHNdGVaJUwJ89DsA/+PF/z3N1
+ 1zf05mt
+Received-SPF: permerror client-ip=212.227.17.13;
  envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
 X-Spam_score_int: -18
 X-Spam_score: -1.9
 X-Spam_bar: -
-X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_MSPIKE_H2=-0.001,
- SPF_FAIL=0.001, SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001,
+ SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
 X-Spam_action: no action
 X-BeenThere: qemu-devel@nongnu.org
 X-Mailman-Version: 2.1.29
@@ -93,6 +102,7 @@ Sender: "Qemu-devel"
 Signed-off-by: Laurent Vivier <lvivier@redhat.com>
 Reviewed-by: Stefano Brivio <sbrivio@redhat.com>
 Reviewed-by: David Gibson <david@gibson.dropbear.id.au>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
 ---
  include/qemu/sockets.h |  2 ++
  net/net.c              | 62 ++++++++++++++++++++++--------------------
@@ -204,82 +214,91 @@ index 2db160e0634d..d2288bd3a929 100644
  out:
      g_strfreev(substrings);
 
-From patchwork Wed Oct  5 16:20:36 2022
+From patchwork Fri Oct 21 09:09:07 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
-X-Patchwork-Id: 12999440
+X-Patchwork-Id: 13014519
 Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 6BB68C433F5
-	for <qemu-devel@archiver.kernel.org>; Wed,  5 Oct 2022 16:29:01 +0000 (UTC)
-Received: from localhost ([::1]:33786 helo=lists1p.gnu.org)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id A5F2FC43217
+	for <qemu-devel@archiver.kernel.org>; Fri, 21 Oct 2022 09:37:07 +0000 (UTC)
+Received: from localhost ([::1] helo=lists.gnu.org)
 	by lists.gnu.org with esmtp (Exim 4.90_1)
 	(envelope-from
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
-	id 1og7GW-0005Pj-Ca
-	for qemu-devel@archiver.kernel.org; Wed, 05 Oct 2022 12:29:00 -0400
-Received: from eggs.gnu.org ([2001:470:142:3::10]:50402)
+	id 1oloSe-00086J-SC
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:37:06 -0400
+Received: from [::1] (helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
+	id 1olo2U-0003fS-Er
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:10:02 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10])
  by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og78y-0007Ep-4c
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:12 -0400
-Received: from mout.kundenserver.de ([212.227.17.24]:57033)
+ id 1olo2D-0003GV-Eu
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:46 -0400
+Received: from mout.kundenserver.de ([212.227.17.13])
  by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og78u-0002nL-4u
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:11 -0400
+ id 1olo2A-0001QS-DP
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:45 -0400
 Received: from lenovo-t14s.redhat.com ([82.142.8.70]) by
- mrelayeu.kundenserver.de (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis)
- id 1MTRIg-1oldQL3Fwy-00ThPq; Wed, 05 Oct 2022 18:20:58 +0200
+ mrelayeu.kundenserver.de (mreue106 [212.227.15.183]) with ESMTPSA (Nemesis)
+ id 1M2wXK-1op7Po2PFM-003KhQ; Fri, 21 Oct 2022 11:09:28 +0200
 From: Laurent Vivier <lvivier@redhat.com>
 To: qemu-devel@nongnu.org
-Cc: Thomas Huth <thuth@redhat.com>,
- =?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
- Eric Blake <eblake@redhat.com>,
+Cc: Thomas Huth <thuth@redhat.com>, xen-devel@lists.xenproject.org,
  "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
- David Gibson <david@gibson.dropbear.id.au>, Jason Wang <jasowang@redhat.com>,
- Samuel Thibault <samuel.thibault@ens-lyon.org>,
- Markus Armbruster <armbru@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
- Stefan Weil <sw@weilnetz.de>, Greg Kurz <groug@kaod.org>,
- Laurent Vivier <lvivier@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v10 02/17] net: remove the @errp argument of
+ Laurent Vivier <lvivier@redhat.com>,
+ Anthony Perard <anthony.perard@citrix.com>, Stefan Weil <sw@weilnetz.de>,
+ David Gibson <david@gibson.dropbear.id.au>,
+ Stefano Stabellini <sstabellini@kernel.org>, Paul Durrant <paul@xen.org>,
+ Eric Blake <eblake@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+ Markus Armbruster <armbru@redhat.com>,
+ Samuel Thibault <samuel.thibault@ens-lyon.org>, Greg Kurz <groug@kaod.org>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>
+Subject: [PATCH v14 02/17] net: remove the @errp argument of
  net_client_inits()
-Date: Wed,  5 Oct 2022 18:20:36 +0200
-Message-Id: <20221005162051.1120041-3-lvivier@redhat.com>
+Date: Fri, 21 Oct 2022 11:09:07 +0200
+Message-Id: <20221021090922.170074-3-lvivier@redhat.com>
 X-Mailer: git-send-email 2.37.3
-In-Reply-To: <20221005162051.1120041-1-lvivier@redhat.com>
-References: <20221005162051.1120041-1-lvivier@redhat.com>
+In-Reply-To: <20221021090922.170074-1-lvivier@redhat.com>
+References: <20221021090922.170074-1-lvivier@redhat.com>
 MIME-Version: 1.0
-X-Provags-ID: V03:K1:OdenA11DsdouddbXZwvud80GTiH/Zx+EhrHZvYrM4QFqqJP/giS
- bxpKLTonGAkHCUCNo3WbSjtiqxWL0XKNSN139Hz0DbsAN88vl9PBftxndyMrea1HTRUVPk+
- J76gMOlyqOzj3Va5d7a20BcKBHg7NxazstzZdTNtY+OH/7nSG3NzdEwXKkiDcWmH1pe4sPM
- vlzS2WhlsIYaXvQBuUeuQ==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:sQ66LQuHyCE=:J7GZ9o1dPj4TlFgRjYLkb3
- iC3D6krggT82/r6jSghN92Xy0+cb/kI0/+xqR7OestBw2Q/mcCCa3vJXeLZF9ORh4wE9bGNNi
- aNDtpYX9I5cwEODOUhPL4xPTrms3BmU7uhUq2vmZyTKE7nMxOLufT5vo0/JLw06rGwQM0a381
- dMV6RHWzZ6P3d6bMwqO0RSSoE+OShgUmUqAu4e0fD6BR2HHjhBPcyP/viosL95G0vmFHwh0Bx
- VKMswrjNfE44GmbjjD+Unt4ATV2DS9gvJSR7aoOWALgKS0s1wqUvmoyJFbJJswiGJ2Dm20DXB
- 4DKixefDJJ3qpEb+VLaWDLZRupEMGyWHNZkeY9QCLiOAdSqOQ4gY1r9Wit/qplwdEcSAsi7b+
- nQjP9/KrxMXJAjEtQhmxiTOUQ1KsoSD7L2PXpm5d/rFzpmuJzerRjPVSmgfhjqcfOHc1hmhWe
- /lslbx12KGE8iZnIgcQzYBVeW5NPNDT54uXXHSILZDacl2527IE6NKqUtAuY7WwQfLQg0wF0p
- c17TrGeT1hfXD3yPUZfKgXlZ4ZIp2RiqsaHplkCMtrHf2BEfKdcnZFeLBiPA/m8G4UJOu/Dgb
- 0E1q6J+PEKZWZ1dG2fqO8DCI3WxlsOc7r6AyFMzunK0XDAiWgNS+SMlBIc11AB37XccXOWB74
- 495bVOFjeOG2SgYUPdB4UF3ap4oA4PzUGNeQfUT5QgARTgSlsGutlybYrZOVn27mM6cn5bZXQ
- w5LSlPgKWdsNRHuLVZ0/fBRGNBMer3ptu75lBqnTfi93hT2NrWXePQis+x8Kqj6NhvEcIF9+b
- dIYtyiY
-Received-SPF: permerror client-ip=212.227.17.24;
+X-Provags-ID: V03:K1:tXshrKVL+pGTR64qZzdDP2mgssWy1XD4N5JLIlGU4LQUuEupVwC
+ 6Hv53zCa79ErbrYWRyuwZ6Zb3npWe+TZCCzKsbFf2vHGaKHBcjZ07zaJiqvhrjyiG2LsWYo
+ MvvItkTUGQ78LwP3Oe67eQXJa7mVHIu9kaVzfwTZYpQ4YtxRzjafpO6EQx21pWtj+Zb4MYU
+ OVKCUTKs1om02e5AF0c0A==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:yh17WmPlzdo=:ZrtEojMwzm5gUGxZ5oS2y1
+ dS6Q/ZaN1X7zaqbjNcFyzDoCJ06/DQp0jG60URfoXiMJzbCLSbtCzxrY2c49MvYsu9v48ZiNy
+ hv5IKcr2fjF0cue9raRghSRmBgugbLDe4qkIn7gyApUZwqBX/ZHU6PvBoCGowiwGgBMQz8UP5
+ PT1YEvho0ej11ikypGW+48BcWjYantXzw703V3+QzpHV5YFBpte5Pf1AQtXxs2hVhmCHhTjTE
+ 3YZzphZ5TRFaYC4fxNE5hPjgqaEWU/g4OpwnLglck57PuKQZfsIQ081ITf75RExgPh1LuhjeA
+ Jyfo3fpXuJX1zlb1JPLnlJRK6RrlWPVB3h0oMV0Q5X6IAKgsaZmmbQ0TY4DCVrZEsmKozqjy1
+ xGvYxYfbr93VPPZ9vEXHV8cJKIj7fXkLm0ziBy89gXdz261jM71hYhDTCXPJ6ykHXO+zJR2w3
+ PiAZ5gQc4/935X/+Dd96WuFkZnQ5vp5AulzKXzeV+aBDUrToYFtgLncS8eHcSijOHinpHfX0I
+ 9DBE5bv/8RbRq/dJzmfyD5FoQsCCKD8cUI6qFzl5IfBzMpq2YnnogOvfQIxFlTUZ+FNXUixxI
+ 41cG1egq0DMmv/1zZxuiij36Wa7XmHj715GfgIu2bL/SAEGH6MSxEz+80vVEkw9zBAf6lQ0ei
+ DDGyT558YAVOnSt/sJNC528iBkq3rvJqiv7HJIUmso5UYN7POHBoNSpHrsW77ELz8NW+ocruE
+ owzJNfsELDBFFctnXKInCJJnXvZ3D30Y5BaOcgl157Eoy3pswvRQP/h/JZcZG4l3+fBlX7SGq
+ Zm8q12M
+Received-SPF: permerror client-ip=212.227.17.13;
  envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
 X-Spam_score_int: -18
 X-Spam_score: -1.9
 X-Spam_bar: -
-X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_MSPIKE_H2=-0.001,
- SPF_FAIL=0.001, SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001,
+ SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
 X-Spam_action: no action
 X-BeenThere: qemu-devel@nongnu.org
 X-Mailman-Version: 2.1.29
@@ -304,6 +323,7 @@ Suggested-by: Markus Armbruster <armbru@redhat.com>
 Signed-off-by: Laurent Vivier <lvivier@redhat.com>
 Reviewed-by: Markus Armbruster <armbru@redhat.com>
 Reviewed-by: David Gibson <david@gibson.dropbear.id.au>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
 ---
  include/net/net.h |  2 +-
  net/net.c         | 20 +++++++-------------
@@ -363,10 +383,10 @@ index d2288bd3a929..15958f881776 100644
  
  int net_client_parse(QemuOptsList *opts_list, const char *optarg)
 diff --git a/softmmu/vl.c b/softmmu/vl.c
-index 9abadcc15051..351eab4cd5f1 100644
+index b464da25bcde..a4ae131e4d61 100644
 --- a/softmmu/vl.c
 +++ b/softmmu/vl.c
-@@ -1906,7 +1906,7 @@ static void qemu_create_late_backends(void)
+@@ -1904,7 +1904,7 @@ static void qemu_create_late_backends(void)
          qtest_server_init(qtest_chrdev, qtest_log, &error_fatal);
      }
  
@@ -376,82 +396,89 @@ index 9abadcc15051..351eab4cd5f1 100644
      object_option_foreach_add(object_create_late);
  
 
-From patchwork Wed Oct  5 16:20:37 2022
+From patchwork Fri Oct 21 09:09:08 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
-X-Patchwork-Id: 12999477
+X-Patchwork-Id: 13014525
 Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id BE702C433F5
-	for <qemu-devel@archiver.kernel.org>; Wed,  5 Oct 2022 16:42:42 +0000 (UTC)
-Received: from localhost ([::1]:38704 helo=lists1p.gnu.org)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 923E1C433FE
+	for <qemu-devel@archiver.kernel.org>; Fri, 21 Oct 2022 09:42:52 +0000 (UTC)
+Received: from localhost ([::1] helo=lists.gnu.org)
 	by lists.gnu.org with esmtp (Exim 4.90_1)
 	(envelope-from
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
-	id 1og7Tl-0001qh-QI
-	for qemu-devel@archiver.kernel.org; Wed, 05 Oct 2022 12:42:41 -0400
-Received: from eggs.gnu.org ([2001:470:142:3::10]:46928)
+	id 1oloYE-0007FW-Hh
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:42:51 -0400
+Received: from [::1] (helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
+	id 1olo2e-0003vA-Q2
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:10:12 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10])
  by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og794-0007PK-Af
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:18 -0400
-Received: from mout.kundenserver.de ([217.72.192.73]:42961)
+ id 1olo2R-0003UV-9u
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:59 -0400
+Received: from mout.kundenserver.de ([217.72.192.73])
  by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og78x-0002nf-F2
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:17 -0400
+ id 1olo2B-0001QQ-15
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:58 -0400
 Received: from lenovo-t14s.redhat.com ([82.142.8.70]) by
- mrelayeu.kundenserver.de (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis)
- id 1MOzKk-1oq5Pq3ZWe-00PLqI; Wed, 05 Oct 2022 18:20:59 +0200
+ mrelayeu.kundenserver.de (mreue106 [212.227.15.183]) with ESMTPSA (Nemesis)
+ id 1MRSdf-1oR8M03m6v-00NRsT; Fri, 21 Oct 2022 11:09:30 +0200
 From: Laurent Vivier <lvivier@redhat.com>
 To: qemu-devel@nongnu.org
-Cc: Thomas Huth <thuth@redhat.com>,
- =?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
- Eric Blake <eblake@redhat.com>,
+Cc: Thomas Huth <thuth@redhat.com>, xen-devel@lists.xenproject.org,
  "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
- David Gibson <david@gibson.dropbear.id.au>, Jason Wang <jasowang@redhat.com>,
- Samuel Thibault <samuel.thibault@ens-lyon.org>,
- Markus Armbruster <armbru@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
- Stefan Weil <sw@weilnetz.de>, Greg Kurz <groug@kaod.org>,
- Laurent Vivier <lvivier@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v10 03/17] net: simplify net_client_parse() error management
-Date: Wed,  5 Oct 2022 18:20:37 +0200
-Message-Id: <20221005162051.1120041-4-lvivier@redhat.com>
+ Laurent Vivier <lvivier@redhat.com>,
+ Anthony Perard <anthony.perard@citrix.com>, Stefan Weil <sw@weilnetz.de>,
+ David Gibson <david@gibson.dropbear.id.au>,
+ Stefano Stabellini <sstabellini@kernel.org>, Paul Durrant <paul@xen.org>,
+ Eric Blake <eblake@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+ Markus Armbruster <armbru@redhat.com>,
+ Samuel Thibault <samuel.thibault@ens-lyon.org>, Greg Kurz <groug@kaod.org>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>
+Subject: [PATCH v14 03/17] net: simplify net_client_parse() error management
+Date: Fri, 21 Oct 2022 11:09:08 +0200
+Message-Id: <20221021090922.170074-4-lvivier@redhat.com>
 X-Mailer: git-send-email 2.37.3
-In-Reply-To: <20221005162051.1120041-1-lvivier@redhat.com>
-References: <20221005162051.1120041-1-lvivier@redhat.com>
+In-Reply-To: <20221021090922.170074-1-lvivier@redhat.com>
+References: <20221021090922.170074-1-lvivier@redhat.com>
 MIME-Version: 1.0
-X-Provags-ID: V03:K1:LTn9gCHCzHBSaiI423858RJie+oU0xjnNqPvNFuZ/mBwA+E7W+H
- XwpPIVxM2IuqPYhJ54rt+lvR3l3+xSx60CQKI3xViQPLHZhH09nIMUk0nJvERwlaPy5wgHv
- B/LfLPgxam52vpfmdZ2Qclrw0qq/rjt/SGkJZs1gwQ+Al8GoFBYFFq5NIvZ7FFJwsdjJ17u
- Byy1hNYS3rEyxa8Z5H79g==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:X97xJnjK6+k=:erRJC7bMOEm5bn9g84KB6K
- l1d5E6ZFt3ZFAox/lCPZ4IYO8NW3ZO9gxsgkb/J7n7IDivlfEpkiAl5zSqdtxCd7rdmX0wMZ7
- XGnMKs693MBGV8MFhQ5oN113O5J+W5j5O9RDTJ4CMXD9OmqJk3Wfc3dhifDarzMYyoH0Oojjq
- 9s7XnuNtECtqHGPJyn78m2O/bU4o6YHFf6MtqUo5YuBRbG8+/nL2RdZiSZcZALrfwhW8FMrfs
- WriIqpScdhB41BQcFB1lgQlqE/3tiYqjUYWkEG1CycoyCJ/tTnLf4XMduO3Nt15hwWTaJpDu2
- WKvxW0CucJjkrYB7zv02yioRwUdXiJ/+fib4zvZUvKeZxORK1vgGVPvp71/ogYK2k/C5AC2lO
- Mtlh5dEJnMhCYNm8N4iOU2QxnIi55EynX4iUdPDX+A9RF5HWp667ClOCXGxX6RSnmhIrSGP7e
- VoA4+4QKh4NmINB08b+1q2ZGjpZCdqwWREC/227yiIUpMajacNVfyBc8cWp+QAzjxMRJrxtLl
- hYglFGvmFOGGbytKLohomYTQY+/4+qrj2NLSm6TWcN/9rSxc1hGaCGWKgbwl481U/Az+heeDc
- G2Ekw2db6UB4UI7JYeWHYm+7p2ZhhKxY9kpQ/0rNEzXg4g5wO+1wFGyzUotouSSwQjaNp6r9j
- /1YQ7Fzx/Qr/TEJNCi60K6Pukx0kTrEgS4x9VHHqVn2loChA20jl5fK4pWOHm8KMTu+LyVXor
- QKRkWBCPC6bGpVSiL2YWJ9o7SQ7JUk515B9iP8twu94WEUpUSPdkPoyNYQ3lkyJYgaCop1gIe
- OziwGtL
+X-Provags-ID: V03:K1:IKic31ZwZSDUlRtZ5W/oJ6x9m74VEHK+o7kLTExWX9a8SaM3uhN
+ GkxTsbGIwSTcbmCyxldyFEjYzzTi+ti+OLJC5OlyLSrsUrjeq2luwqMC1eP4Bv4cz83XnBT
+ NkQ18fCd+4tAi+RuO3gYgMhwspdKX2WDeTk7ejR+8xaH1WMilCQlR25sTfFBVT+q4slUoor
+ Xutz9Omr+F0o07fJRStMA==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:ug7mRa7M/zM=:/oMTRGSRN5urzOJnTQ1pG5
+ TOn9OFGoETM9Vlcx3K86rB+Tx9Qvcprrlou0F4jCyt4jZts1jg2rGWigl8+4YJWYLliXMZCKN
+ gKeSSLYij1XRV89VSfbHOuSiRQZsu9H2Iz6HVdyCSHZCup6ZKGOS5P16FUrAGzf+ZnB21eAQL
+ 8tqLs5tHwHdQRzHo7cDiVcbEB/Ylrp6srETEzKXFvoIuTSfPzYz/0skDk+72Yk/KyA6ykQv5E
+ VdUGPLTdlREWXp1ybkVL/oyBEu+usG2vasOs+LcehkhEbvQsLtoDhLTTm1O5W3x5OXU9dlLH3
+ gAL8iuUMZex3N6MtdZ24H/CtmrwL7o1epWE2GciVamYdiFXTmrrouypREshx6DtAyv3DxiX3B
+ G4I84HArw7xcEngyJfLAMXHSx5QSeTO57XBnQYMlbOTstkPSdlpppDVjXczpiElk3ab06+X6y
+ WhfvQOAW36O7JH6K+3YKYe1NeUP9Oin22ViTpe/KaUdevtiQxLHL65ZoWeN1KfwGBbuL97qiu
+ Or7rV2c72M33MqVujY5T3AzOJ7dqVZbcNbEyj6TSP/5MeNr4jq+w6vle5NgHX8Yv894wYexyc
+ 9j928T1XeeZOsXt0nE1+lt5MbiQD8KtEu/VWRdjQ08Qo+BsXmYeOa70fv/30OJeeVN5dZ9smN
+ 3RHpt8ZUGy7XR0J3nd4KZ2pHh9f4NF3r0bQOk7A1Gm1E7f6sI+s4zDF+2ziOxgnItANLCbfw8
+ gLGvM+sceoBMdXekPT6KXFfqHN1p9J+WrbJXylRe0llWLVB1DQPFyeSPiZAjbeANgcWwe5KiX
+ TliuWE2
 Received-SPF: permerror client-ip=217.72.192.73;
  envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
 X-Spam_score_int: -18
 X-Spam_score: -1.9
 X-Spam_bar: -
-X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
- RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001,
- T_SPF_HELO_TEMPERROR=0.01 autolearn=no autolearn_force=no
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, SPF_FAIL=0.001,
+ SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
 X-Spam_action: no action
 X-BeenThere: qemu-devel@nongnu.org
 X-Mailman-Version: 2.1.29
@@ -477,6 +504,7 @@ Suggested-by: Markus Armbruster <armbru@redhat.com>
 Signed-off-by: Laurent Vivier <lvivier@redhat.com>
 Reviewed-by: Markus Armbruster <armbru@redhat.com>
 Reviewed-by: David Gibson <david@gibson.dropbear.id.au>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
 ---
  include/net/net.h |  2 +-
  net/net.c         |  6 ++----
@@ -517,10 +545,10 @@ index 15958f881776..f056e8aebfb2 100644
  
  /* From FreeBSD */
 diff --git a/softmmu/vl.c b/softmmu/vl.c
-index 351eab4cd5f1..2bf2d66c6b49 100644
+index a4ae131e4d61..e69aa43de469 100644
 --- a/softmmu/vl.c
 +++ b/softmmu/vl.c
-@@ -2809,21 +2809,15 @@ void qemu_init(int argc, char **argv)
+@@ -2801,21 +2801,15 @@ void qemu_init(int argc, char **argv)
                  break;
              case QEMU_OPTION_netdev:
                  default_net = 0;
@@ -546,82 +574,90 @@ index 351eab4cd5f1..2bf2d66c6b49 100644
  #ifdef CONFIG_LIBISCSI
              case QEMU_OPTION_iscsi:
 
-From patchwork Wed Oct  5 16:20:38 2022
+From patchwork Fri Oct 21 09:09:09 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
-X-Patchwork-Id: 12999469
+X-Patchwork-Id: 13014527
 Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 3D98FC433F5
-	for <qemu-devel@archiver.kernel.org>; Wed,  5 Oct 2022 16:39:15 +0000 (UTC)
-Received: from localhost ([::1]:51936 helo=lists1p.gnu.org)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id B6BA3C4332F
+	for <qemu-devel@archiver.kernel.org>; Fri, 21 Oct 2022 09:43:44 +0000 (UTC)
+Received: from localhost ([::1] helo=lists.gnu.org)
 	by lists.gnu.org with esmtp (Exim 4.90_1)
 	(envelope-from
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
-	id 1og7QQ-00061z-9Y
-	for qemu-devel@archiver.kernel.org; Wed, 05 Oct 2022 12:39:14 -0400
-Received: from eggs.gnu.org ([2001:470:142:3::10]:46930)
+	id 1oloZ5-0001Al-5a
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:43:43 -0400
+Received: from [::1] (helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
+	id 1olo2p-00052n-Dl
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:10:23 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10])
  by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og794-0007PQ-EN
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:18 -0400
-Received: from mout.kundenserver.de ([212.227.17.13]:42549)
+ id 1olo2R-0003UW-AD
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:59 -0400
+Received: from mout.kundenserver.de ([217.72.192.75])
  by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og78x-0002ns-ED
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:18 -0400
+ id 1olo2A-0001QL-K8
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:58 -0400
 Received: from lenovo-t14s.redhat.com ([82.142.8.70]) by
- mrelayeu.kundenserver.de (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis)
- id 1N3sZy-1pO0Vv3qoC-00zkRm; Wed, 05 Oct 2022 18:21:00 +0200
+ mrelayeu.kundenserver.de (mreue106 [212.227.15.183]) with ESMTPSA (Nemesis)
+ id 1MZCOl-1oYnKk0xZB-00VB6P; Fri, 21 Oct 2022 11:09:31 +0200
 From: Laurent Vivier <lvivier@redhat.com>
 To: qemu-devel@nongnu.org
-Cc: Thomas Huth <thuth@redhat.com>,
- =?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
- Eric Blake <eblake@redhat.com>,
+Cc: Thomas Huth <thuth@redhat.com>, xen-devel@lists.xenproject.org,
  "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
- David Gibson <david@gibson.dropbear.id.au>, Jason Wang <jasowang@redhat.com>,
- Samuel Thibault <samuel.thibault@ens-lyon.org>,
- Markus Armbruster <armbru@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
- Stefan Weil <sw@weilnetz.de>, Greg Kurz <groug@kaod.org>,
- Laurent Vivier <lvivier@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v10 04/17] qapi: net: introduce a way to bypass
+ Laurent Vivier <lvivier@redhat.com>,
+ Anthony Perard <anthony.perard@citrix.com>, Stefan Weil <sw@weilnetz.de>,
+ David Gibson <david@gibson.dropbear.id.au>,
+ Stefano Stabellini <sstabellini@kernel.org>, Paul Durrant <paul@xen.org>,
+ Eric Blake <eblake@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+ Markus Armbruster <armbru@redhat.com>,
+ Samuel Thibault <samuel.thibault@ens-lyon.org>, Greg Kurz <groug@kaod.org>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>
+Subject: [PATCH v14 04/17] qapi: net: introduce a way to bypass
  qemu_opts_parse_noisily()
-Date: Wed,  5 Oct 2022 18:20:38 +0200
-Message-Id: <20221005162051.1120041-5-lvivier@redhat.com>
+Date: Fri, 21 Oct 2022 11:09:09 +0200
+Message-Id: <20221021090922.170074-5-lvivier@redhat.com>
 X-Mailer: git-send-email 2.37.3
-In-Reply-To: <20221005162051.1120041-1-lvivier@redhat.com>
-References: <20221005162051.1120041-1-lvivier@redhat.com>
+In-Reply-To: <20221021090922.170074-1-lvivier@redhat.com>
+References: <20221021090922.170074-1-lvivier@redhat.com>
 MIME-Version: 1.0
-X-Provags-ID: V03:K1:AQbIoOXhDDh0aljyn4wjtrGt7UUDOPfYQ63YFqVqnOO2MuYI2JB
- Lh3IFC0hl/8fz0aVAA36vieRloWDEPIU5Dm0TlHwoZ8xa1Xs5jL32A+MaWm0t0jJ9GkFPqx
- j51i/0cP2FiRERpRYezWYruHIxUgi6JK7RKT3cHlHWQqng+dwIc5HZ+yxQi6OGPP07epSvs
- /SLiFtQILnI6y41gl9R5Q==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:hG7mHo1kMSI=:DqIMstv2RhkxW6sNndDl6v
- ityaeBI+K6ggEgTAgpIomoPGoGI+pi2iERNskkkUP/S3SPfCf33Enuq+2lXEXhJDZuuUOX3xH
- LAlUji6rV3+gsUHCp/fYJRbWcRRq+GP570dcnReLLoxYxaehKQ9PbaBJ09s/fKUBzHcjFUdHh
- HKGcQSFoUhZviulV+ogR7+XvrZCr/Oy+Nccy5lQWg/ZS6s3KVogOrpngpRpaMlOyfifX7Or2F
- aGqQJsLMduXkbWyENcxY7SsX2rssl83ljkrrWzwLDFSs4dQ7jph8/JW6ZoxY9VdUxUnWNglyA
- JRdJFZJ0+8ulKUHJI24TIJ8UrhK/eWG0Np6fyl6LEQ3MirqRw4Aa6okositB/DpZ6Gin5legN
- tYosuunlXf+Hv72vuVxhG6LXSiWlnwUoedtMgLe2FROVhHRxhXH4OiTFFCndj86Of7nSlaOHr
- s96PTLtHR+Rrf0NlyRcQifOzU9rW5BBnTfwHuSbu+MtEvVTRZUnMQ0sHGw5fniVUHveFOtnSR
- q/3wMq/Z/Wc10v44wocqKQeD0gv1MDUarHAcAYlde1VXqSbRBFavScMOmtQKYXml6fj+UcbaC
- TkzRtjDPiKnWymh+sBe9H79Mw07il4ga/mGsrmZQqGVR8NNg0CWBE2GPztEtAeAOGsP3RbQ6C
- 21FW/afUnri2xzMFGBvA1n6JWALvirRZsbec1DwN5gYqhn3EpiJRSflGiptpEtRnFXbYI75d8
- xZMmkWopCsCghULkE6ukWk5S7fF1me3hxYkt30QJffSYNDwzo8AtyUBx9VYfXk6wN/eDKNdzM
- YmiXmtP
-Received-SPF: permerror client-ip=212.227.17.13;
+X-Provags-ID: V03:K1:zbG1JYCFOKqctxtEiVdg+gddOmVeMfSH+Cb/QzJlwc7bIvDVcvo
+ B81fAqeBKxRhjvrzjUzb1lB4siNjb+IX0+t/6QBQuexzGjpuSLRIncmd3vTCbJt4N15uiOs
+ 5RiWC7dGi06ZBg6LX8jXbhZNWpF7OOUhGAEKpeOe/Ad5oJRggNcx4SOh3onniF213lr7ZIX
+ 1A8bm8wEpT4O55KutZL/g==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:6I6MKr2rA3E=:8iZAY7kw5shZUVvyNwuXXM
+ zv3SyJvx9Mx8olYxmrJ427vyu3FHkqeRLM50HNsobbjYlzJ9C3TnHnAU7wazy50u7if9YtB2o
+ usbeotygGXA0Dbh/LLQKsBpUEB71kOeuLzi74lbrybwY74DFn0BsmJrSCO768z79I8wRs51Xg
+ ZE2fueJm/KQx/JPRjjOQqo0kTHnJloK+ILgeTnSSagWuXqeA0d1Bb9Eva1BXfL9cIa6VFH7jQ
+ WlW/Ry0VIF/ANSPLvGRcEp9mnqKA6JPtg3+m8IhRbWvLwG1OSJVz4jAXbbvLLHP4mAnN92Y9s
+ 0VmuPXb+IoeVkpRduZE1ykjFXT6c4ZsfL6Up2UCUpuamIDa0L6xNpIwvYh+rHrKaZlFb9e03F
+ qPeKg4rDwSVuGfD+ZPXXy2BEtftjm4shJ4E5f2l3ognuipMD2nSVuym6d0kv1mQDdD2n+Qo61
+ 700ggZK+fOtb4qxw6BOSUdqblOUpNTa4XA5xanepW5iuAcwSCUGRe9jSZ4GfxGbQJrtPxTLlX
+ gSmO37gQRZoo+jUWJnSrwHlX0ztk9chUrN0bDF2dF/rKM9gw7VJNI2U3HH1tZy0waa145wuq1
+ KjO7g847umQY+H5jdw7Z0yX88yvFM3CnDP5wviyJPMo1DaReDyBC2rIcLAUhMjgykLBouWx0l
+ M+JaMjarGd8t+fdykKzQicYt5MJqSGXlQVuMP3WzSAB7llUNavQ8E/MAnsTYyqLzN/X4MBN38
+ rzeD5dzjn359r8uUF3G2CmHl5vRyoYo+cG7HDdzBB+35Om7GyN+/ai0DTuzecP4Spv6zhkuTY
+ EaHmpmS
+Received-SPF: permerror client-ip=217.72.192.75;
  envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
 X-Spam_score_int: -18
 X-Spam_score: -1.9
 X-Spam_bar: -
-X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_MSPIKE_H2=-0.001,
- SPF_FAIL=0.001, T_SPF_HELO_TEMPERROR=0.01 autolearn=no autolearn_force=no
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, SPF_FAIL=0.001,
+ SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
 X-Spam_action: no action
 X-BeenThere: qemu-devel@nongnu.org
 X-Mailman-Version: 2.1.29
@@ -680,6 +716,7 @@ This commit paves the way to use of the modern way instead.
 
 Signed-off-by: Laurent Vivier <lvivier@redhat.com>
 Reviewed-by: Markus Armbruster <armbru@redhat.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
 ---
  include/net/net.h |  2 ++
  net/net.c         | 57 +++++++++++++++++++++++++++++++++++++++++++++++
@@ -796,10 +833,10 @@ index f056e8aebfb2..ffe3e5a2cf1d 100644
  {
      if (!qemu_opts_parse_noisily(opts_list, optarg, true)) {
 diff --git a/softmmu/vl.c b/softmmu/vl.c
-index 2bf2d66c6b49..4a285c26d1d5 100644
+index e69aa43de469..99fb49c7b0ee 100644
 --- a/softmmu/vl.c
 +++ b/softmmu/vl.c
-@@ -2809,7 +2809,11 @@ void qemu_init(int argc, char **argv)
+@@ -2801,7 +2801,11 @@ void qemu_init(int argc, char **argv)
                  break;
              case QEMU_OPTION_netdev:
                  default_net = 0;
@@ -813,81 +850,91 @@ index 2bf2d66c6b49..4a285c26d1d5 100644
              case QEMU_OPTION_nic:
                  default_net = 0;
 
-From patchwork Wed Oct  5 16:20:39 2022
+From patchwork Fri Oct 21 09:09:10 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
-X-Patchwork-Id: 12999451
+X-Patchwork-Id: 13014539
 Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 3A77EC433F5
-	for <qemu-devel@archiver.kernel.org>; Wed,  5 Oct 2022 16:32:44 +0000 (UTC)
-Received: from localhost ([::1]:37074 helo=lists1p.gnu.org)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 76757C4332F
+	for <qemu-devel@archiver.kernel.org>; Fri, 21 Oct 2022 09:56:05 +0000 (UTC)
+Received: from localhost ([::1] helo=lists.gnu.org)
 	by lists.gnu.org with esmtp (Exim 4.90_1)
 	(envelope-from
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
-	id 1og7K7-0008HF-Aq
-	for qemu-devel@archiver.kernel.org; Wed, 05 Oct 2022 12:32:43 -0400
-Received: from eggs.gnu.org ([2001:470:142:3::10]:46924)
+	id 1olokx-0006FB-8X
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:56:03 -0400
+Received: from [::1] (helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
+	id 1olo3I-0005ja-CU
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:10:52 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10])
  by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og793-0007O1-IV
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:17 -0400
-Received: from mout.kundenserver.de ([212.227.17.10]:42553)
+ id 1olo2M-0003O5-4G
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:54 -0400
+Received: from mout.kundenserver.de ([212.227.17.10])
  by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og78y-0002oJ-Py
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:17 -0400
+ id 1olo2I-0001de-46
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:53 -0400
 Received: from lenovo-t14s.redhat.com ([82.142.8.70]) by
- mrelayeu.kundenserver.de (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis)
- id 1MFsd7-1oPrJi03Xr-00HPUr; Wed, 05 Oct 2022 18:21:01 +0200
+ mrelayeu.kundenserver.de (mreue106 [212.227.15.183]) with ESMTPSA (Nemesis)
+ id 1Mk178-1pW79A3UPw-00kOfw; Fri, 21 Oct 2022 11:09:33 +0200
 From: Laurent Vivier <lvivier@redhat.com>
 To: qemu-devel@nongnu.org
-Cc: Thomas Huth <thuth@redhat.com>,
- =?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
- Eric Blake <eblake@redhat.com>,
+Cc: Thomas Huth <thuth@redhat.com>, xen-devel@lists.xenproject.org,
  "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
- David Gibson <david@gibson.dropbear.id.au>, Jason Wang <jasowang@redhat.com>,
- Samuel Thibault <samuel.thibault@ens-lyon.org>,
- Markus Armbruster <armbru@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
- Stefan Weil <sw@weilnetz.de>, Greg Kurz <groug@kaod.org>,
- Laurent Vivier <lvivier@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v10 05/17] net: introduce qemu_set_info_str() function
-Date: Wed,  5 Oct 2022 18:20:39 +0200
-Message-Id: <20221005162051.1120041-6-lvivier@redhat.com>
+ Laurent Vivier <lvivier@redhat.com>,
+ Anthony Perard <anthony.perard@citrix.com>, Stefan Weil <sw@weilnetz.de>,
+ David Gibson <david@gibson.dropbear.id.au>,
+ Stefano Stabellini <sstabellini@kernel.org>, Paul Durrant <paul@xen.org>,
+ Eric Blake <eblake@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+ Markus Armbruster <armbru@redhat.com>,
+ Samuel Thibault <samuel.thibault@ens-lyon.org>, Greg Kurz <groug@kaod.org>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>, =?utf-8?q?Phil?=
+	=?utf-8?q?ippe_Mathieu-Daud=C3=A9?= <philmd@linaro.org>
+Subject: [PATCH v14 05/17] net: introduce qemu_set_info_str() function
+Date: Fri, 21 Oct 2022 11:09:10 +0200
+Message-Id: <20221021090922.170074-6-lvivier@redhat.com>
 X-Mailer: git-send-email 2.37.3
-In-Reply-To: <20221005162051.1120041-1-lvivier@redhat.com>
-References: <20221005162051.1120041-1-lvivier@redhat.com>
+In-Reply-To: <20221021090922.170074-1-lvivier@redhat.com>
+References: <20221021090922.170074-1-lvivier@redhat.com>
 MIME-Version: 1.0
-X-Provags-ID: V03:K1:7NOm0Vk5P2uY9HAuTMSwKsy3jn8VrkE7xFhjvP28s5Dc9DdMoaN
- 41+x2uX74ajZMS+2cCm/JPow2cg59hjN7+NUTeUkA1QSn6cnuI74fOEbjDNADbuLwCS6Dt8
- rM+t7CkWbI5JJV7lr1RCg4FsxyWf1ERmvSvYhyfDuHttU/Cox/wZMyPFUxoSd+KJGiOmaCt
- 1PFopMC3fUhsfzGiFPX8A==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:bBSKrzLB9tM=:oqAHqhMbgk8lIGxvFtBMYk
- Vw744TU5GuGRMsQEXIfuM4NtJ1McUNJdOX2KV8aRgJPLUXwZoIH9rqLrUu6/Zl6dXkIcI+CSI
- Ea83ULI3kMCFFg14fo58zRMOK4eu4BzhhHFcYNL8KCBltEcDzwSfcXc8gBai3dUmleCaOItj3
- /AsDiJSzMe4XWsA4fwMCVwaUHfOjIlp1PdhMN1wUobVoCuN7ZC4lrLia7mNHl/+7oKHOveX1P
- Iwr13n0cQ95K3/E+IA8qcGLZswtTWt8vSlQqNz+gvtA2CZ5pcl+dHloAGMWO7SNf95GzygIiK
- Sq06RTUF7dhlPm5b0+flDs2Cv5xIvhC48udsozbP9xIRGv1mQeCdHqdQFAsg3hMLxUnsfoU2+
- eBDRjJZ9ocWGo+csUD4XvEFYDsAbsdIXB433OaN74fB73xFfT4v8sG6qZUTg5pCDRGSoQ1UWh
- P0zM36KTBpWOLnLexoqGTb2OOkWBdOldpeYr9s5cDSAfesFsYiFMXuQZBnvLri7O9BMsEE3Ig
- UZcF2NBwu9z+SP7vnZukdKpTn/JPBD6QPWH/158o0Zn53fZuLgmq4uNoUWJbx3FjbruKcQZnw
- C9x0DCEkT3CnVcEuky9XKY3dgvYzu5UMEWp66/QaHV1yjcWSKx59r3nd0iGT6ewSGGkpylXsL
- 5EnTjejzKeZfpuzrMyflDVDOEvkKIiutp6QLFYppBHP1zWFav4FXx/3kWGhRRGrb+h77fzZdP
- hg16Jt/dkvtKjSDut9wGjBsO1Avbga6CSXkOD5Gkd/ZIBBHAqcn8M4tXkx3FdnmfRRyX5rhlI
- QWs4D6m
+X-Provags-ID: V03:K1:HV5arl1n+1db0QtPAJHmemsxaG/kvjCaYzpUsg/H8krvhcQnrVh
+ Xcl7Ti71o5RHMTKMCPOwRg+okTqAutBRx50d6kgYv6ulWQYLTw9UdU1VGG9+774pvIEVsPZ
+ gCaW3Coz2CaxnBXnmNGQCdtNm/Ci/pQcaifQg0br0nJ3Mo8JaeHVUDO2HJY0+plJMN91n2u
+ rYY65OmS8TJfeXNztpecw==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:eL9GGFc6iOk=:IgtKfPM4aRXnHN3VR0Xiyt
+ Dge1Q2RPz7wJe5f6QIucAYjicE6UnPEhPg0yQuGHUfeGybCqZ4ffkLZWmfH3U9NRACxJxkbFq
+ 6HYSU6waqcl9nuX+I5jCOO8YtiAY6npy/XjEBCmORdvoepdxM3niUNGVY9xQLU9y8j17FcHBF
+ +gXqyIT2Vm1DW+U+0Vobyu20rap/HQ3OAP5XrF+Voyxo6XNgRJpAN4sYMcReQOMaatEyNCvjo
+ VN3XJMGxRKP0e2FE8wQq29vIlDX0+SJKCDlBr6gbxOPta7VVrcCXj8QlF/0IJ34ZiwE6jWRmj
+ xicVACbvErHiQMj2F8bYdghP+FlV0t2NUV3y+FpRmORwPCrIXhnBmUR/6J9jyMY/yZTYccGVg
+ lI0vzA65lgR77Jft0eHOlcVRfyKxCyIH1iWoIUDRKh/+kkImLfaObEGwmNxcFNBfH3rTQQi35
+ rGljpwkaVP7nj5Y9/WgPNimSrILPKYmUDDstTZZ0fr+E+sTrL28tKDFeGbmJT+Lmdf38Z3kVK
+ 7P3C2RlTdkYfhuebV/U5nGk6aelex4XZL6p7AMTx8Bpyh9R+MH4oyP1YzBlefN283G62V3K82
+ ntd/NSDH2TZlX1CKtaz5PcIvfo1Ch+BMWUCDiBxrBXig3LOw3RCls8R9908g5nZfn+OOea6pF
+ pGwkTbVRkUozsn9B32Tp8VG90YTYeEcSapppicZfa/8vQYqdZygeadbRj12l8O0CGfdqM0vzr
+ +Qu1g76WJMPaugyl3m7DFQDM5k2pcttUEbXetigfeOjhgP8AHSFbUknpSU0Z52eQ+28fDkSq1
+ MITDvpc
 Received-SPF: permerror client-ip=212.227.17.10;
  envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
 X-Spam_score_int: -18
 X-Spam_score: -1.9
 X-Spam_bar: -
-X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_MSPIKE_H2=-0.001,
- SPF_FAIL=0.001, SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001,
+ SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
 X-Spam_action: no action
 X-BeenThere: qemu-devel@nongnu.org
 X-Mailman-Version: 2.1.29
@@ -908,7 +955,10 @@ Embed the setting of info_str in a function.
 
 Signed-off-by: Laurent Vivier <lvivier@redhat.com>
 Reviewed-by: David Gibson <david@gibson.dropbear.id.au>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Reviewed-by: Philippe Mathieu-Daudé <philmd@linaro.org>
 ---
+ hw/net/xen_nic.c  |  5 ++---
  include/net/net.h |  1 +
  net/l2tpv3.c      |  3 +--
  net/net.c         | 17 ++++++++++++-----
@@ -919,8 +969,24 @@ Reviewed-by: David Gibson <david@gibson.dropbear.id.au>
  net/vde.c         |  3 +--
  net/vhost-user.c  |  3 +--
  net/vhost-vdpa.c  |  2 +-
- 10 files changed, 39 insertions(+), 44 deletions(-)
+ 11 files changed, 41 insertions(+), 47 deletions(-)
 
+diff --git a/hw/net/xen_nic.c b/hw/net/xen_nic.c
+index 5c815b4f0c52..7d92c2d022b0 100644
+--- a/hw/net/xen_nic.c
++++ b/hw/net/xen_nic.c
+@@ -296,9 +296,8 @@ static int net_init(struct XenLegacyDevice *xendev)
+     netdev->nic = qemu_new_nic(&net_xen_info, &netdev->conf,
+                                "xen", NULL, netdev);
+ 
+-    snprintf(qemu_get_queue(netdev->nic)->info_str,
+-             sizeof(qemu_get_queue(netdev->nic)->info_str),
+-             "nic: xenbus vif macaddr=%s", netdev->mac);
++    qemu_set_info_str(qemu_get_queue(netdev->nic),
++                      "nic: xenbus vif macaddr=%s", netdev->mac);
+ 
+     /* fill info */
+     xenstore_write_be_int(&netdev->xendev, "feature-rx-copy", 1);
 diff --git a/include/net/net.h b/include/net/net.h
 index 025dbf1e143b..3db75ff841ff 100644
 --- a/include/net/net.h
@@ -1173,82 +1239,91 @@ index 4bc3fd01a878..e1865bea6aa3 100644
  
      s->vhost_vdpa.device_fd = vdpa_device_fd;
 
-From patchwork Wed Oct  5 16:20:40 2022
+From patchwork Fri Oct 21 09:09:11 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
-X-Patchwork-Id: 12999468
+X-Patchwork-Id: 13014507
 Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id D3DC2C433FE
-	for <qemu-devel@archiver.kernel.org>; Wed,  5 Oct 2022 16:37:37 +0000 (UTC)
-Received: from localhost ([::1]:60646 helo=lists1p.gnu.org)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 4E8B3C4332F
+	for <qemu-devel@archiver.kernel.org>; Fri, 21 Oct 2022 09:26:55 +0000 (UTC)
+Received: from localhost ([::1] helo=lists.gnu.org)
 	by lists.gnu.org with esmtp (Exim 4.90_1)
 	(envelope-from
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
-	id 1og7Oq-0004Ty-T0
-	for qemu-devel@archiver.kernel.org; Wed, 05 Oct 2022 12:37:36 -0400
-Received: from eggs.gnu.org ([2001:470:142:3::10]:50410)
+	id 1oloIo-0003Ke-3y
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:26:54 -0400
+Received: from [::1] (helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
+	id 1olo2q-00053H-BM
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:10:24 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10])
  by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og791-0007JL-K5
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:15 -0400
-Received: from mout.kundenserver.de ([212.227.17.24]:50283)
+ id 1olo2M-0003O6-4B
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:54 -0400
+Received: from mout.kundenserver.de ([212.227.17.10])
  by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og78u-0002nM-6h
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:15 -0400
+ id 1olo2F-0001Zq-Rp
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:52 -0400
 Received: from lenovo-t14s.redhat.com ([82.142.8.70]) by
- mrelayeu.kundenserver.de (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis)
- id 1N3sZy-1pO0Vy1Lhg-00zkRm; Wed, 05 Oct 2022 18:21:03 +0200
+ mrelayeu.kundenserver.de (mreue106 [212.227.15.183]) with ESMTPSA (Nemesis)
+ id 1N7hrw-1p7J8e1Zcw-014mpu; Fri, 21 Oct 2022 11:09:35 +0200
 From: Laurent Vivier <lvivier@redhat.com>
 To: qemu-devel@nongnu.org
-Cc: Thomas Huth <thuth@redhat.com>,
- =?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
- Eric Blake <eblake@redhat.com>,
+Cc: Thomas Huth <thuth@redhat.com>, xen-devel@lists.xenproject.org,
  "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
- David Gibson <david@gibson.dropbear.id.au>, Jason Wang <jasowang@redhat.com>,
- Samuel Thibault <samuel.thibault@ens-lyon.org>,
- Markus Armbruster <armbru@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
- Stefan Weil <sw@weilnetz.de>, Greg Kurz <groug@kaod.org>,
- Laurent Vivier <lvivier@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>,
+ Anthony Perard <anthony.perard@citrix.com>, Stefan Weil <sw@weilnetz.de>,
+ David Gibson <david@gibson.dropbear.id.au>,
+ Stefano Stabellini <sstabellini@kernel.org>, Paul Durrant <paul@xen.org>,
+ Eric Blake <eblake@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+ Markus Armbruster <armbru@redhat.com>,
+ Samuel Thibault <samuel.thibault@ens-lyon.org>, Greg Kurz <groug@kaod.org>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
  Stefano Brivio <sbrivio@redhat.com>
-Subject: [PATCH v10 06/17] qapi: net: add stream and dgram netdevs
-Date: Wed,  5 Oct 2022 18:20:40 +0200
-Message-Id: <20221005162051.1120041-7-lvivier@redhat.com>
+Subject: [PATCH v14 06/17] qapi: net: add stream and dgram netdevs
+Date: Fri, 21 Oct 2022 11:09:11 +0200
+Message-Id: <20221021090922.170074-7-lvivier@redhat.com>
 X-Mailer: git-send-email 2.37.3
-In-Reply-To: <20221005162051.1120041-1-lvivier@redhat.com>
-References: <20221005162051.1120041-1-lvivier@redhat.com>
+In-Reply-To: <20221021090922.170074-1-lvivier@redhat.com>
+References: <20221021090922.170074-1-lvivier@redhat.com>
 MIME-Version: 1.0
-X-Provags-ID: V03:K1:+4xReSbFv+EfAij4R8vsol5052c+3HIAix0xxkkVrVi5sRFgb5+
- pBbmPJBuJ9+JlXaIu8hASVQYcLo4zuGXEDImduohh4gxNUYaPBcM/LomZ8dSBCZau47iOJf
- VGxzT4tLDl6eQ34o8AxFAFcy4R4P1mmZIB5i2QpTUKWQaUJwyRFNMi/NKoLDBeaHnHxcWaV
- FrnUx+U9cP+Hki40GqVwA==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:lZl9RRq3fgI=:AVVu+XfKEQN+9U8KvciMUY
- +7SCy9fMhrg1F483J4OHjXG5qj+8RPiVSZIq/KcdYh92a35W2cH8gg7U7aiNbqXzpf3YCpsvQ
- UZfCpp0J3JnJEy+3Y2ZkuiEgEQGJyTutqnXpJUmt4dBvCI5Qi/xv/zRGSD69GmZQF6V67PI0F
- rKd/OlL0YPvfQZo6UyIS1lGXBkGqcLQfEL22JLRvBZ8YboPgvRF9i9P8SxbMhXidSd2xDVWeq
- hlrOyXhWdPsE53Ar04BCzs5BlINLgHZhYCthVLhhlJ3c7SuGktByQ8JaU45Iw012ukjod6z0+
- w7Z+yudn9JltK+0o3+ihReoIleohd+xh3cBh692bgTdd10hqmqHoFl7y5FThNQ6+jcWwGspeb
- BLKAtDrpgkntmRQEZEHMFTz9h+mrciBXg8vlYHvBjn5Q64UFkOiNJNzW/126KAqt1Zdqfg46w
- 81KxQYVmqjdXtCyuiumz7ybzqBoyBzj9yRZN+ucPt1E7ZemtdLxAkUqnjZ0SZp5/3gK1Piq3w
- rCl/tuU2MzTij3SlIGDKgcXhxVbWkvjDfpY+6yUKl/b0d9X79TjXoAGEl0Gp5ekCFA/o3qA0p
- wWmXcMD2vANFCDdrjJucI3oxSyuea2qooma74HPn7oQZZm9n5KZ5WMINMHak9Z8fM3M6sNX24
- eL5BLMf24SZqq5en9qJVhSFsoAJ5HrVgkhX1qlxp/n7BXm4wdDOM6EqBzTbD0jnYlD6aShj38
- scBswlCyJvCZGKPLQn0LyY9GBMQMcWQUQLj00sU+Un4WsiHe9168BNbawBkiBKQdh8cqHm82U
- ICU4g80
-Received-SPF: permerror client-ip=212.227.17.24;
+X-Provags-ID: V03:K1:4HM3F/3qzZvU4v2oE57bkyf1Ov3n5xl8+MWMURMKEagxbzyWo9r
+ RweJYrAoE9+LyzCG7Y6VCnml1euJC4WMyy/dYkfLWDPgFQy9EnVUqoLDy/zjaTN4y0Sfayr
+ EThQa/du+kj+wXtY8u7IITwPYLfg/UrEkb5wOgblHtktdquGgKaZyfkUq8hm9Hh5MVUN+Ws
+ fk6M27cwr9R55Uyxv8TLQ==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:XLY2hcw5K7A=:7P8u81qKbyMM1kKhnOe06O
+ 7/I2ry1mX0uToaxLEJ9JsZsKCYUTKNbxtiCaAmuhwtbhtRgzoEjJnYxuMtnvIk1COjkXeeIAW
+ X8XQGwq7ZJh0JaE7plwu10jEJZ0UDS8wBzXYxS6hK5FHWnD+DYit/B3OyRK4MqgoRDH4BtFNL
+ EdbaBOtQJasZpRMW9uQqZDrc5hH0RPoYKE5jNGVFOg/VpYiP8GMpxMVdBX9+sOOqLpIs6kgSc
+ Aw8War0c8JJRoS/tI+MsEEGQqBrsfMSvfiR5t34hBOQHW8fhugFBmovPHSKGNoahVeShtClUj
+ WsdMXo3vkc9AhF+nTbxNorDUHRm4NzvCI/TZFgxeR419sP90hRh4vsbHcBHVE1ZFL0gledTl7
+ zNmFtZJahsNfcS927wTxz+RRdhktJFR4NjAXdZerRXRHl+TTE7Fm+hpvJO9lBsC07ewRbXmhx
+ 61g9GbAwBzjSPK/Z4iZdSS2WuhSPKvVJrl2U8EltTe+4M0jiywz+V7IQhcnTqg/lUKt6avbcK
+ 9eS7DvwYfZVficTucFzJZUG5sFTKAkz0NtcG5T4JeUIi6iG8kwThLG280WE7XJBe/0YbynurG
+ HaR0pRNFklMRV8PxVh5BaiZyHfzFL4RGPJ6mXZuavGG3Jq6K9Rehw2EbZdm7DCwWicn6PE9xQ
+ 3Ye00YAWxdfzPXC4bKaRxhIiczwTi0hOtEWXO1P/1pofUQQzUIlzwKm+u5EGc9LEkwwIS2Vrm
+ 12GuKEtjnnvNrRT1BGmZOropZoxxEyW1+VuiD/seG6R8XakAHhFZ+UqoAHdM5UkvPWX2nkyt5
+ 0ecufW7
+Received-SPF: permerror client-ip=212.227.17.10;
  envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
 X-Spam_score_int: -18
 X-Spam_score: -1.9
 X-Spam_bar: -
-X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_MSPIKE_H2=-0.001,
- SPF_FAIL=0.001, SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001,
+ SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
 X-Spam_action: no action
 X-BeenThere: qemu-devel@nongnu.org
 X-Mailman-Version: 2.1.29
@@ -1271,7 +1346,7 @@ to be able to introduce new features like unix socket.
 "udp" and "mcast" are squashed into dgram netdev, multicast is detected
 according to the IP address type.
 "listen" and "connect" modes are managed by stream netdev. An optional
-parameter "server" defines the mode (server by default)
+parameter "server" defines the mode (off by default)
 
 The two new types need to be parsed the modern way with -netdev, because
 with the traditional way, the "type" field of netdev structure collides with
@@ -1301,6 +1376,7 @@ a certain way.  This maximizes our chance to extract the value of
 Signed-off-by: Laurent Vivier <lvivier@redhat.com>
 Reviewed-by: Stefano Brivio <sbrivio@redhat.com>
 Acked-by: Markus Armbruster <armbru@redhat.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
 ---
  hmp-commands.hx |   2 +-
  net/clients.h   |   6 +
@@ -1309,14 +1385,14 @@ Acked-by: Markus Armbruster <armbru@redhat.com>
  net/meson.build |   2 +
  net/net.c       |  30 ++-
  net/stream.c    | 425 ++++++++++++++++++++++++++++++++++++++
- qapi/net.json   |  62 +++++-
+ qapi/net.json   |  66 +++++-
  qemu-options.hx |  12 ++
- 9 files changed, 1074 insertions(+), 4 deletions(-)
+ 9 files changed, 1078 insertions(+), 4 deletions(-)
  create mode 100644 net/dgram.c
  create mode 100644 net/stream.c
 
 diff --git a/hmp-commands.hx b/hmp-commands.hx
-index 8ab8000acd9e..da40a7eb04ed 100644
+index 12b6d4e2dcac..673e39a69797 100644
 --- a/hmp-commands.hx
 +++ b/hmp-commands.hx
 @@ -1276,7 +1276,7 @@ ERST
@@ -1978,7 +2054,7 @@ index 41e05137d431..dd063d71b7b3 100644
  /*
 diff --git a/net/stream.c b/net/stream.c
 new file mode 100644
-index 000000000000..37965eb74e1a
+index 000000000000..0a7e84749a3f
 --- /dev/null
 +++ b/net/stream.c
 @@ -0,0 +1,425 @@
@@ -2402,13 +2478,13 @@ index 000000000000..37965eb74e1a
 +    assert(netdev->type == NET_CLIENT_DRIVER_STREAM);
 +    sock = &netdev->u.stream;
 +
-+    if (!sock->has_server || sock->server) {
-+        return net_stream_server_init(peer, "stream", name, sock->addr, errp);
++    if (!sock->has_server || !sock->server) {
++        return net_stream_client_init(peer, "stream", name, sock->addr, errp);
 +    }
-+    return net_stream_client_init(peer, "stream", name, sock->addr, errp);
++    return net_stream_server_init(peer, "stream", name, sock->addr, errp);
 +}
 diff --git a/qapi/net.json b/qapi/net.json
-index dd088c09c509..eddd18340455 100644
+index dd088c09c509..185748cc6c6c 100644
 --- a/qapi/net.json
 +++ b/qapi/net.json
 @@ -7,6 +7,7 @@
@@ -2430,11 +2506,11 @@ index dd088c09c509..eddd18340455 100644
 +#
 +# @addr: socket address to listen on (server=true)
 +#        or connect to (server=false)
-+# @server: create server socket (default: true)
++# @server: create server socket (default: false)
 +#
 +# Only SocketAddress types 'inet' and 'fd' are supported.
 +#
-+# Since: 7.1
++# Since: 7.2
 +##
 +{ 'struct': 'NetdevStreamOptions',
 +  'data': {
@@ -2470,7 +2546,7 @@ index dd088c09c509..eddd18340455 100644
 +#    not multicast  present   yes
 +#    =============  ========  =====
 +#
-+# Since: 7.1
++# Since: 7.2
 +##
 +{ 'struct': 'NetdevDgramOptions',
 +  'data': {
@@ -2480,8 +2556,12 @@ index dd088c09c509..eddd18340455 100644
  ##
  # @NetClientDriver:
  #
-@@ -586,8 +641,9 @@
+@@ -584,10 +639,13 @@
+ #        @vmnet-host since 7.1
+ #        @vmnet-shared since 7.1
  #        @vmnet-bridged since 7.1
++#        @stream since 7.2
++#        @dgram since 7.2
  ##
  { 'enum': 'NetClientDriver',
 -  'data': [ 'none', 'nic', 'user', 'tap', 'l2tpv3', 'socket', 'vde',
@@ -2492,7 +2572,16 @@ index dd088c09c509..eddd18340455 100644
              { 'name': 'vmnet-host', 'if': 'CONFIG_VMNET' },
              { 'name': 'vmnet-shared', 'if': 'CONFIG_VMNET' },
              { 'name': 'vmnet-bridged', 'if': 'CONFIG_VMNET' }] }
-@@ -617,6 +673,8 @@
+@@ -607,6 +665,8 @@
+ #        'vmnet-host' - since 7.1
+ #        'vmnet-shared' - since 7.1
+ #        'vmnet-bridged' - since 7.1
++#        'stream' since 7.2
++#        'dgram' since 7.2
+ ##
+ { 'union': 'Netdev',
+   'base': { 'id': 'str', 'type': 'NetClientDriver' },
+@@ -617,6 +677,8 @@
      'tap':      'NetdevTapOptions',
      'l2tpv3':   'NetdevL2TPv3Options',
      'socket':   'NetdevSocketOptions',
@@ -2502,10 +2591,10 @@ index dd088c09c509..eddd18340455 100644
      'bridge':   'NetdevBridgeOptions',
      'hubport':  'NetdevHubPortOptions',
 diff --git a/qemu-options.hx b/qemu-options.hx
-index 913c71e38f2b..d5ef9202cbec 100644
+index eb38e5dc40bc..396c1d11e1e2 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
-@@ -2756,6 +2756,18 @@ DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
+@@ -2772,6 +2772,18 @@ DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
      "-netdev socket,id=str[,fd=h][,udp=host:port][,localaddr=host:port]\n"
      "                configure a network backend to connect to another network\n"
      "                using an UDP tunnel\n"
@@ -2525,83 +2614,92 @@ index 913c71e38f2b..d5ef9202cbec 100644
      "-netdev vde,id=str[,sock=socketpath][,port=n][,group=groupname][,mode=octalmode]\n"
      "                configure a network backend to connect to port 'n' of a vde switch\n"
 
-From patchwork Wed Oct  5 16:20:41 2022
+From patchwork Fri Oct 21 09:09:12 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
-X-Patchwork-Id: 12999481
+X-Patchwork-Id: 13014512
 Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 5EE18C433FE
-	for <qemu-devel@archiver.kernel.org>; Wed,  5 Oct 2022 16:53:34 +0000 (UTC)
-Received: from localhost ([::1]:42236 helo=lists1p.gnu.org)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 95E6DC4332F
+	for <qemu-devel@archiver.kernel.org>; Fri, 21 Oct 2022 09:32:29 +0000 (UTC)
+Received: from localhost ([::1] helo=lists.gnu.org)
 	by lists.gnu.org with esmtp (Exim 4.90_1)
 	(envelope-from
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
-	id 1og7eH-0003h6-5U
-	for qemu-devel@archiver.kernel.org; Wed, 05 Oct 2022 12:53:33 -0400
-Received: from eggs.gnu.org ([2001:470:142:3::10]:46936)
+	id 1oloOC-0002rH-6W
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:32:28 -0400
+Received: from [::1] (helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
+	id 1olo2Y-0003is-UB
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:10:06 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10])
  by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og795-0007R0-FO
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:19 -0400
-Received: from mout.kundenserver.de ([212.227.17.10]:57205)
+ id 1olo2I-0003ME-5V
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:53 -0400
+Received: from mout.kundenserver.de ([217.72.192.73])
  by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og790-0002oe-Ky
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:18 -0400
+ id 1olo2E-0001Zk-Mk
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:49 -0400
 Received: from lenovo-t14s.redhat.com ([82.142.8.70]) by
- mrelayeu.kundenserver.de (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis)
- id 1MLA6m-1oyKTy0ViU-00ICAS; Wed, 05 Oct 2022 18:21:04 +0200
+ mrelayeu.kundenserver.de (mreue106 [212.227.15.183]) with ESMTPSA (Nemesis)
+ id 1MX0Xf-1ob0Fl1bC5-00XO1p; Fri, 21 Oct 2022 11:09:36 +0200
 From: Laurent Vivier <lvivier@redhat.com>
 To: qemu-devel@nongnu.org
-Cc: Thomas Huth <thuth@redhat.com>,
- =?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
- Eric Blake <eblake@redhat.com>,
+Cc: Thomas Huth <thuth@redhat.com>, xen-devel@lists.xenproject.org,
  "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
- David Gibson <david@gibson.dropbear.id.au>, Jason Wang <jasowang@redhat.com>,
- Samuel Thibault <samuel.thibault@ens-lyon.org>,
- Markus Armbruster <armbru@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
- Stefan Weil <sw@weilnetz.de>, Greg Kurz <groug@kaod.org>,
- Laurent Vivier <lvivier@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>,
+ Anthony Perard <anthony.perard@citrix.com>, Stefan Weil <sw@weilnetz.de>,
+ David Gibson <david@gibson.dropbear.id.au>,
+ Stefano Stabellini <sstabellini@kernel.org>, Paul Durrant <paul@xen.org>,
+ Eric Blake <eblake@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+ Markus Armbruster <armbru@redhat.com>,
+ Samuel Thibault <samuel.thibault@ens-lyon.org>, Greg Kurz <groug@kaod.org>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
  Stefano Brivio <sbrivio@redhat.com>
-Subject: [PATCH v10 07/17] net: socket: Don't ignore EINVAL on netdev socket
+Subject: [PATCH v14 07/17] net: socket: Don't ignore EINVAL on netdev socket
  connection
-Date: Wed,  5 Oct 2022 18:20:41 +0200
-Message-Id: <20221005162051.1120041-8-lvivier@redhat.com>
+Date: Fri, 21 Oct 2022 11:09:12 +0200
+Message-Id: <20221021090922.170074-8-lvivier@redhat.com>
 X-Mailer: git-send-email 2.37.3
-In-Reply-To: <20221005162051.1120041-1-lvivier@redhat.com>
-References: <20221005162051.1120041-1-lvivier@redhat.com>
+In-Reply-To: <20221021090922.170074-1-lvivier@redhat.com>
+References: <20221021090922.170074-1-lvivier@redhat.com>
 MIME-Version: 1.0
-X-Provags-ID: V03:K1:FDJZof5MsbvXVo3Wv9lPKjTdT2JOJurWHTnVoaBaLKmfGQm9sGQ
- 3JQcoG/jqbY6k+wlmltLDmba+NDtptdo2rJviixE9xVrJVFRm1kl6IDyhLS509eO1aRqKCO
- mCS2x8nvSmaCRGNQy6+h+ptzrO+2UyVZ+N7E4orOCTasE1Qwi30c566ua62GuFWAd1dC1jG
- 53iGi/oRZseHr/W//2shg==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:d1JOKwi9sEU=:2nFwCY/Lg3xJYH61F+96cT
- 214rqbYZNjDoHUbAccWwU3/S2FjTTku3qPxnrwe75smF9QuR0h7dQicqxI2u06k7HhGwb7V05
- 5z1jeJ1YPesZ2I5rWdnvalrCCz63bsV4DZ94NwgGskfr/io4Pn+2cGKwreBaaWSP5LvH7nzya
- wDbBsOYW425bA1nD15t7AjtWWnCIFsg5G9VuTClzQy5fXS34xWKJFDgVLx+OFDwTjUAn152U2
- zGsCEaMn5lx6Ph+u2H3S/BoMWCc+iifmBbgnxewW4o2wsiqC0ScXyyB4RGoOJYHVIyvaGkjxm
- Gbe5ATZ26bdmPkOc5bESIFLqhVEmE2CAAYVASf3NVwFTcsBvMsbYMGmh2oveDaMjuExybOe7x
- aov4Kj0O+ja6atPKt0VzYKzg19L9ZAm5dS/q9/+rLx7QA+lwv2oDamsSGs27F6jfUAJVALRvd
- WDJVmqjnbdnv46aGT59JgFuwM4DcIlNUgY+LZM+FoY5QtPC/0UvRDT5Vrl+QWf4c4CA/xw+E3
- WGkRwWBDvHtBfAvpLJTrDiO2BXUtBYAnaKILlYfxSrhYT1q7VMO/AfQgw9/sYVpZXk52EC1YP
- EcTrWRYIqM0Dod6aGdEHyukP9ywpcnoJrFmKvY1ozIZaYOp9qQQAuts2WwsrzUu/lJkmCEFJb
- tTZ9aYiSuWSPlKe1vPcZY+/hqVVSRbl2UNZZJ004E6tvp5vrvtZYEiBg/Yg6Wfa40H7JUjSF5
- o0vzDRPqHHIjMIO3Dut4msloSYByE9WkbOUnkxbfGssXBbKHLd+Ry32wkkeDsIYkI7C9p7Qcm
- cTYNv4K
-Received-SPF: permerror client-ip=212.227.17.10;
+X-Provags-ID: V03:K1:bd+GEfX3VxfGbU9uQxgyK0I9xZKcP9lU6sbZ1cQiIG52z4WS3Es
+ /LQbm/MXYJjkhbFCwEv/TgM9JyjYO8vYk9NLrNikDpZkleiObUICWJxLrjrxZWHTBwk47cN
+ UX/vbrW2C1vbbJz3iiDT/01KoLue3SLSdmUxC1Iy2YLBUe9n3YdUaJ250nUfdueVygOl7Pu
+ osvRgKANdZAEbxTToGTag==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:mkmviekNp8c=:WQ+FEdo19ymXo60ydZcbR4
+ 3kP52n0hTugu7HLO6S8Tm2slcIlNzQow+XtKta52lhGWgNdXDH/gP+HzolVeIXZeJ4uDIgPXt
+ FziRx5AtAhxgBmRN2o13w4ryjg2DdmdM4SgfJVAc6njlP3htiy6f4U+PdRWm27uznXyEJa5AQ
+ /iFCr4rHkBAvXR7z7+YcVU+JB0PjJYjov+0jTWFigcXAeE+KkNbfANYBKBggDIDgwCAZUhMs1
+ CIl3990dkUjrnBamOR7CWB3etSydekTdkU16QqR/oMOE+y2S59s5H43ZA/A74XUhsrxpFLJq+
+ usA7EfOJ+VCUyAZHL7b+m+EYy9I0yoxMmUts6TLdMUgeLEY/d9a4TKdAUCwY2+/Nv9GANBFk7
+ O7JrBLq2u1QLOZIby7ANX5NMdhlD8dOFEp8SWjhg9KcZnWjpdoKvRQS8nhYyiqXo+jvwmRAAI
+ Z+IB0D7bug+ybUjSEcd0OPsTtRaWlX5omRafca+I2DdlPTKJ/AamlE7mTcN3xUlbb9T7/zi1M
+ AWd96D0lg+/enp9ktxESHAogVZWNoMChx9mTjPZ/RnfDG5YCxxps/y9BGK4dPgUyly6ha8JpN
+ xdqUf82wK5vr7NhuB2O+QCidEE8bQ8AHtYbJXWlFBBrrUtZW7SbLTuQGvSIgf0Th10yL4U+5d
+ +2zdDvk1SePidq68hJzOwCm5coxLPXKs1BTfRTX+ZUbJ3uu7KgP3+B6M4V/Y6DEd0N4w5QFja
+ /NthcMxGH+FamiDIb7zr2xVNeCFHH6pZF0CRrluDy1oaDCeeI+RFGCD31S1Ah22Dfye4pjRh+
+ aq3XA/a
+Received-SPF: permerror client-ip=217.72.192.73;
  envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
 X-Spam_score_int: -18
 X-Spam_score: -1.9
 X-Spam_bar: -
-X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_MSPIKE_H2=-0.001,
- SPF_FAIL=0.001, SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001,
+ SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
 X-Spam_action: no action
 X-BeenThere: qemu-devel@nongnu.org
 X-Mailman-Version: 2.1.29
@@ -2627,6 +2725,7 @@ related exception.
 Signed-off-by: Stefano Brivio <sbrivio@redhat.com>
 Signed-off-by: Laurent Vivier <lvivier@redhat.com>
 Reviewed-by: David Gibson <david@gibson.dropbear.id.au>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
 ---
  net/socket.c | 3 +--
  1 file changed, 1 insertion(+), 2 deletions(-)
@@ -2646,83 +2745,92 @@ index ade1ecf38b87..4944bb70d580 100644
              } else {
                  error_setg_errno(errp, errno, "can't connect socket");
 
-From patchwork Wed Oct  5 16:20:42 2022
+From patchwork Fri Oct 21 09:09:13 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
-X-Patchwork-Id: 12999479
+X-Patchwork-Id: 13014511
 Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 7DDFFC433FE
-	for <qemu-devel@archiver.kernel.org>; Wed,  5 Oct 2022 16:45:08 +0000 (UTC)
-Received: from localhost ([::1]:45734 helo=lists1p.gnu.org)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 34D35C4332F
+	for <qemu-devel@archiver.kernel.org>; Fri, 21 Oct 2022 09:31:47 +0000 (UTC)
+Received: from localhost ([::1] helo=lists.gnu.org)
 	by lists.gnu.org with esmtp (Exim 4.90_1)
 	(envelope-from
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
-	id 1og7W7-0006P0-Av
-	for qemu-devel@archiver.kernel.org; Wed, 05 Oct 2022 12:45:07 -0400
-Received: from eggs.gnu.org ([2001:470:142:3::10]:46926)
+	id 1oloNU-0000xy-5Q
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:31:44 -0400
+Received: from [::1] (helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
+	id 1olo2Y-0003ii-Rk
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:10:06 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10])
  by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og794-0007P1-0l
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:18 -0400
-Received: from mout.kundenserver.de ([212.227.17.13]:52517)
+ id 1olo2I-0003MD-4t
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:53 -0400
+Received: from mout.kundenserver.de ([212.227.17.13])
  by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og78x-0002o9-FU
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:17 -0400
+ id 1olo2F-0001Zs-GO
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:49 -0400
 Received: from lenovo-t14s.redhat.com ([82.142.8.70]) by
- mrelayeu.kundenserver.de (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis)
- id 1MKsax-1ouC9U14Pt-00LD6d; Wed, 05 Oct 2022 18:21:05 +0200
+ mrelayeu.kundenserver.de (mreue106 [212.227.15.183]) with ESMTPSA (Nemesis)
+ id 1N9d91-1p9EXc3FBd-015cJh; Fri, 21 Oct 2022 11:09:38 +0200
 From: Laurent Vivier <lvivier@redhat.com>
 To: qemu-devel@nongnu.org
-Cc: Thomas Huth <thuth@redhat.com>,
- =?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
- Eric Blake <eblake@redhat.com>,
+Cc: Thomas Huth <thuth@redhat.com>, xen-devel@lists.xenproject.org,
  "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
- David Gibson <david@gibson.dropbear.id.au>, Jason Wang <jasowang@redhat.com>,
- Samuel Thibault <samuel.thibault@ens-lyon.org>,
- Markus Armbruster <armbru@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
- Stefan Weil <sw@weilnetz.de>, Greg Kurz <groug@kaod.org>,
- Laurent Vivier <lvivier@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>,
+ Anthony Perard <anthony.perard@citrix.com>, Stefan Weil <sw@weilnetz.de>,
+ David Gibson <david@gibson.dropbear.id.au>,
+ Stefano Stabellini <sstabellini@kernel.org>, Paul Durrant <paul@xen.org>,
+ Eric Blake <eblake@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+ Markus Armbruster <armbru@redhat.com>,
+ Samuel Thibault <samuel.thibault@ens-lyon.org>, Greg Kurz <groug@kaod.org>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
  Stefano Brivio <sbrivio@redhat.com>
-Subject: [PATCH v10 08/17] net: stream: Don't ignore EINVAL on netdev socket
+Subject: [PATCH v14 08/17] net: stream: Don't ignore EINVAL on netdev socket
  connection
-Date: Wed,  5 Oct 2022 18:20:42 +0200
-Message-Id: <20221005162051.1120041-9-lvivier@redhat.com>
+Date: Fri, 21 Oct 2022 11:09:13 +0200
+Message-Id: <20221021090922.170074-9-lvivier@redhat.com>
 X-Mailer: git-send-email 2.37.3
-In-Reply-To: <20221005162051.1120041-1-lvivier@redhat.com>
-References: <20221005162051.1120041-1-lvivier@redhat.com>
+In-Reply-To: <20221021090922.170074-1-lvivier@redhat.com>
+References: <20221021090922.170074-1-lvivier@redhat.com>
 MIME-Version: 1.0
-X-Provags-ID: V03:K1:DcdpaHZPyNUV4Su1+5cQn/Ctr2ur1utRwPQ+zSn0E3Iov4JH213
- SI6d+Nrrt6ubRco4tVYqfN6nF1gkC+f1qBtCW39W1k9MOt33y8u+iNb0QjCbBSj5JkSP/2E
- LJqvZSVDJ6rWWHvFHzv4KD/yXP6qjtf66S4qrig3yWZxv9M/QVCgedNXiBUBrobHLfr/JPS
- BsDo1BL2dktUxyx2S4jTg==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:0RgsTViv1IE=:9nkI0ECJ7gG5Iymb9xeIyI
- bhz3KafHPWdyQXw9d1QgfZdMw66tRGbJAb5cA83umezWn+DVGg69t5LbVWJKO2M9xDT9gBYzK
- lRQL9kGgh5QTMAK7JreTBgjYXCxOifsgetOnXKaT45ZOUs6hwlsB+tMVnFtXEOfKMxNx1qLs+
- bXE1pM8o5g2CGsUXlgKCRx4MCSG+z5vXvBcoULWP7Mu2Y3RkhRTRjOqnIHFRNA4moF3lM92NM
- aYMfNakyODzWUIU/QL+KksFAyKXTvEqtmHseMHW02/Uq3Qx7uadCpybOrnGHN/9kgIgu/unBc
- NYQsQaGxQ6xCohcsUC0JyUvybbq8/ao1kgNMwxCCBcDkF4Ju1fsHMVEAKaPxyazz7+0emSAM0
- BHGsIYBPr2AiEpkb5YyvmnrarTDL71neNMl22ePoKLmVr82sxVvp1CCLBB3RsbG6t5fpyXSf2
- GMtm+G4+Fpz364v71lMrRrideyQc8bSfGV44fkBoikPQLzSZGcA1SJ9pD+NSU21OsEhYy8yQ8
- N8wFAizslMtt0jWrFFoB64GjFbULVMwcu4tyz4/Gd1uNb+9RF4LPNUF34weVbSbogQnkaGQzH
- oujzr1N12PO4eWhkPQtUoNkQWq7o9AzVrl3Hb2xBbQ4S3B/chTaIJ9ggX4IxVZ6KSNJXBep4g
- h2kD7teLIqetXjGd8zpRFqJhaev7xpfXbP1Fiu03C6CcxSoC6g7MaVbFdBeVcN/8JZ7gSXiHS
- Zu/B8G9ebEs+VyWi10G50dKUfDtPB8qJT80dZ36u22U1C5hKMp1VPHUGyObtQocB2k0OZFuJe
- nrNfI3A
+X-Provags-ID: V03:K1:B8MiZnq3mijX2C60eMitMUnHfhjAsmiSOOLIMe8CGzGcyXH8Amn
+ R6kmli/R29qVZGFwW99SSIIHnpIJSCUUtm3YMS7x1N49hx7YaIIR+TucE17slkVtkbbuqak
+ 3L8Tq+Hp1uQVUAmPvXgxl5HsqB5f8GVHQOiUJKQmaUpo6ftUkNYfPzFaEbWDnNWYD6xp/k0
+ V0XP7hgAHtmYUEkdRF2mw==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:1qn1Ptr2aeU=:x2FfOD5n7oRGv2YOTnEI0V
+ UT9fLRdX2EJk4NczaChet0yCQWq+P+BbdoV2S0xQ1+04VmTVjt4Lk4i0JIf6RPEfkh5f/aFHc
+ UtymMMuvcy+OLtF31Pj+E1W0QhicSiY7XrS2kzTuLZLrY8SLo/7QHX6qLNQ2rZ3RuRZ2wqOwH
+ gDPkpLkTZ3vDIvk598vomL8O1JjWKdAIQLcK3kXOnpNfYYwzWO4mxzTMohMKGTzv+o3uQlLlf
+ SVjL2fs3Fc/EGtKsND3cOOVq6Fihtrq7PuofITaZrsxwsUVqKH5ZjmfpeGTnP3JxLAqUfFOuD
+ 5M+986X7hmvdMMLWzDFRNL/GBtzg9uhNYEvN27tXviwzoLsSdgGMu5HxVQVCG7EQVzrE9dx+3
+ 8vloEszKyHwFlPFdrR7I2CP8i2LmWUn2S5klGmmyA63IaQElXwJuiusYcvj4NxE5AZ2a6sp1D
+ 66j/Dv9hyYbCR1h+ybOLewTNmoxYTiXHZtzsoMRvfPLtL3On9ZKMkyKltTOETH0kWjgGXC/4G
+ U64Bp2P7ag/jGOyrCgkOLeo+5nFkBYhHEbQvkBN4Ii0ezjQUP9mz2m3GclYxU8Dh/DIXgZBwK
+ ulI0n6FwRzDn5b9QSU8F/iEhhEhv+wNvK2Bl+i4x8LM603qkVz7HDe4wIvDIqziBVaJligIbW
+ Cs2ybbI7bb419EM15aGZ6AOH6aE/5mEXf08kUakPsoPceYHVf0O4V8xFAgRRcp8srZy5Zpi2w
+ LzJmQVots76Ir2ay+qhRkyT0fWAj+Nk9HLhSxqjGycYKq/r9mwFcBJujEwQSS4p/W5HdGtezI
+ fMS0jZ+
 Received-SPF: permerror client-ip=212.227.17.13;
  envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
 X-Spam_score_int: -18
 X-Spam_score: -1.9
 X-Spam_bar: -
-X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_MSPIKE_H2=-0.001,
- SPF_HELO_NONE=0.001, T_SPF_TEMPERROR=0.01 autolearn=ham autolearn_force=no
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001,
+ SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
 X-Spam_action: no action
 X-BeenThere: qemu-devel@nongnu.org
 X-Mailman-Version: 2.1.29
@@ -2750,12 +2858,13 @@ Signed-off-by: Stefano Brivio <sbrivio@redhat.com>
 Signed-off-by: Laurent Vivier <lvivier@redhat.com>
 Reviewed-by: Daniel P. Berrangé <berrange@redhat.com>
 Reviewed-by: David Gibson <david@gibson.dropbear.id.au>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
 ---
  net/stream.c | 3 +--
  1 file changed, 1 insertion(+), 2 deletions(-)
 
 diff --git a/net/stream.c b/net/stream.c
-index 37965eb74e1a..26e485438718 100644
+index 0a7e84749a3f..e4388fe7e45c 100644
 --- a/net/stream.c
 +++ b/net/stream.c
 @@ -360,8 +360,7 @@ static int net_stream_client_init(NetClientState *peer,
@@ -2769,82 +2878,92 @@ index 37965eb74e1a..26e485438718 100644
                  } else {
                      error_setg_errno(errp, errno, "can't connect socket");
 
-From patchwork Wed Oct  5 16:20:43 2022
+From patchwork Fri Oct 21 09:09:14 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
-X-Patchwork-Id: 12999439
+X-Patchwork-Id: 13014489
 Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 614E7C433FE
-	for <qemu-devel@archiver.kernel.org>; Wed,  5 Oct 2022 16:28:59 +0000 (UTC)
-Received: from localhost ([::1]:39304 helo=lists1p.gnu.org)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id C65CFC4332F
+	for <qemu-devel@archiver.kernel.org>; Fri, 21 Oct 2022 09:14:43 +0000 (UTC)
+Received: from localhost ([::1] helo=lists.gnu.org)
 	by lists.gnu.org with esmtp (Exim 4.90_1)
 	(envelope-from
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
-	id 1og7GT-0005Ks-Q0
-	for qemu-devel@archiver.kernel.org; Wed, 05 Oct 2022 12:28:57 -0400
-Received: from eggs.gnu.org ([2001:470:142:3::10]:50408)
+	id 1olo70-0000tD-94
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:14:42 -0400
+Received: from [::1] (helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
+	id 1olo2Z-0003iu-6U
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:10:07 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10])
  by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og791-0007Iz-96
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:15 -0400
-Received: from mout.kundenserver.de ([217.72.192.75]:54781)
+ id 1olo2J-0003Mv-RU
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:54 -0400
+Received: from mout.kundenserver.de ([212.227.17.13])
  by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og78x-0002nw-Em
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:14 -0400
+ id 1olo2H-0001ap-US
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:51 -0400
 Received: from lenovo-t14s.redhat.com ([82.142.8.70]) by
- mrelayeu.kundenserver.de (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis)
- id 1MJV9S-1ovZb01iq8-00Jq3m; Wed, 05 Oct 2022 18:21:06 +0200
+ mrelayeu.kundenserver.de (mreue106 [212.227.15.183]) with ESMTPSA (Nemesis)
+ id 1MDgxt-1ovOxI0zPb-00AmPP; Fri, 21 Oct 2022 11:09:39 +0200
 From: Laurent Vivier <lvivier@redhat.com>
 To: qemu-devel@nongnu.org
-Cc: Thomas Huth <thuth@redhat.com>,
- =?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
- Eric Blake <eblake@redhat.com>,
+Cc: Thomas Huth <thuth@redhat.com>, xen-devel@lists.xenproject.org,
  "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
- David Gibson <david@gibson.dropbear.id.au>, Jason Wang <jasowang@redhat.com>,
- Samuel Thibault <samuel.thibault@ens-lyon.org>,
- Markus Armbruster <armbru@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
- Stefan Weil <sw@weilnetz.de>, Greg Kurz <groug@kaod.org>,
- Laurent Vivier <lvivier@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
- Stefano Brivio <sbrivio@redhat.com>
-Subject: [PATCH v10 09/17] net: stream: add unix socket
-Date: Wed,  5 Oct 2022 18:20:43 +0200
-Message-Id: <20221005162051.1120041-10-lvivier@redhat.com>
+ Laurent Vivier <lvivier@redhat.com>,
+ Anthony Perard <anthony.perard@citrix.com>, Stefan Weil <sw@weilnetz.de>,
+ David Gibson <david@gibson.dropbear.id.au>,
+ Stefano Stabellini <sstabellini@kernel.org>, Paul Durrant <paul@xen.org>,
+ Eric Blake <eblake@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+ Markus Armbruster <armbru@redhat.com>,
+ Samuel Thibault <samuel.thibault@ens-lyon.org>, Greg Kurz <groug@kaod.org>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
+ Stefano Brivio <sbrivio@redhat.com>,
+ =?utf-8?q?Philippe_Mathieu-Daud=C3=A9?= <philmd@linaro.org>
+Subject: [PATCH v14 09/17] net: stream: add unix socket
+Date: Fri, 21 Oct 2022 11:09:14 +0200
+Message-Id: <20221021090922.170074-10-lvivier@redhat.com>
 X-Mailer: git-send-email 2.37.3
-In-Reply-To: <20221005162051.1120041-1-lvivier@redhat.com>
-References: <20221005162051.1120041-1-lvivier@redhat.com>
+In-Reply-To: <20221021090922.170074-1-lvivier@redhat.com>
+References: <20221021090922.170074-1-lvivier@redhat.com>
 MIME-Version: 1.0
-X-Provags-ID: V03:K1:wPXmfk+ou0awVYUqNCtz7+sACHvx2fz/wPVUkoMwbmX8nKT1W0D
- NTssiSWy3Rq150Kbo71G/xVF6rT2kJUkegf4YO8TYutKlo4xPRb+mCxuptk6Xl+fvxmrgQN
- lgbY6pDHuLqHtbFn0zqURct7iF4P3qmcqdEpTAOOEwgnbJIjoda3dkSVtweGlvqPsA70/ow
- CrdVYl0Fw5OxkcpBerbQQ==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:85OOCCLW/Xs=:qH2BKKVJV2FioaGX3uPl56
- p9itqCYYMzjTdCeF4cW0xWcdK6MALQhpV9gz8IEym4oOrRC1Rci332317i8ctLxBrVobXzmWR
- hpp/WYUT/AYydyp5sYb2fyh9vR8Tb4TdtO3aQ6m/haZIiiTx1VKqFzc7kUTcLbzywstrTEUaC
- Qu6xim5C8yE/GQ/0c3Goq6lSqrRjoVUWkEz3ZGs7iDeaPhZQK7rC6cvKCBnbyx+rdB7OGMss8
- Cv9rS57YBUtQRQWEu4bEsVQbOl8ZDJfD5j8RLSsW8K9+WIst0BKSIfsrkTW7dSuV8+71iGeBB
- Qt+4FZE1L+TaEdTBjWJiQQJtySz5wtI7rCb15Cy8781WP4oDwmN8JCYZfIwBur96AMpXhnaNw
- Iy0gdNqqglW2DsSbHodBE6IqaENKU0BaROfe97CYVLlxDZr5daD06iE74UNatAyAg794X2T9Y
- xb2rvKdU27flocJYIlNZ+7Q3ZLkB2YswhaDXxuaLbdv3bB5pzMkOvj/ky2Hj4MWM3DddUJxdL
- M7LvUMiCCUUPeEteIufQ8hEr/dUNClr5mosAD++rMqXSv+GOGR3XQWt7oek7WMo4raA5MlidV
- FOEYjYMi7HywEbJd6AjQqHVSlTb/tWO5VaMN531tVDt3GGEFOZtgkbjG4YeUgdTKhD1+qevPL
- 1X/U4r4/jQ5+fH/bbKRcI2OLj7yVY9YQtkQ351jIMPls5IfxHHFKbM5/isQv+vy1xOJRyX+Jf
- unGZSW6gjxfnwnuu1rwcwr2Oqd5I8eNnb0EFuZVI3YE9TJXSlnqJYDfiHH9LAGqq4RTKXHI5c
- EbfH00E
-Received-SPF: permerror client-ip=217.72.192.75;
+X-Provags-ID: V03:K1:AV2lG9hA5qh6jdvV7vYHx4BwdiWeVyu1SsntwDCDTMWUkAJgckP
+ 0RP5ZhNCfXz/NO/1I4l2Wxn5kkHFc3nx0i0QhLkMFo7Io7anJjws9zS1kxXwhD2HSVPxq64
+ PJnv13nvgwe/MFm0SpUJwr3d7YSX3xU8DOGlJMaDmH4QxLlaqpQLfwCb7oGMCu437tOT8uj
+ SbBO50VMgJ+kA3O/aqusg==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:eKAce30NA6o=:P7ekYlHk/wHXznaJR1BW3U
+ Y5Pj19NLWe5uCShE/HjsuoQ2mpZhCLFvoq7nD1PY+Jt4En7yU32KDAtfLf+o6E0T7nlLMed7d
+ PW8rJoezqtrulLMawc/kEB652YrQJRW8S9JlWqnnUMYiAKTV/bw6cHmGZOc3jPeBY2kqnQ74f
+ aZ3Jd5+yxdQnqDGxwrtV5vHAub6xQjipVL++tyxMuTRAhjWhsRs45avr+FukrC1fuXpvRIkc/
+ rZ0p9560tYDMOBU22l3bVHmmHZxQdWrqvTXE3v293wScyHv8ipaDKMwugW/2PHxD2RYanQh7B
+ NN2fHUDFt3PLj946P5RU7mjEMGJLHPnP2ROPC8HmAY0IiqTm8xDAKHDYm5IdMj9/FeVmyFa7A
+ 8NDif0WxWMGvZjXCNIWbCwrWRu0+A/H6Q/e75TGE+ywAg1BWsu0u6FZvlxJTiWKqFcctvzZew
+ 2x6Qds7cY7sfwiFxMESZjJ7cm9vwtYBCiKH/b9Lw/cXV7uUZUVpY9X9UrFYDGfgXakigV2zym
+ zJcFwIsz2W8T72uUXPeQWy5GqQzwJYMjaDkN+PSFOsmSPDwKmh5NslLUdPEYAh2qHsSP8+2BL
+ J5XJ3p1dc8Jlpx0wsvawSyEsrhJLmcG5XRL8iEiklijAWm4toKjU/2jWoES0RCPMYrPRGFCcO
+ SZUCln8J5bylvga0YpXrS6nvn5ZOViZ0gmxlDeAmRaOMUMQ+DMR+DaD9Q5sct/88c3WRu/yvp
+ jGXbG1OxhKIRzdFj08ZUxoMeZAuUvnn5at5szzusgf8I6cExB5YwOZd1kpcvq8BYKGEiyeelG
+ Wot34X7
+Received-SPF: permerror client-ip=212.227.17.13;
  envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
 X-Spam_score_int: -18
 X-Spam_score: -1.9
 X-Spam_bar: -
 X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
- SPF_FAIL=0.001, SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001,
+ SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
 X-Spam_action: no action
 X-BeenThere: qemu-devel@nongnu.org
 X-Mailman-Version: 2.1.29
@@ -2863,6 +2982,9 @@ Sender: "Qemu-devel"
 
 Signed-off-by: Laurent Vivier <lvivier@redhat.com>
 Reviewed-by: Stefano Brivio <sbrivio@redhat.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Acked-by: Markus Armbruster <armbru@redhat.com> (QAPI schema)
+Reviewed-by: Philippe Mathieu-Daudé <philmd@linaro.org>
 ---
  net/stream.c    | 107 +++++++++++++++++++++++++++++++++++++++++++++---
  qapi/net.json   |   2 +-
@@ -2870,7 +2992,7 @@ Reviewed-by: Stefano Brivio <sbrivio@redhat.com>
  3 files changed, 104 insertions(+), 6 deletions(-)
 
 diff --git a/net/stream.c b/net/stream.c
-index 26e485438718..d26c79d035fc 100644
+index e4388fe7e45c..884f473018da 100644
 --- a/net/stream.c
 +++ b/net/stream.c
 @@ -235,7 +235,7 @@ static NetStreamState *net_stream_fd_init(NetClientState *peer,
@@ -3036,23 +3158,23 @@ index 26e485438718..d26c79d035fc 100644
  }
  
 diff --git a/qapi/net.json b/qapi/net.json
-index eddd18340455..d8065c335072 100644
+index 185748cc6c6c..aed4ce1a97ff 100644
 --- a/qapi/net.json
 +++ b/qapi/net.json
 @@ -583,7 +583,7 @@
  #        or connect to (server=false)
- # @server: create server socket (default: true)
+ # @server: create server socket (default: false)
  #
 -# Only SocketAddress types 'inet' and 'fd' are supported.
 +# Only SocketAddress types 'unix', 'inet' and 'fd' are supported.
  #
- # Since: 7.1
+ # Since: 7.2
  ##
 diff --git a/qemu-options.hx b/qemu-options.hx
-index d5ef9202cbec..95b231095542 100644
+index 396c1d11e1e2..98e2595df93b 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
-@@ -2757,6 +2757,7 @@ DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
+@@ -2773,6 +2773,7 @@ DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
      "                configure a network backend to connect to another network\n"
      "                using an UDP tunnel\n"
      "-netdev stream,id=str[,server=on|off],addr.type=inet,addr.host=host,addr.port=port\n"
@@ -3061,82 +3183,92 @@ index d5ef9202cbec..95b231095542 100644
      "                configure a network backend to connect to another network\n"
      "                using a socket connection in stream mode.\n"
 
-From patchwork Wed Oct  5 16:20:44 2022
+From patchwork Fri Oct 21 09:09:15 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
-X-Patchwork-Id: 12999478
+X-Patchwork-Id: 13014528
 Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 0F9B3C433F5
-	for <qemu-devel@archiver.kernel.org>; Wed,  5 Oct 2022 16:43:45 +0000 (UTC)
-Received: from localhost ([::1]:49510 helo=lists1p.gnu.org)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 22B4DC433FE
+	for <qemu-devel@archiver.kernel.org>; Fri, 21 Oct 2022 09:44:35 +0000 (UTC)
+Received: from localhost ([::1] helo=lists.gnu.org)
 	by lists.gnu.org with esmtp (Exim 4.90_1)
 	(envelope-from
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
-	id 1og7Um-0003U8-6F
-	for qemu-devel@archiver.kernel.org; Wed, 05 Oct 2022 12:43:44 -0400
-Received: from eggs.gnu.org ([2001:470:142:3::10]:46934)
+	id 1oloZt-0003No-Np
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:44:33 -0400
+Received: from [::1] (helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
+	id 1olo2b-0003qk-Kh
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:10:09 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10])
  by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og795-0007Qz-Fn
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:19 -0400
-Received: from mout.kundenserver.de ([212.227.17.10]:52501)
+ id 1olo2M-0003RW-OK
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:57 -0400
+Received: from mout.kundenserver.de ([217.72.192.73])
  by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og790-0002oX-B5
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:18 -0400
+ id 1olo2I-0001eU-BS
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:54 -0400
 Received: from lenovo-t14s.redhat.com ([82.142.8.70]) by
- mrelayeu.kundenserver.de (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis)
- id 1M3UhQ-1ogf6f2YZG-000fJg; Wed, 05 Oct 2022 18:21:07 +0200
+ mrelayeu.kundenserver.de (mreue106 [212.227.15.183]) with ESMTPSA (Nemesis)
+ id 1MYN3E-1oXyNi3IgM-00VS5K; Fri, 21 Oct 2022 11:09:41 +0200
 From: Laurent Vivier <lvivier@redhat.com>
 To: qemu-devel@nongnu.org
-Cc: Thomas Huth <thuth@redhat.com>,
- =?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
- Eric Blake <eblake@redhat.com>,
+Cc: Thomas Huth <thuth@redhat.com>, xen-devel@lists.xenproject.org,
  "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
- David Gibson <david@gibson.dropbear.id.au>, Jason Wang <jasowang@redhat.com>,
- Samuel Thibault <samuel.thibault@ens-lyon.org>,
- Markus Armbruster <armbru@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
- Stefan Weil <sw@weilnetz.de>, Greg Kurz <groug@kaod.org>,
- Laurent Vivier <lvivier@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
- Stefano Brivio <sbrivio@redhat.com>
-Subject: [PATCH v10 10/17] net: dgram: make dgram_dst generic
-Date: Wed,  5 Oct 2022 18:20:44 +0200
-Message-Id: <20221005162051.1120041-11-lvivier@redhat.com>
+ Laurent Vivier <lvivier@redhat.com>,
+ Anthony Perard <anthony.perard@citrix.com>, Stefan Weil <sw@weilnetz.de>,
+ David Gibson <david@gibson.dropbear.id.au>,
+ Stefano Stabellini <sstabellini@kernel.org>, Paul Durrant <paul@xen.org>,
+ Eric Blake <eblake@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+ Markus Armbruster <armbru@redhat.com>,
+ Samuel Thibault <samuel.thibault@ens-lyon.org>, Greg Kurz <groug@kaod.org>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
+ Stefano Brivio <sbrivio@redhat.com>,
+ =?utf-8?q?Philippe_Mathieu-Daud=C3=A9?= <philmd@linaro.org>
+Subject: [PATCH v14 10/17] net: dgram: make dgram_dst generic
+Date: Fri, 21 Oct 2022 11:09:15 +0200
+Message-Id: <20221021090922.170074-11-lvivier@redhat.com>
 X-Mailer: git-send-email 2.37.3
-In-Reply-To: <20221005162051.1120041-1-lvivier@redhat.com>
-References: <20221005162051.1120041-1-lvivier@redhat.com>
+In-Reply-To: <20221021090922.170074-1-lvivier@redhat.com>
+References: <20221021090922.170074-1-lvivier@redhat.com>
 MIME-Version: 1.0
-X-Provags-ID: V03:K1:CZs3QKOgMf4iXn5ieSDieZ5ZU9dtkDbt/mWcIZNQR7DRPR3S73w
- i2ngQUYTlkAfK80SkUzMKqX3J+8URaA7NBndv0TQdgyWZvNSlyg5Li5/ghXXKyD3tW6VUqb
- 4rF7TgvifODwMBOpNKD+NjQzjnl+774grwnnVIdhhPqola4aVsWrvr9oOma4acEJg/2UJSo
- zcWh/TmonY2PCkrrln2iQ==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:iT9cuer4eMU=:qYAO8jiKBT+d4Fr2EDareB
- l5zt7vawiDGsVkY6SZejD+vBtOYCXBOmfGP1nlHEGxBq3900U51V2iGEuIamM2M/hMixHIuDq
- WxzhwdllKhILMT97kbZuTc3jTeOTe2R9pTFDZXKggmcrMXcO6nl42i0bahK5NUVZ54dwiqvn4
- xPT8kMoeqQQVJL5KQUWxvm2d1RISOsOEhoreVb17leJzX2tuuJe3yNGuvCXW12ecyNDjZBsRA
- P78AAO+qlCWBiLIljcvEvVZR/VAbZ5RO+pf9fUg2s0RENgBcBMtn/sJrYryKbJ5QxscN9gy44
- QYc+guJ5M1IH8Wik/+IVnuOCyior3ncW53HVtntNPwdZKNw2D2pA00ahfRYQV9mQzgPdnd9qi
- htCzBO9f/+yvCiiZpmxC3YnypHbNwf5cP1wHLrbym28oFjrU7Yng6Z43uwiumrvmioyIGM/L4
- lWXEBGAAt4Wba4a4wj9DoDR22iC1z+mExcYjOe6eN6zKEXWnGB0vOR4lxpah9g8r/7XRmUrLb
- zLhUKQf3WMWzJqdFD4G38BFcX09d8bGkNpwhz/BhSw6lTryNt72lzj+87gr1mia9QWXTFoG/L
- zezMsLHqJLjpna4oqNSkV3BxvhIRKBRDEop3X4fOdnKQypxO22Xq+NPSlwl8Xx8IUQ89QksN+
- 91BmVfkhbM0jeay85SR0fSGLsPCilRhpygDesp66reeRQnwvefLtqW8LGmhfstWZvDMFSvjDI
- maO+jkPuIeIqjrh+EIxZVFiNmtP114R5ntuDzwE0xIVSZRGK/CDh4mENsBkLJ3jDeYpWsXDcf
- ZXXD8pc
-Received-SPF: permerror client-ip=212.227.17.10;
+X-Provags-ID: V03:K1:mVD/M1LlMvHfxLyz+io1y8fQZ+rSM1FQEF+POP1VXOpyJrA8Ppz
+ UfU9pvOBQhjYVxGt8Ekh8r26kukC+rIyR09Zjm5PyUuOd8zBuOkCjCM3j8uIp6dQG811qw/
+ IW5YO8fncXi4SWcz4alhom/gLum3z0+8JqBNn73FuD0zIGU1dw601PHGRkNcjzjIZGskqcr
+ 0H3Tg8adsdHE36OnDTPOw==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:o2nAJVUvtSo=:ws5laaF9m86nNqe2XOMp4F
+ M61/rlcA+DCYltjAVsPue0Ca5FpJDqvcwPtE/jkqv8RJz7+unX8RqXv8hn+U/B1QlfTqh5UCi
+ quge/NGCcOveyJ6R1pApaLNr5TOFcK76tV4z5wWvTgaiuKFJTRb8sb8B7vMR2037f2GY9f/CD
+ KUOlsXkYP/ZCPzoOqyITEiVyqMBIRyFdSp3Oi+Ta5GOlSfULYdIr4/eG+PdLvMmewtnRvzW5O
+ /W48OGCSUu9IgYwVdi4SPK1snGT936zHHTA7MOAO7v4n1VCnYS+KIaKRqq+ONp0gLHswxoaaV
+ SKmBwSa27A+et2lnKw9HZPjf4YqjYSwvj5FKwy1ZTbydhjHJc1lwxSWmKlB+GxA5EusZ0K4t6
+ tGvKYEnZ0C3J8UUucWpSIRHPr+h+66WOWtVhsCysB63zGfxScXl3kUTrC6/WpmDQIJYzq598e
+ /2vDo0NTG69nBctGcw0GOrArlUncOxfzys3nPi8rDDDkoH7m6CnEg9xK+GWTmlQ7Xdyt/yWrP
+ tU3LD08n5e3NJ+9/BaPdtJKg6n1/LtLi7jdLAl7zFLrzrODZsmWXmWrCIBJW/c2wwOJNyPqpF
+ arY2zhCyslydGtoM58SDwNj3IxPSxFgFE6QeiI2/OMLPQhPBSBZDA7MvzQ11gCY7n30eMk6Lw
+ 7/ZFfJo5HZGumR2uWA9w4nTYlTCdYLoSCeYwLGClVD/N165SezruRUJNySdI9P1IoQKIGhL3m
+ ISz+m1gPXVA6O5xBmf/1PWfuDg6Z4psVkc+L0z2vWm8ko/cjPb8Dvoo85Z9g104mKIw/k7ZpE
+ c2QsAnr
+Received-SPF: permerror client-ip=217.72.192.73;
  envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
 X-Spam_score_int: -18
 X-Spam_score: -1.9
 X-Spam_bar: -
-X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_MSPIKE_H2=-0.001,
- SPF_FAIL=0.001, SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001,
+ SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
 X-Spam_action: no action
 X-BeenThere: qemu-devel@nongnu.org
 X-Mailman-Version: 2.1.29
@@ -3160,6 +3292,8 @@ Rename it dest_addr, and store socket length in dest_len.
 
 Signed-off-by: Laurent Vivier <lvivier@redhat.com>
 Reviewed-by: Stefano Brivio <sbrivio@redhat.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Reviewed-by: Philippe Mathieu-Daudé <philmd@linaro.org>
 ---
  net/dgram.c | 82 ++++++++++++++++++++++++++++++++++-------------------
  1 file changed, 53 insertions(+), 29 deletions(-)
@@ -3411,83 +3545,92 @@ index 5339585b8202..e20be9ca79d3 100644
  
      switch (local->type) {
 
-From patchwork Wed Oct  5 16:20:45 2022
+From patchwork Fri Oct 21 09:09:16 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
-X-Patchwork-Id: 12999471
+X-Patchwork-Id: 13014581
 Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 0DDA3C433F5
-	for <qemu-devel@archiver.kernel.org>; Wed,  5 Oct 2022 16:41:16 +0000 (UTC)
-Received: from localhost ([::1]:40454 helo=lists1p.gnu.org)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 527FCC4332F
+	for <qemu-devel@archiver.kernel.org>; Fri, 21 Oct 2022 10:38:57 +0000 (UTC)
+Received: from localhost ([::1] helo=lists.gnu.org)
 	by lists.gnu.org with esmtp (Exim 4.90_1)
 	(envelope-from
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
-	id 1og7SO-0000w5-1f
-	for qemu-devel@archiver.kernel.org; Wed, 05 Oct 2022 12:41:16 -0400
-Received: from eggs.gnu.org ([2001:470:142:3::10]:46922)
+	id 1olpQE-0007Fs-Ty
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 06:38:48 -0400
+Received: from [::1] (helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
+	id 1olo3J-0005rV-OG
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:10:53 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10])
  by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og793-0007Nc-9p
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:17 -0400
-Received: from mout.kundenserver.de ([212.227.17.10]:55405)
+ id 1olo2P-0003U7-Rx
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:58 -0400
+Received: from mout.kundenserver.de ([217.72.192.74])
  by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og78z-0002oU-Ik
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:16 -0400
+ id 1olo2L-0001oE-Gj
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:56 -0400
 Received: from lenovo-t14s.redhat.com ([82.142.8.70]) by
- mrelayeu.kundenserver.de (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis)
- id 1M89P3-1oc0P93Oz5-005MHh; Wed, 05 Oct 2022 18:21:09 +0200
+ mrelayeu.kundenserver.de (mreue106 [212.227.15.183]) with ESMTPSA (Nemesis)
+ id 1N1xdf-1pEij9193J-012L4D; Fri, 21 Oct 2022 11:09:42 +0200
 From: Laurent Vivier <lvivier@redhat.com>
 To: qemu-devel@nongnu.org
-Cc: Thomas Huth <thuth@redhat.com>,
- =?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
- Eric Blake <eblake@redhat.com>,
+Cc: Thomas Huth <thuth@redhat.com>, xen-devel@lists.xenproject.org,
  "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
- David Gibson <david@gibson.dropbear.id.au>, Jason Wang <jasowang@redhat.com>,
- Samuel Thibault <samuel.thibault@ens-lyon.org>,
- Markus Armbruster <armbru@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
- Stefan Weil <sw@weilnetz.de>, Greg Kurz <groug@kaod.org>,
- Laurent Vivier <lvivier@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>,
+ Anthony Perard <anthony.perard@citrix.com>, Stefan Weil <sw@weilnetz.de>,
+ David Gibson <david@gibson.dropbear.id.au>,
+ Stefano Stabellini <sstabellini@kernel.org>, Paul Durrant <paul@xen.org>,
+ Eric Blake <eblake@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+ Markus Armbruster <armbru@redhat.com>,
+ Samuel Thibault <samuel.thibault@ens-lyon.org>, Greg Kurz <groug@kaod.org>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
  Stefano Brivio <sbrivio@redhat.com>
-Subject: [PATCH v10 11/17] net: dgram: move mcast specific code from
+Subject: [PATCH v14 11/17] net: dgram: move mcast specific code from
  net_socket_fd_init_dgram()
-Date: Wed,  5 Oct 2022 18:20:45 +0200
-Message-Id: <20221005162051.1120041-12-lvivier@redhat.com>
+Date: Fri, 21 Oct 2022 11:09:16 +0200
+Message-Id: <20221021090922.170074-12-lvivier@redhat.com>
 X-Mailer: git-send-email 2.37.3
-In-Reply-To: <20221005162051.1120041-1-lvivier@redhat.com>
-References: <20221005162051.1120041-1-lvivier@redhat.com>
+In-Reply-To: <20221021090922.170074-1-lvivier@redhat.com>
+References: <20221021090922.170074-1-lvivier@redhat.com>
 MIME-Version: 1.0
-X-Provags-ID: V03:K1:IvuF7w06XoFhRCv/fcKtlSy5lukeRfAD2QQL2Bcjybld9zU34sT
- V/6a64dtHEKjx9xsc/B7ONutEYhWHcS8qyoVQri59dj9IikXQc0hsDkdSqm7wtC8Z942MCd
- Ac34YQcaCbNKJLFaiJ4kCt5LI7N0TCqWiU1Q2PWxu38VZB/1M1TI4vLM+lKCJNEtUwFAFlQ
- f5HNOj4psSg64TZWUNw2Q==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:aS1rsLwQ/yA=:EFXM2ULlCT3c44NFx7r4sF
- e9cyn4CrKkNbxBgICLtOjsHdDTC05272S4xOawHuEPEmXgcbtOD15BFjRceeWpwSO14E4Jgny
- fNMC55XP6WBEhl+DYEgwb5ehoUCH2dJwZCHj0PAiyyVObazeuwjPk84HXTXDdP6Uhd0oTOrLh
- ot+UP9ZcB4aKfSwU+U9ES7QBxKey5GZg30tFlX5pWYrMvkHs7n+WBM3uynYjgqT6t2S23zqVO
- IXZ6xxTfLwfQdmyD/IeEiZCfwerBmxAIaNiot40t3d0xbsxXbH1olDkKgKl6CORi3Yt/l01lH
- AWxeio4x5ZIYpwniWTcWhlOC6f0hFuoXH8Avs6r4lPXXtHXOtvwnTFB7O8U5dk46XOlzWO/Y8
- VQ/ETF3elBlSejbYlWBmGfID8jXoj7FEmxuPVt6BncPfn9xa3wPkMiVOUNP5IqUI72Q694GFX
- fmawJzAt2iVietf/47mn3sBZeX2TI7V55l7DXOVEsfLPSqcJFrnHebvFE/v4T17PTZjGcnoId
- nC7kqF29FdwOIxojTkfyGAmugx6TkZPrJpUTIT4C3ern7iGaDr233bT/zmJHYzouL+XeYhiVR
- PbgeqMfNzOKToSOkYXTTV0WbI4J7hsWgaW9eZ6TKfn3xxo8TZrAYAPG8xpuA3e10V7nQsFd6w
- ICmcR2m4A9xPNCnnQ8myOkVvTzhtEBf1G5YzvrXb1EvodrIXSHOcV9uwyLPFM/KZHA1SeeIEy
- Gts0P0eqPBTet543oWDPwQxclet5u1XttspokEhsYro0rJUgHhW8/mJlz+/RdM2wwBUnCx696
- pxUrC9t
-Received-SPF: permerror client-ip=212.227.17.10;
+X-Provags-ID: V03:K1:AG9a+5hWp6nqnd7XCaT+idPjrAU59PHHTv8owSBq7y0rLdM6ANi
+ 5Ay2XeS93iAZr1ep7jkLpAO/EhDl4ExQUNQApDpYhgkP0r5/UPsejZ2TFJX/WLtrOIdujo4
+ FUGAHuL6SFlPcQMv+ZQs0+NI3th/Fu67M+RUQB2zd4ZUWSTPMHVLH9l+hupMXcu7VgMaByx
+ 1pDE2TK2hfHTbPsxhADgA==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:497+hJmsvb0=:rCu7k/Gp8SbIFqYv3heujJ
+ Q76Bzu1OtnCKeXwDwA/7suDvXNpi0UaZoTDOExbXxqR3u/ejOAGhoA+ozgIahznJpV6H6CsnB
+ u+ouNX/LWX2GN0V+sXN3JOaEgtImEYkwU61DcqgsCI7BlOaCOyibQUGfszVE5U+xC1CLGUAci
+ xWvYOP1ocXj6mfzHfl7+ILPds0rF86DhJm929grGUFoL2iDtqfocldeyzSHil2OARZj5rrpjL
+ GG7vc4JDp1wPTCE+kWNq7cSxgGYkTcKfUdsz26CtErbAyrBagpgA3vf5B1axSyelGq80DD23Z
+ gZRC5pynRBJMybJG+7fu3RKNLtbxNgQGoEZYtXLEFsrQdrXN8N/aDkGAODy4NVZD7ENH00+Mj
+ 5J0+VNRn/ODhVRzehjp1x/jYy9K5M5pzJHLjd9VkSVjZO+qxtW36K6DHmrHY1NRImKdoc0SPT
+ nFI2L3UqU92qw6iHUu6gcSyg8fEX2fS+3MjQf90LXjFC1DFoXVSyLqEFFehAm/hrohCODziK9
+ Jmq6ZEkWWV3nZwdTVpz8expaelIBhZ0tqYzTPcNFsuT2xG+PjrWTYp63JjjAdMURF8WnrphnA
+ STDvairDlf62lbtZC2K+lpF/dC7SnWPXvylonMGawUDm3W6aaTZcJWX+L+nfz4qaQnJoTBFgE
+ UGLwwzVDLQ/GWezLu2Vz6i65mW4rktep4tnqxsYOioTQVFJfdSgRycddQjkKzFGYxF6NJ9a66
+ nOpZZrd2D3p/iDWLWmRuQTrvt1VrvIZrO2z6vl1Jv1TUvK9uqSwEddyojpoXp/y5q2XDCGyWD
+ I4lDKk1
+Received-SPF: permerror client-ip=217.72.192.74;
  envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
 X-Spam_score_int: -18
 X-Spam_score: -1.9
 X-Spam_bar: -
-X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_MSPIKE_H2=-0.001,
- SPF_FAIL=0.001, SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001,
+ SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
 X-Spam_action: no action
 X-BeenThere: qemu-devel@nongnu.org
 X-Mailman-Version: 2.1.29
@@ -3509,6 +3652,7 @@ net_dgram_mcast_init() and net_dgram_udp_init().
 
 Signed-off-by: Laurent Vivier <lvivier@redhat.com>
 Reviewed-by: Stefano Brivio <sbrivio@redhat.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
 ---
  net/dgram.c | 143 ++++++++++++++++++++++++++++------------------------
  1 file changed, 76 insertions(+), 67 deletions(-)
@@ -3724,82 +3868,89 @@ index e20be9ca79d3..e581cc62f39f 100644
          g_assert_not_reached();
      }
 
-From patchwork Wed Oct  5 16:20:46 2022
+From patchwork Fri Oct 21 09:09:17 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
-X-Patchwork-Id: 12999470
+X-Patchwork-Id: 13014582
 Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 51FCFC433F5
-	for <qemu-devel@archiver.kernel.org>; Wed,  5 Oct 2022 16:41:13 +0000 (UTC)
-Received: from localhost ([::1]:40452 helo=lists1p.gnu.org)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id C8374C433FE
+	for <qemu-devel@archiver.kernel.org>; Fri, 21 Oct 2022 10:39:33 +0000 (UTC)
+Received: from localhost ([::1] helo=lists.gnu.org)
 	by lists.gnu.org with esmtp (Exim 4.90_1)
 	(envelope-from
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
-	id 1og7SK-0000rQ-BZ
-	for qemu-devel@archiver.kernel.org; Wed, 05 Oct 2022 12:41:12 -0400
-Received: from eggs.gnu.org ([2001:470:142:3::10]:46940)
+	id 1olpR4-0001U8-HP
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 06:39:32 -0400
+Received: from [::1] (helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
+	id 1olo3J-0005s4-Tx
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:10:53 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10])
  by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og796-0007SM-33
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:20 -0400
-Received: from mout.kundenserver.de ([217.72.192.73]:40995)
+ id 1olo2e-00044g-2F
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:10:12 -0400
+Received: from mout.kundenserver.de ([212.227.17.24])
  by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og791-0002pC-2z
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:19 -0400
+ id 1olo2N-0001xu-Mu
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:10:11 -0400
 Received: from lenovo-t14s.redhat.com ([82.142.8.70]) by
- mrelayeu.kundenserver.de (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis)
- id 1MjSHc-1p4gBT4AZe-00kxPs; Wed, 05 Oct 2022 18:21:10 +0200
+ mrelayeu.kundenserver.de (mreue106 [212.227.15.183]) with ESMTPSA (Nemesis)
+ id 1MiZof-1pHaXg30Zr-00ffBX; Fri, 21 Oct 2022 11:09:43 +0200
 From: Laurent Vivier <lvivier@redhat.com>
 To: qemu-devel@nongnu.org
-Cc: Thomas Huth <thuth@redhat.com>,
- =?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
- Eric Blake <eblake@redhat.com>,
+Cc: Thomas Huth <thuth@redhat.com>, xen-devel@lists.xenproject.org,
  "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
- David Gibson <david@gibson.dropbear.id.au>, Jason Wang <jasowang@redhat.com>,
- Samuel Thibault <samuel.thibault@ens-lyon.org>,
- Markus Armbruster <armbru@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
- Stefan Weil <sw@weilnetz.de>, Greg Kurz <groug@kaod.org>,
- Laurent Vivier <lvivier@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Laurent Vivier <lvivier@redhat.com>,
+ Anthony Perard <anthony.perard@citrix.com>, Stefan Weil <sw@weilnetz.de>,
+ David Gibson <david@gibson.dropbear.id.au>,
+ Stefano Stabellini <sstabellini@kernel.org>, Paul Durrant <paul@xen.org>,
+ Eric Blake <eblake@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+ Markus Armbruster <armbru@redhat.com>,
+ Samuel Thibault <samuel.thibault@ens-lyon.org>, Greg Kurz <groug@kaod.org>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
  Stefano Brivio <sbrivio@redhat.com>
-Subject: [PATCH v10 12/17] net: dgram: add unix socket
-Date: Wed,  5 Oct 2022 18:20:46 +0200
-Message-Id: <20221005162051.1120041-13-lvivier@redhat.com>
+Subject: [PATCH v14 12/17] net: dgram: add unix socket
+Date: Fri, 21 Oct 2022 11:09:17 +0200
+Message-Id: <20221021090922.170074-13-lvivier@redhat.com>
 X-Mailer: git-send-email 2.37.3
-In-Reply-To: <20221005162051.1120041-1-lvivier@redhat.com>
-References: <20221005162051.1120041-1-lvivier@redhat.com>
+In-Reply-To: <20221021090922.170074-1-lvivier@redhat.com>
+References: <20221021090922.170074-1-lvivier@redhat.com>
 MIME-Version: 1.0
-X-Provags-ID: V03:K1:9mW5BjYZsTrgrCThoia1OPKqH2KDGXaDKQlaJZ4BEWNkWh5yydq
- 94wyBB2yvRx1r8UVV/oYtHfW1B0IeueDLDj8R84H54pqpOsZcdinrjp5w0KZBlso+FV/Q00
- SuKbBV6NF/UpNeoaRi/hWavIfXrvCFdltUXqUTe2R7ylCtxen04+S9f36r2NbOf7sxBkCmW
- 5jtCUE31V5qM5DlaCApfA==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:TdT+ES3sRYM=:kV/5ApdlVAx011nCwqeidQ
- /tKMtccIhWe9p9OnDhbTKCji80gEyej53MFcdAYh4zyjfqW4dwSbye9Ylzdr3ohrKKuAQoqg3
- MCoypw885ilOADoK4hSU0lBHGcR+pGJz7tlHpMR/LdESQ9TJRnoqfUPtsPZPs2eZsqVu9kIBh
- yzl+BegyIhiP8+dbheWBGBgcurzuDeQbXmj56+Ylg+d/SPdb8CEEVB/w+VvbWvc/+YFHUDqEA
- C/7EZFRQAuwlPLiH/bNT8iSbxv6L0r1MuxVqJSvSec3eLEBBtXxXQVylnqfOKqcjkfEz7+tOQ
- WrXSwPlc9TIAnKVtJfzcE/SXZisOdLqn8VhZ2uDx80Mj3bynvf6otb0cigdZrmyMU3tBt9LmG
- LHB1yUD39zB7+vXaS3SWtNqV/T08d3JJyF1Iio+svg+w/U5TgGn04yR5caJ44GWyDC/jIkHsz
- RSOsS3CwWXUJgTfTCi4d+kDjgsxcHIU2n8VF+M8WhcMLxVBaPzjj64TA0pwiouea50lxtTK94
- uxLN1bG121fpuWmE3fykvTfqarCcYXeDz7V51SG6jJvrctE4QD5d4sdKazab26Wt8Q6YvKoLA
- mlzzUbeNUBx5dSx8ZlTlfGrnSbJh3QVy64fcWNlXwi5A18/UrUmLfyTCnpf4pUrrBbcUEFD8t
- RwDsbC3xmJJu7SElxd0BRcin0XcgIkoMqxFYy463zsXX/jNJcjTZvYMSIm2TWesMvFDc8Lybd
- ec+mmmncb0FIbk4osoKxYvVG6UNaMnm2Jk4ZeeqrH3fOHDT56NRazh5InymCupijC5rydPMfe
- 49pnCp+
-Received-SPF: permerror client-ip=217.72.192.73;
+X-Provags-ID: V03:K1:plAtbOq7N1vqh85nD7nLk6P7PLf2d34vKgInHBtGPREI/Tar53b
+ 0MN6/T5us3//M++U/mCcZ29HpvkdndwotX17ipWj9nGm7gZvuKVzX27IHeeJ26FnSFWpTXt
+ PrWcriYhtMuU4jmr5rpJ6RIxnRmzUlN23SSZ9izZtjNnuxgJdwUZAAszeEJ2j1wAEMBMIM9
+ 0hFOwrJtw5VUlWGUDx1Mg==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:MBe1IeTIDoU=:LB4a1GVaMy39FnOeTHMlas
+ BBckVBiRGEM1soJUdAGmoQHyHnhBw6meiupphkkHYmOI/+sfL0Jwe3MGmhCiqiIz6yweXKNAr
+ PC23pfzgIozdb8vdV8H5G24Mi3ChQKFsRmo4FYoAwi85pUzvx/epwMNw4v7sZbKl/6yvVzG0b
+ eGZsvtaxXge+rac9/tBcTRFXYmZd+fz1t8loGkXepcdRd8iNSnGA+XB35dB5hiZOoUbR3PnkK
+ GyQTtDpmWiQ0CXoHyYFg0nLLK5srM5QyNW19a4huYwe52KrfvmqiIDKaf/SMw1dTnjXvpRc3H
+ JiH6Nmue8dCQ9HxlqBCzTrD1tqFSZEMV9vJpecNbDPDre80XmK+9HB+Of1b8JU34SGk1K/4KS
+ aTrxF8xfU+6xJ9QNysMLy7aKm5c+Z3pekc/z2MulDI88QKBF0jBJJllyHimlDQRql8dMhmheZ
+ o+/DZpObwPOHnKodueLuAUYMu8oFmIyBAoI7k+Bfod7NX/ry0/gRU6APVXQhRu1WhXC2JEv3k
+ eTB+KR4lXH/IRLAV2gsVAKQfSiWkfU2VfaFVcIKUum24zeO2rkc1yuLHLCAxzVasEZyFnRyxC
+ 3pCwABY+gAvyvC5XhA1daYkFGsXGJME3YtabfB4E+wmItG5cs0xTaCM1xluYeHzHhSbHoBIHl
+ 4rIr2EfLjbQE4Kc0j7ES9Lyx3odwja0X8LyOwnK/GeG0ohekZXR9avGsXmn81/hXsyeIP50IC
+ n5TuOspfnRuUFMGKnMmYmAbgh6F844AZAut2Vplp2I/hGvX1rdjR0yn3g3EhWpsDzc6PGqFVN
+ qvUR39p
+Received-SPF: permerror client-ip=212.227.17.24;
  envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
 X-Spam_score_int: -18
 X-Spam_score: -1.9
 X-Spam_bar: -
-X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
- RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001,
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, SPF_FAIL=0.001,
  SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
 X-Spam_action: no action
 X-BeenThere: qemu-devel@nongnu.org
@@ -3820,14 +3971,16 @@ Sender: "Qemu-devel"
 Signed-off-by: Laurent Vivier <lvivier@redhat.com>
 Reviewed-by: Stefano Brivio <sbrivio@redhat.com>
 Reviewed-by: David Gibson <david@gibson.dropbear.id.au>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Acked-by: Markus Armbruster <armbru@redhat.com> (QAPI schema)
 ---
- net/dgram.c     | 54 ++++++++++++++++++++++++++++++++++++++++++++++++-
+ net/dgram.c     | 55 ++++++++++++++++++++++++++++++++++++++++++++++++-
  qapi/net.json   |  2 +-
  qemu-options.hx |  1 +
- 3 files changed, 55 insertions(+), 2 deletions(-)
+ 3 files changed, 56 insertions(+), 2 deletions(-)
 
 diff --git a/net/dgram.c b/net/dgram.c
-index e581cc62f39f..02a189e36358 100644
+index e581cc62f39f..9f7bf3837653 100644
 --- a/net/dgram.c
 +++ b/net/dgram.c
 @@ -426,6 +426,7 @@ int net_init_dgram(const Netdev *netdev, const char *name,
@@ -3838,16 +3991,17 @@ index e581cc62f39f..02a189e36358 100644
      socklen_t dest_len;
  
      assert(netdev->type == NET_CLIENT_DRIVER_DGRAM);
-@@ -465,7 +466,7 @@ int net_init_dgram(const Netdev *netdev, const char *name,
+@@ -465,7 +466,8 @@ int net_init_dgram(const Netdev *netdev, const char *name,
          }
      } else {
          if (local->type != SOCKET_ADDRESS_TYPE_FD) {
 -            error_setg(errp, "type=inet requires remote parameter");
-+            error_setg(errp, "type=inet or unix require remote parameter");
++            error_setg(errp,
++                       "type=inet or type=unix requires remote parameter");
              return -1;
          }
      }
-@@ -508,6 +509,53 @@ int net_init_dgram(const Netdev *netdev, const char *name,
+@@ -508,6 +510,53 @@ int net_init_dgram(const Netdev *netdev, const char *name,
          dest_addr = g_malloc(dest_len);
          memcpy(dest_addr, &raddr_in, dest_len);
          break;
@@ -3901,7 +4055,7 @@ index e581cc62f39f..02a189e36358 100644
      case SOCKET_ADDRESS_TYPE_FD:
          fd = monitor_fd_param(monitor_cur(), local->u.fd.str, errp);
          if (fd == -1) {
-@@ -546,6 +594,10 @@ int net_init_dgram(const Netdev *netdev, const char *name,
+@@ -546,6 +595,10 @@ int net_init_dgram(const Netdev *netdev, const char *name,
                            inet_ntoa(raddr_in.sin_addr),
                            ntohs(raddr_in.sin_port));
          break;
@@ -3913,7 +4067,7 @@ index e581cc62f39f..02a189e36358 100644
          SocketAddress *sa;
          SocketAddressType sa_type;
 diff --git a/qapi/net.json b/qapi/net.json
-index d8065c335072..14d1531536c5 100644
+index aed4ce1a97ff..39388b1b6c41 100644
 --- a/qapi/net.json
 +++ b/qapi/net.json
 @@ -600,7 +600,7 @@
@@ -3926,10 +4080,10 @@ index d8065c335072..14d1531536c5 100644
  # If remote address is present and it's a multicast address, local address
  # is optional. Otherwise local address is required and remote address is
 diff --git a/qemu-options.hx b/qemu-options.hx
-index 95b231095542..1111e02a220c 100644
+index 98e2595df93b..fafb214cb89f 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
-@@ -2766,6 +2766,7 @@ DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
+@@ -2782,6 +2782,7 @@ DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
      "                configure a network backend to connect to a multicast maddr and port\n"
      "                use ``local.host=addr`` to specify the host address to send packets from\n"
      "-netdev dgram,id=str,local.type=inet,local.host=addr,local.port=port[,remote.type=inet,remote.host=addr,remote.port=port]\n"
@@ -3938,82 +4092,91 @@ index 95b231095542..1111e02a220c 100644
      "                configure a network backend to connect to another network\n"
      "                using an UDP tunnel\n"
 
-From patchwork Wed Oct  5 16:20:47 2022
+From patchwork Fri Oct 21 09:09:18 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
-X-Patchwork-Id: 12999467
+X-Patchwork-Id: 13014545
 Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 6818DC433FE
-	for <qemu-devel@archiver.kernel.org>; Wed,  5 Oct 2022 16:37:17 +0000 (UTC)
-Received: from localhost ([::1]:60248 helo=lists1p.gnu.org)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id E42A2C4332F
+	for <qemu-devel@archiver.kernel.org>; Fri, 21 Oct 2022 10:07:38 +0000 (UTC)
+Received: from localhost ([::1] helo=lists.gnu.org)
 	by lists.gnu.org with esmtp (Exim 4.90_1)
 	(envelope-from
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
-	id 1og7OW-0003Ty-H6
-	for qemu-devel@archiver.kernel.org; Wed, 05 Oct 2022 12:37:16 -0400
-Received: from eggs.gnu.org ([2001:470:142:3::10]:46932)
+	id 1olowC-0002kX-Nq
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 06:07:36 -0400
+Received: from [::1] (helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
+	id 1olo2h-0004HF-GZ
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:10:15 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10])
  by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og794-0007Q1-RN
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:18 -0400
-Received: from mout.kundenserver.de ([212.227.17.10]:40531)
+ id 1olo2Q-0003UR-TN
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:59 -0400
+Received: from mout.kundenserver.de ([212.227.17.10])
  by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og78z-0002oc-OX
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:18 -0400
+ id 1olo2N-0001uG-CS
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:09:58 -0400
 Received: from lenovo-t14s.redhat.com ([82.142.8.70]) by
- mrelayeu.kundenserver.de (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis)
- id 1MUXlG-1oowoZ0amm-00QPd4; Wed, 05 Oct 2022 18:21:11 +0200
+ mrelayeu.kundenserver.de (mreue106 [212.227.15.183]) with ESMTPSA (Nemesis)
+ id 1N1PPJ-1pEAl80De7-012t23; Fri, 21 Oct 2022 11:09:45 +0200
 From: Laurent Vivier <lvivier@redhat.com>
 To: qemu-devel@nongnu.org
-Cc: Thomas Huth <thuth@redhat.com>,
- =?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
- Eric Blake <eblake@redhat.com>,
+Cc: Thomas Huth <thuth@redhat.com>, xen-devel@lists.xenproject.org,
  "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
- David Gibson <david@gibson.dropbear.id.au>, Jason Wang <jasowang@redhat.com>,
- Samuel Thibault <samuel.thibault@ens-lyon.org>,
- Markus Armbruster <armbru@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
- Stefan Weil <sw@weilnetz.de>, Greg Kurz <groug@kaod.org>,
- Laurent Vivier <lvivier@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v10 13/17] qemu-sockets: move and rename
+ Laurent Vivier <lvivier@redhat.com>,
+ Anthony Perard <anthony.perard@citrix.com>, Stefan Weil <sw@weilnetz.de>,
+ David Gibson <david@gibson.dropbear.id.au>,
+ Stefano Stabellini <sstabellini@kernel.org>, Paul Durrant <paul@xen.org>,
+ Eric Blake <eblake@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+ Markus Armbruster <armbru@redhat.com>,
+ Samuel Thibault <samuel.thibault@ens-lyon.org>, Greg Kurz <groug@kaod.org>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>
+Subject: [PATCH v14 13/17] qemu-sockets: move and rename
  SocketAddress_to_str()
-Date: Wed,  5 Oct 2022 18:20:47 +0200
-Message-Id: <20221005162051.1120041-14-lvivier@redhat.com>
+Date: Fri, 21 Oct 2022 11:09:18 +0200
+Message-Id: <20221021090922.170074-14-lvivier@redhat.com>
 X-Mailer: git-send-email 2.37.3
-In-Reply-To: <20221005162051.1120041-1-lvivier@redhat.com>
-References: <20221005162051.1120041-1-lvivier@redhat.com>
+In-Reply-To: <20221021090922.170074-1-lvivier@redhat.com>
+References: <20221021090922.170074-1-lvivier@redhat.com>
 MIME-Version: 1.0
-X-Provags-ID: V03:K1:1jrF0lL6Ohw0YL2pOK3R/rMugbDpDLwEW4OfibX+WkjEqLXnTPW
- 8NJr08YJ8OUo5nKwpSmigx2qUOeS5qbsQ/TTpOtpU64Frz9qcwlTgLd10EcxjrxpzljkS/j
- PaQvnPEKs1RKmKjdAl3R2NIL4bl4nGMWRHBM25Y6GLdBB0n5Z4ZwAhTI2RhnwdEuKvDHrCA
- J7I17NNrG1dqLYl6+yCkw==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:qGaD+3oiPTw=:n+lL7NEbGLu5OoWogHacfv
- 4a21LmklN12v/l1MoXCF07Z0E7TtwaQmcBKbS8RZDYdfpCqMgIDQCwbWlGUdCLUQ5jQXam3GO
- z2grcd7OtbYH5YoOeDVV3lUCwTv3jWlto8ad17/YeVU08cGbXmWE06v3zsVbGHrX/vUUnKXi9
- 5VWPOLWLAbxaznSlwV2YlD6lFJ9/fqN+5dbfv4RtPpXLsBL2VUQ8GiJH/p2L0dI/JYkcAkcbD
- 9WZbUK3pO95XKDbzzvsLKFGD5DVwuMlF9Lb4ipJnq5lqLdXrSYhvgWm2bx2ecCaPUs7TbsS8g
- bFI1AMLPxqgbZSmRADos9JMc4jciHUR0CDgW/zauFuoGG4fbfusg6PSKCAxJcjQ3YdrSVfYD+
- qdsnwe30qB3KzIHiNYdFlyuD+fiwpBr5xwr1LWdGKlgSS3oudxPpyeIk+b3260vU/7elAwLvn
- SPk3FcQ5Fr3443OQ5W335Z5RtFKGMAmoZJPk4Mk6WJDgSYgXWBl17ACgpdd878egks1TL5fRp
- x6yREDt261szj0jCotDrowHyW+vK2vJXBPpT7ZGUo1WnefHc3ZwRxQxITFK9ZMaH7ahG5hs8R
- DWvPNng7gaRMbT5pT8LIi7mw4VUsaW+jgR9UFWq7SoK+8tfvKLSfcpPyLtQZJqhLshi0iR9fA
- cQvbZkl1gJBf96IE+pLF0UYHMOfITF1hVWyk01NKa5uItMv2MteaK/HIUDQDkO3bYfFFMug/e
- E261NuOHm398WwOeBZVGHo/V0G8VIz1R/k6lXNGTULSYQfPNf+uShU8HF6cWo45dBaL6xjIaQ
- Hv6rCmb
+X-Provags-ID: V03:K1:SGPHMmhVZPB1uoH0LDFHdWcUM+GySHvjZxMiffkQ7slHZxfXZXv
+ Kvhz8CVVZTwbaVvFTHUrSjL5viL3UhWsPcQIjdsFcSQ7rHx5z7it1iiQO3LN/5z7Pn0Kd8G
+ cpoDSMI1/ePp0lU93Zna7iBljpdDgpF9O1iJqwYrLUZPlHe9fUXiptvek29gZZwmy/hDxdX
+ Zkc4O74vEqsGG7WV5WL/w==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:urGg64dbi7w=:2Dx/2yFQV+NL74Kry8YAl1
+ Z/KESyqz19PveuclRrBliY8Cy/Fpjih0XjGTxXtJ52GCeaZ/Ke1kcxIkc9asSiPyNbuhLrK3s
+ uljGH3C5SHYZK48NQnv+UZVkfM4TVQWkNtgyROIf9FxpGxe2OSB8fVnF96wUDmSCw0vUwHIlG
+ xYrgMulHnFv8iBJl0zPneHckQ+XpJuSUqcVVyJshtbeSwTjwAHZxu4fVylFxsuSYihBVKCqim
+ AZNoxoy1nrsy9pOcM+puw8mGQcoBilUGpIugoG37tSBiSIQDHJP42qMNAMbmq3fTHuFMoNzpu
+ +U7iCw0JjCBMHbdXA1GJI8wPu65/uGBiOIhtF18fMnN6C2io5XsVHHS705T6NRqwfhHuBVtSh
+ W+uViBYVTJ862NIsvAUFajuIRO4v+3LF+VYaPn4hIsUy/8sG1rvvTVGvwMeJFItZ6jokEECfu
+ 8j3ksaTDnxeIUDAmHAGWaUPbBDbFggJGoRTpsvONPfSwrrBz8mNOkiDBoHxm35NYEIybx0B4R
+ qn1ffa1qyTWD9TeI798CVSdQpaM8nYv1//HnE/XK8ldI/C1m37bsgecMg/Vkw+7SY/ROkRfVX
+ Vs4rNu+tN99wOQDE6Yh8UG8zfFgZDN7VSTERky6T9Kv5lzLPGpLP2wGKic+N4kmAmo34razG+
+ esvLYWdHDL8KKWdyLeOuzi7BQ/ofVENXijFdLJTx94b2crTHBL9GrCqOJw8f/wJ8+OB9lM6Sq
+ 65kQVyZmovBsBafS6x1+0gzrQivoc9hV5hDex3AV9t6XsOxoa+39teDWdPImDGpmx5IyimLVd
+ OamzIaS
 Received-SPF: permerror client-ip=212.227.17.10;
  envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
 X-Spam_score_int: -18
 X-Spam_score: -1.9
 X-Spam_bar: -
-X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_MSPIKE_H2=-0.001,
- SPF_FAIL=0.001, SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001,
+ SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
 X-Spam_action: no action
 X-BeenThere: qemu-devel@nongnu.org
 X-Mailman-Version: 2.1.29
@@ -4039,6 +4202,8 @@ socket_parse() generates a SocketAddress from a string.
 Signed-off-by: Laurent Vivier <lvivier@redhat.com>
 Reviewed-by: David Gibson <david@gibson.dropbear.id.au>
 Reviewed-by: Dr. David Alan Gilbert <dgilbert@redhat.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Reviewed-by: Philippe Mathieu-Daudé <philmd@linaro.org>
 ---
  include/qemu/sockets.h |  2 +-
  monitor/hmp-cmds.c     | 23 +----------------------
@@ -4064,10 +4229,10 @@ index db4bedb6fa20..214058d8e307 100644
 -
  #endif /* QEMU_SOCKETS_H */
 diff --git a/monitor/hmp-cmds.c b/monitor/hmp-cmds.c
-index c6cd6f91dde6..cb35059c2d45 100644
+index bab86c5537e1..01b789a79e62 100644
 --- a/monitor/hmp-cmds.c
 +++ b/monitor/hmp-cmds.c
-@@ -197,27 +197,6 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
+@@ -199,27 +199,6 @@ void hmp_info_mice(Monitor *mon, const QDict *qdict)
      qapi_free_MouseInfoList(mice_list);
  }
  
@@ -4095,7 +4260,7 @@ index c6cd6f91dde6..cb35059c2d45 100644
  void hmp_info_migrate(Monitor *mon, const QDict *qdict)
  {
      MigrationInfo *info;
-@@ -380,7 +359,7 @@ void hmp_info_migrate(Monitor *mon, const QDict *qdict)
+@@ -382,7 +361,7 @@ void hmp_info_migrate(Monitor *mon, const QDict *qdict)
          monitor_printf(mon, "socket address: [\n");
  
          for (addr = info->socket_address; addr; addr = addr->next) {
@@ -4136,82 +4301,91 @@ index 83f4bd6fd211..9f6f655fd526 100644
  SocketAddress *socket_parse(const char *str, Error **errp)
  {
 
-From patchwork Wed Oct  5 16:20:48 2022
+From patchwork Fri Oct 21 09:09:19 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
-X-Patchwork-Id: 12999480
+X-Patchwork-Id: 13014520
 Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 9D066C433FE
-	for <qemu-devel@archiver.kernel.org>; Wed,  5 Oct 2022 16:46:23 +0000 (UTC)
-Received: from localhost ([::1]:40044 helo=lists1p.gnu.org)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 2D8E6C4332F
+	for <qemu-devel@archiver.kernel.org>; Fri, 21 Oct 2022 09:37:54 +0000 (UTC)
+Received: from localhost ([::1] helo=lists.gnu.org)
 	by lists.gnu.org with esmtp (Exim 4.90_1)
 	(envelope-from
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
-	id 1og7XK-00071N-NS
-	for qemu-devel@archiver.kernel.org; Wed, 05 Oct 2022 12:46:22 -0400
-Received: from eggs.gnu.org ([2001:470:142:3::10]:46938)
+	id 1oloTP-0000wd-Kk
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:37:51 -0400
+Received: from [::1] (helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
+	id 1olo2o-00050g-7L
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:10:22 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10])
  by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og795-0007Ra-Nw
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:20 -0400
-Received: from mout.kundenserver.de ([212.227.17.24]:55049)
+ id 1olo2V-0003fi-7F
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:10:05 -0400
+Received: from mout.kundenserver.de ([212.227.17.13])
  by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og790-0002pA-SB
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:19 -0400
+ id 1olo2N-0001xr-JG
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:10:00 -0400
 Received: from lenovo-t14s.redhat.com ([82.142.8.70]) by
- mrelayeu.kundenserver.de (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis)
- id 1M9Frd-1oatwd12TH-006SDN; Wed, 05 Oct 2022 18:21:12 +0200
+ mrelayeu.kundenserver.de (mreue106 [212.227.15.183]) with ESMTPSA (Nemesis)
+ id 1MpUlO-1pSptO1ifc-00psqq; Fri, 21 Oct 2022 11:09:46 +0200
 From: Laurent Vivier <lvivier@redhat.com>
 To: qemu-devel@nongnu.org
-Cc: Thomas Huth <thuth@redhat.com>,
- =?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
- Eric Blake <eblake@redhat.com>,
+Cc: Thomas Huth <thuth@redhat.com>, xen-devel@lists.xenproject.org,
  "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
- David Gibson <david@gibson.dropbear.id.au>, Jason Wang <jasowang@redhat.com>,
- Samuel Thibault <samuel.thibault@ens-lyon.org>,
- Markus Armbruster <armbru@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
- Stefan Weil <sw@weilnetz.de>, Greg Kurz <groug@kaod.org>,
- Laurent Vivier <lvivier@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v10 14/17] qemu-sockets: update socket_uri() and
+ Laurent Vivier <lvivier@redhat.com>,
+ Anthony Perard <anthony.perard@citrix.com>, Stefan Weil <sw@weilnetz.de>,
+ David Gibson <david@gibson.dropbear.id.au>,
+ Stefano Stabellini <sstabellini@kernel.org>, Paul Durrant <paul@xen.org>,
+ Eric Blake <eblake@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+ Markus Armbruster <armbru@redhat.com>,
+ Samuel Thibault <samuel.thibault@ens-lyon.org>, Greg Kurz <groug@kaod.org>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>
+Subject: [PATCH v14 14/17] qemu-sockets: update socket_uri() and
  socket_parse() to be consistent
-Date: Wed,  5 Oct 2022 18:20:48 +0200
-Message-Id: <20221005162051.1120041-15-lvivier@redhat.com>
+Date: Fri, 21 Oct 2022 11:09:19 +0200
+Message-Id: <20221021090922.170074-15-lvivier@redhat.com>
 X-Mailer: git-send-email 2.37.3
-In-Reply-To: <20221005162051.1120041-1-lvivier@redhat.com>
-References: <20221005162051.1120041-1-lvivier@redhat.com>
+In-Reply-To: <20221021090922.170074-1-lvivier@redhat.com>
+References: <20221021090922.170074-1-lvivier@redhat.com>
 MIME-Version: 1.0
-X-Provags-ID: V03:K1:GWWVYRFEntX6I/jSjnd2IEjmhnoeCfWWgc/s2sp+ncSRf9AxXA7
- rtOW4Ceoj0to8VlYAFktx3rlhRSydqfF1ahX0LkAvCKBF6fMflpj8u2+DBT1P1V00G0Y685
- tUfSS7PZK8a5cNOX8fYM+lgs7SJEJ0DlcSC4sGJ6VSl6XC5evs7tQR4zl6QA46hKl2Hp7bw
- +5NoiZ2TB9EN3wamSn/oQ==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:eesP6tPN5LU=:6CYM2mqKk6LE+83FIgiBnj
- CAC6yeSWZ7+Y49VQuJBkmA6utdbhSeple7Qr+kocHHEQhUHNSTjJvVl3+a0KTVOscVzS5lX0L
- l6/3Ddw59kWAk9YvCRQmbZceqWeikBCk9kB6L26O/UN6No63ucU6fLdSLeyc5nwUGLi9PDT1E
- 07HPGIyMwZaTOgTBG2PWIqsk8pqqXcnZOAXuJ3Y9pD0CBCiSy6RbS5u1KwWq0V1nvd/kEMZs4
- PS/PkIyU0LqB+o+kL0QWwbrsJuRKAqXe+hzPN6KVGaSOIzJECXAbyMAN05NfonCWmU+KacUdi
- d8fLz3MzhAfqxS0JomlPUrbA43n8mDUm/ocBIou6stbc21N5Nw90CzYCxNT8xAUuokyyMdZ+l
- Y8iQ3x64kSOCeGX6zLdpgGs1lojgV/escvfMacZKZOMMZGURWyTQ7i96LGuwv5ofnyatUSFTH
- c3v01UWf46WpXdXl0miOEf2OToPfLBMOIJvqEKT/OJXH/T9NRKjX9p60IqQJaH7k8MMEEs7ZN
- 503e9AaGfW5Hsz46Nba1cCvjzejYMG+/z0vQKeepOmIj71czd+PzclQ2HBmAzELOjyB3ScW9B
- QPXZEFJ5Zu4KuId4Mkx40gUpp1yNpkPGT6OZ8CNoUKnSFjSvTxivm477cwr1+XCIsWEsHrG90
- pZjxpqQjpqlufZqRRbC5mD+L61ta7fBAn/V4oXs6QmCArDa6tfy3IUoaQ0vccYU1nrSaRN9Ux
- TmAGChygRJgTy53MHDtf8VO0Nb9nKmn4qTXYeuS5tN4sLAR+ttlPasbOYwYLEEgLVJgFM/lzI
- /WHvkrA
-Received-SPF: permerror client-ip=212.227.17.24;
+X-Provags-ID: V03:K1:IlbjGyBRLP3bwFE38/66E2QOC+4jmzRhUTvPDJprnXGju0Xs3m/
+ ZSn7mUgHb33GOOso/Sy9gfu9GrxaemOiliAfeQM4Hs08f10PsWEdCQ8nUuWpE0lP2ECUvMd
+ cDF5ZT5mbXqk6sE1ySNAKptZVSCcX3RlA0lbb84Jo8TesMytwMEVvKCWZ6QebVU/GwFWntS
+ cs9ndA9jEbpDip2iqTX8w==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:PUEEo2WJJ2I=:SeIJ3r7pHTb3tnyE+jhkOY
+ d0HwTUPIyYxf67h2zDeW9WRPXuGwOW8U+J8g5kn9xeIKJc9JZMT8RBn0QTy+cyhBQl1hMuKAe
+ fNfzmHKMmKkjUMNtcBBNyY4u6L63+eqeX2wRvB7myBffQAugV+BDP6cVfHG6yaYAOvvA+syPa
+ GT1gmGM5TwPSEXJJn+e0DIQfYl60/EIQn/t8FayptZNUKHKQYunozXtjPFMay3rh+dmiVgjND
+ Hi/z6c5dkPhAcjf9hjyIn0xPWO3Mn30l7iiCfpnUOwfBrhZpHBurFaKroMNMs2BpkZCcosgWH
+ toXAYfAm0CIcChqjabeAvglqJzVud2as6OC+Xn0LRXZn48d401HIp1g8uU7dzrus+WB1KvEtt
+ vVCENJi+gi35fvRw8X5NTsJzCTHIravfVEOOjCfXJK6Bd2hkbM+qmG4Ni5yAL79dlII02XDJb
+ r5mT9fpKjBVBu0gm24uDMrmNtWRsKJ2s1vd61WDwd2kU7/GPVp/Ea5PLwrYp0ADNzPoa3Lg/X
+ nN4iJfM5x6DPbHSA6yfj/QAhG42zEITJ+FXqdzfXCpaEk8bq+125aK9dlU3Xz1lWcgt7DX7Ob
+ 2jAktwDP787HjfpbKJoZDaqrdRiV1I7nFg1Oc3+XohqYS2FAnrAL0k2OgDsiHGJMnmQgo3wcw
+ MhwvjcWnag/soxMczzfnbV5+a9wuENB/D3rJ8Qhzqy/2+vM2bQBq/dIWSuenTwOchIzvwfP8I
+ SC1VHL1LnWQ0ExG1WbIwePtRSxC0dA/RsaW5HPyaEqJ/fJXJ71yN4kpf8iccEFUfGTU0n5m5g
+ cagRz2Q
+Received-SPF: permerror client-ip=212.227.17.13;
  envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
 X-Spam_score_int: -18
 X-Spam_score: -1.9
 X-Spam_bar: -
-X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_MSPIKE_H2=-0.001,
- SPF_FAIL=0.001, SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001,
+ SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
 X-Spam_action: no action
 X-BeenThere: qemu-devel@nongnu.org
 X-Mailman-Version: 2.1.29
@@ -4241,6 +4415,7 @@ Signed-off-by: Laurent Vivier <lvivier@redhat.com>
 Reviewed-by: Dr. David Alan Gilbert <dgilbert@redhat.com>
 Reviewed-by: Markus Armbruster <armbru@redhat.com>
 Reviewed-by: David Gibson <david@gibson.dropbear.id.au>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
 ---
  util/qemu-sockets.c | 7 ++++++-
  1 file changed, 6 insertions(+), 1 deletion(-)
@@ -4271,75 +4446,83 @@ index 9f6f655fd526..a9926af714c4 100644
          addr->type = SOCKET_ADDRESS_TYPE_INET;
          if (inet_parse(&addr->u.inet, str, errp)) {
 
-From patchwork Wed Oct  5 16:20:49 2022
+From patchwork Fri Oct 21 09:09:20 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
-X-Patchwork-Id: 12999483
+X-Patchwork-Id: 13014514
 Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 4AA0CC433F5
-	for <qemu-devel@archiver.kernel.org>; Wed,  5 Oct 2022 16:59:11 +0000 (UTC)
-Received: from localhost ([::1]:56638 helo=lists1p.gnu.org)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id AC908C433FE
+	for <qemu-devel@archiver.kernel.org>; Fri, 21 Oct 2022 09:34:42 +0000 (UTC)
+Received: from localhost ([::1] helo=lists.gnu.org)
 	by lists.gnu.org with esmtp (Exim 4.90_1)
 	(envelope-from
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
-	id 1og7ji-0001Vh-2y
-	for qemu-devel@archiver.kernel.org; Wed, 05 Oct 2022 12:59:10 -0400
-Received: from eggs.gnu.org ([2001:470:142:3::10]:46944)
+	id 1oloQL-0003lV-Jt
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:34:41 -0400
+Received: from [::1] (helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
+	id 1olo2q-00053G-1f
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:10:24 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10])
  by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og797-0007V3-DE
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:21 -0400
-Received: from mout.kundenserver.de ([217.72.192.75]:43295)
+ id 1olo2U-0003fs-NB
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:10:02 -0400
+Received: from mout.kundenserver.de ([217.72.192.75])
  by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og792-0002pO-DE
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:21 -0400
+ id 1olo2Q-00022b-GU
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:10:02 -0400
 Received: from lenovo-t14s.redhat.com ([82.142.8.70]) by
- mrelayeu.kundenserver.de (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis)
- id 1MeCxd-1pELMs1H1D-00bNBF; Wed, 05 Oct 2022 18:21:13 +0200
+ mrelayeu.kundenserver.de (mreue106 [212.227.15.183]) with ESMTPSA (Nemesis)
+ id 1MFspV-1otE9s3MGV-00HN31; Fri, 21 Oct 2022 11:09:48 +0200
 From: Laurent Vivier <lvivier@redhat.com>
 To: qemu-devel@nongnu.org
-Cc: Thomas Huth <thuth@redhat.com>,
- =?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
- Eric Blake <eblake@redhat.com>,
+Cc: Thomas Huth <thuth@redhat.com>, xen-devel@lists.xenproject.org,
  "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
- David Gibson <david@gibson.dropbear.id.au>, Jason Wang <jasowang@redhat.com>,
- Samuel Thibault <samuel.thibault@ens-lyon.org>,
- Markus Armbruster <armbru@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
- Stefan Weil <sw@weilnetz.de>, Greg Kurz <groug@kaod.org>,
- Laurent Vivier <lvivier@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v10 15/17] net: stream: move to QIO to enable additional
+ Laurent Vivier <lvivier@redhat.com>,
+ Anthony Perard <anthony.perard@citrix.com>, Stefan Weil <sw@weilnetz.de>,
+ David Gibson <david@gibson.dropbear.id.au>,
+ Stefano Stabellini <sstabellini@kernel.org>, Paul Durrant <paul@xen.org>,
+ Eric Blake <eblake@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+ Markus Armbruster <armbru@redhat.com>,
+ Samuel Thibault <samuel.thibault@ens-lyon.org>, Greg Kurz <groug@kaod.org>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>
+Subject: [PATCH v14 15/17] net: stream: move to QIO to enable additional
  parameters
-Date: Wed,  5 Oct 2022 18:20:49 +0200
-Message-Id: <20221005162051.1120041-16-lvivier@redhat.com>
+Date: Fri, 21 Oct 2022 11:09:20 +0200
+Message-Id: <20221021090922.170074-16-lvivier@redhat.com>
 X-Mailer: git-send-email 2.37.3
-In-Reply-To: <20221005162051.1120041-1-lvivier@redhat.com>
-References: <20221005162051.1120041-1-lvivier@redhat.com>
+In-Reply-To: <20221021090922.170074-1-lvivier@redhat.com>
+References: <20221021090922.170074-1-lvivier@redhat.com>
 MIME-Version: 1.0
-X-Provags-ID: V03:K1:tQs95C/6cwU3V68TJNxjS8A0MKlicb5KnEfED4/VSFLVblqhoHn
- 5KwP094tXimXbUeYTxCAWuVsdVmNfb0zwsGYlVJhAbVFI1C4ablTFgl8sohABpuaP9tDgAm
- +WL756ntqczpHqZaVoJUhvJ/90DvpQrNvO03Uu/X7MYbXF/SXCIV5c2/ykzlI1ddhc6ceWA
- GDN6s7pgvc/VeehROdxhg==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:viFprx2RP/k=:QT0LyRTfjNUVuHn+bdAf2/
- B+pR0c349uhjCQr994pdeqGCu3oWm9bdApHsD/zeR/L3NAvwVJ1MOLjkcDa/IXEm2Zhr3/rHx
- AD1R1BaLLVzOfmjVe0zB9CNujJoOAT4FL4mLE/kd7h8wDzMEGrqZ71xuF0+hoQ1fy5LG2fxbz
- vzNtN2l3aUGnjl/lBpifsk5jPhAm0YVw8yvk3eHcjyeiA8QcEafa8tEq5sc2+3xeG3JV4bdgP
- CzukSKXzKDwZL5FBnaPc1AGp+8BiW0GDcz6eyQdpxBjaKaKNh/wiB5XjsPHDYwa8pHv+wxCMf
- td7sjhYnsSQ55sKSeE7eGom9dZQsT+fy6WM38rGg3V3VeSJ/N5LOX150tq7K29hwbCXld6lZ/
- a76UuSqsnw4OwamnAzUYOTks9/pr8W/n52N/4XzCnmdN8nr3UfrerX9wbrf7uskjWdnuuZc+k
- gHMuq2+/A+2uRPyNC13qedhGhR0a9UIA8HIU+kbkwZprl64IpeyRttOHm/PojVCX3RtLYq6+m
- oNQHaA1815DF9NPaUSeSRdKCuv5mz+ihwEbOLiqb6ky4vZGK+6KoK+eDIGgQigfOZGqL8w4dF
- U3HBqoyVFITuAJqcYEMdGYDkHKVI8ZVM6r039Utw1zTMRCn+MWhmJ4Tszktne0La/OjeuaG6s
- 9PSgTWN9KMQCR7HUBrc8d4Kxnsq8413DS2dzjCFxOxqkYWQbcU89zVZIEZBRvKwinmqOHsNTk
- 6tplFu5Y9iZA0rJs+SEqYtxB6nCUXcJz3G7sXiHi2YaxRqy1mSWGujRK3pTSDwGBbnsOVsH0M
- 1IF4lEU
+X-Provags-ID: V03:K1:ogVtRU/Y8L0DEFpJBE7pyNsAFn6O11+IaF6Qh70AAhF4CewGHia
+ TwEr/vrVnn42KpXnWvAfKIt9AJZXfonMR0LD9WOyYBj0E1ypLh0CoiQcASOLNVYyMuy5E3v
+ M3kCzvk2E45Hke1xKhyGvHvYk+j8XJtXzNhFGsPDje3KRXwdEtySNhqkfdeyksJ9pU6DViQ
+ 8njk5A+4lJML2xUUlGUng==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:d0GFfGQb3tw=:CJZXm63r4DH3ggK54l2r2Y
+ F0Hq6Gb1/Tf2hc0CepLLNNUa1+i3Hmowpr31nDMovaXRcwqUXdLQQeDCTyS1TiHGHWNjFKdyb
+ jUSs0LZX0KB3sx0vjFnGFp1fhRAYeqSWvvs+1XQIIURpk8Rmesjz5fhhy1R8IxYMNuLWny0ak
+ +YOm11ZrWJdLO36hpBG27At5cWo3Xbv6DJUoBts3ba1t/3skd7AJZ0HXRrtRBokKxBbVVR+/G
+ ZQH5DrlJ9DZh5E6MAl2ngthXxsogMb8i2YFb6YnkhoHOrIU9RAOeV0/b3AelNKwLzPkFhN96p
+ WqXG7LtdVt1+qsKJXYUoBH6IGoTijK8QfqHXtZdO31aKxMEdp5XkVe6lNt/fevsgElKPywEt2
+ YcXw8ZVrlwTqiwrJAr92bCxj4FQryRoFBn1VqHKabiwxtWSpVRxbGxTKyzie5BWmkGx17kUVE
+ MXbxXjTpuwTTF6IcDtZmBurucj7ynRv+xrGb5Mu6dfYnqutx0J6Z1Wom22aF1W2A+nQGzoREe
+ STxeloc0zSKldnop3diocK6B7L1JlqX+4673PCudQhZbkzBKkj1ukCzGyEZ4xi60FQ4kGJoDD
+ 1mZHjW6O98TL3Arwt2u186grZ1Hs0De3j/TzuF5mTLa6IhMMFqlXxlYLB0H/7r2xfPss4f0kN
+ Gwp6xuTh3etKS+1fAvzjmDnN2C4GpwSB8cdCNdZnCLNN18fMVtMbZTEu+8/Ki34lpoRfCT5xO
+ grdJF+crzXp7lw7W7/Hd2qWeEkUaeMMDqNJ/9hCMXTy/mJ+S/yBSnzmwGXNzFzdpYKrQ2ibv5
+ o6Zd2Vs
 Received-SPF: permerror client-ip=217.72.192.75;
  envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
 X-Spam_score_int: -18
@@ -4368,13 +4551,14 @@ This allows net/stream to use all the available parameters provided by
 SocketAddress.
 
 Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- net/stream.c    | 484 +++++++++++++++++-------------------------------
+ net/stream.c    | 492 +++++++++++++++++-------------------------------
  qemu-options.hx |   4 +-
- 2 files changed, 171 insertions(+), 317 deletions(-)
+ 2 files changed, 178 insertions(+), 318 deletions(-)
 
 diff --git a/net/stream.c b/net/stream.c
-index d26c79d035fc..8e4618e3f84d 100644
+index 884f473018da..54c67e14d240 100644
 --- a/net/stream.c
 +++ b/net/stream.c
 @@ -35,48 +35,36 @@
@@ -4444,7 +4628,7 @@ index d26c79d035fc..8e4618e3f84d 100644
  }
  
  static ssize_t net_stream_receive(NetClientState *nc, const uint8_t *buf,
-@@ -93,13 +81,16 @@ static ssize_t net_stream_receive(NetClientState *nc, const uint8_t *buf,
+@@ -93,13 +81,15 @@ static ssize_t net_stream_receive(NetClientState *nc, const uint8_t *buf,
              .iov_len  = size,
          },
      };
@@ -4453,18 +4637,17 @@ index d26c79d035fc..8e4618e3f84d 100644
      size_t remaining;
      ssize_t ret;
  
--    remaining = iov_size(iov, 2) - s->send_index;
+     remaining = iov_size(iov, 2) - s->send_index;
 -    ret = iov_send(s->fd, iov, 2, s->send_index, remaining);
- 
+-
 -    if (ret == -1 && errno == EAGAIN) {
-+    remaining = iov_size(iov, 2) - s->send_index;
 +    nlocal_iov = iov_copy(local_iov, 2, iov, 2, s->send_index, remaining);
 +    ret = qio_channel_writev(s->ioc, local_iov, nlocal_iov, NULL);
 +    if (ret == QIO_CHANNEL_ERR_BLOCK) {
          ret = 0; /* handled further down */
      }
      if (ret == -1) {
-@@ -108,19 +99,25 @@ static ssize_t net_stream_receive(NetClientState *nc, const uint8_t *buf,
+@@ -108,19 +98,25 @@ static ssize_t net_stream_receive(NetClientState *nc, const uint8_t *buf,
      }
      if (ret < (ssize_t)remaining) {
          s->send_index += ret;
@@ -4493,7 +4676,7 @@ index d26c79d035fc..8e4618e3f84d 100644
      }
  }
  
-@@ -131,19 +128,24 @@ static void net_stream_rs_finalize(SocketReadState *rs)
+@@ -131,19 +127,24 @@ static void net_stream_rs_finalize(SocketReadState *rs)
      if (qemu_send_packet_async(&s->nc, rs->buf,
                                 rs->packet_len,
                                 net_stream_send_completed) == 0) {
@@ -4524,7 +4707,7 @@ index d26c79d035fc..8e4618e3f84d 100644
      if (size < 0) {
          if (errno != EWOULDBLOCK) {
              goto eoc;
-@@ -151,51 +153,63 @@ static void net_stream_send(void *opaque)
+@@ -151,51 +152,63 @@ static void net_stream_send(void *opaque)
      } else if (size == 0) {
          /* end of connection */
      eoc:
@@ -4536,12 +4719,12 @@ index d26c79d035fc..8e4618e3f84d 100644
 +        if (s->ioc_write_tag) {
 +            g_source_remove(s->ioc_write_tag);
 +            s->ioc_write_tag = 0;
-+        }
+         }
+-        closesocket(s->fd);
 +        if (s->listener) {
 +            qio_net_listener_set_client_func(s->listener, net_stream_listen,
 +                                             s, NULL);
-         }
--        closesocket(s->fd);
++        }
 +        object_unref(OBJECT(s->ioc));
 +        s->ioc = NULL;
  
@@ -4611,7 +4794,7 @@ index d26c79d035fc..8e4618e3f84d 100644
  static NetClientInfo net_stream_info = {
      .type = NET_CLIENT_DRIVER_STREAM,
      .size = sizeof(NetStreamState),
-@@ -203,76 +217,67 @@ static NetClientInfo net_stream_info = {
+@@ -203,76 +216,66 @@ static NetClientInfo net_stream_info = {
      .cleanup = net_stream_cleanup,
  };
  
@@ -4625,30 +4808,30 @@ index d26c79d035fc..8e4618e3f84d 100644
  {
 -    NetClientState *nc;
 -    NetStreamState *s;
+-
+-    nc = qemu_new_net_client(&net_stream_info, peer, model, name);
 +    NetStreamState *s = opaque;
 +    SocketAddress *addr;
 +    char *uri;
  
--    nc = qemu_new_net_client(&net_stream_info, peer, model, name);
+-    qemu_set_info_str(nc, "fd=%d", fd);
 +    object_ref(OBJECT(cioc));
  
--    qemu_set_info_str(nc, "fd=%d", fd);
-+    qio_net_listener_set_client_func(s->listener, NULL, s, NULL);
- 
 -    s = DO_UPCAST(NetStreamState, nc, nc);
-+    s->ioc = QIO_CHANNEL(cioc);
-+    qio_channel_set_name(s->ioc, "stream-server");
-+    s->nc.link_down = false;
++    qio_net_listener_set_client_func(s->listener, NULL, s, NULL);
  
 -    s->fd = fd;
 -    s->listen_fd = -1;
 -    net_socket_rs_init(&s->rs, net_stream_rs_finalize, false);
-+    s->ioc_read_tag = qio_channel_add_watch(s->ioc, G_IO_IN, net_stream_send,
-+                                            s, NULL);
++    s->ioc = QIO_CHANNEL(cioc);
++    qio_channel_set_name(s->ioc, "stream-server");
++    s->nc.link_down = false;
  
 -    /* Disable Nagle algorithm on TCP sockets to reduce latency */
 -    socket_set_nodelay(fd);
--
++    s->ioc_read_tag = qio_channel_add_watch(s->ioc, G_IO_IN, net_stream_send,
++                                            s, NULL);
+ 
 -    if (is_connected) {
 -        net_stream_connect(s);
 +    if (cioc->localAddr.ss_family == AF_UNIX) {
@@ -4663,7 +4846,6 @@ index d26c79d035fc..8e4618e3f84d 100644
 +    qemu_set_info_str(&s->nc, uri);
 +    g_free(uri);
 +    qapi_free_SocketAddress(addr);
-+
  }
  
 -static void net_stream_accept(void *opaque)
@@ -4733,7 +4915,7 @@ index d26c79d035fc..8e4618e3f84d 100644
  }
  
  static int net_stream_server_init(NetClientState *peer,
-@@ -283,105 +288,54 @@ static int net_stream_server_init(NetClientState *peer,
+@@ -283,105 +286,61 @@ static int net_stream_server_init(NetClientState *peer,
  {
      NetClientState *nc;
      NetStreamState *s;
@@ -4743,35 +4925,26 @@ index d26c79d035fc..8e4618e3f84d 100644
 -    switch (addr->type) {
 -    case SOCKET_ADDRESS_TYPE_INET: {
 -        struct sockaddr_in saddr_in;
-+    nc = qemu_new_net_client(&net_stream_info, peer, model, name);
-+    s = DO_UPCAST(NetStreamState, nc, nc);
- 
+-
 -        if (convert_host_port(&saddr_in, addr->u.inet.host, addr->u.inet.port,
 -                              errp) < 0) {
 -            return -1;
 -        }
-+    s->listen_ioc = QIO_CHANNEL(listen_sioc);
-+    qio_channel_socket_listen_async(listen_sioc, addr, 0,
-+                                    net_stream_server_listening, s,
-+                                    NULL, NULL);
- 
+-
 -        fd = qemu_socket(PF_INET, SOCK_STREAM, 0);
 -        if (fd < 0) {
 -            error_setg_errno(errp, errno, "can't create stream socket");
 -            return -1;
 -        }
 -        qemu_socket_set_nonblock(fd);
-+    return 0;
-+}
++    nc = qemu_new_net_client(&net_stream_info, peer, model, name);
++    s = DO_UPCAST(NetStreamState, nc, nc);
  
 -        socket_set_fast_reuse(fd);
-+static void net_stream_client_connected(QIOTask *task, gpointer opaque)
-+{
-+    NetStreamState *s = opaque;
-+    QIOChannelSocket *sioc = QIO_CHANNEL_SOCKET(s->ioc);
-+    SocketAddress *addr;
-+    gchar *uri;
-+    int ret;
++    s->listen_ioc = QIO_CHANNEL(listen_sioc);
++    qio_channel_socket_listen_async(listen_sioc, addr, 0,
++                                    net_stream_server_listening, s,
++                                    NULL, NULL);
  
 -        ret = bind(fd, (struct sockaddr *)&saddr_in, sizeof(saddr_in));
 -        if (ret < 0) {
@@ -4781,10 +4954,7 @@ index d26c79d035fc..8e4618e3f84d 100644
 -            return -1;
 -        }
 -        break;
-+    if (sioc->fd < 0) {
-+        qemu_set_info_str(&s->nc, "connection error");
-+        return;
-     }
+-    }
 -    case SOCKET_ADDRESS_TYPE_UNIX: {
 -        struct sockaddr_un saddr_un;
 -
@@ -4794,6 +4964,8 @@ index d26c79d035fc..8e4618e3f84d 100644
 -                             addr->u.q_unix.path);
 -            return -1;
 -        }
++    return 0;
++}
  
 -        saddr_un.sun_family = PF_UNIX;
 -        ret = snprintf(saddr_un.sun_path, sizeof(saddr_un.sun_path), "%s",
@@ -4805,11 +4977,13 @@ index d26c79d035fc..8e4618e3f84d 100644
 -                              sizeof(saddr_un.sun_path));
 -            return -1;
 -        }
-+    addr = qio_channel_socket_get_remote_address(sioc, NULL);
-+    g_assert(addr != NULL);
-+    uri = socket_uri(addr);
-+    qemu_set_info_str(&s->nc, uri);
-+    g_free(uri);
++static void net_stream_client_connected(QIOTask *task, gpointer opaque)
++{
++    NetStreamState *s = opaque;
++    QIOChannelSocket *sioc = QIO_CHANNEL_SOCKET(s->ioc);
++    SocketAddress *addr;
++    gchar *uri;
++    int ret;
  
 -        fd = qemu_socket(PF_UNIX, SOCK_STREAM, 0);
 -        if (fd < 0) {
@@ -4842,21 +5016,30 @@ index d26c79d035fc..8e4618e3f84d 100644
 -    default:
 -        error_setg(errp, "only support inet or fd type");
 -        return -1;
--    }
--
++    if (sioc->fd < 0) {
++        qemu_set_info_str(&s->nc, "connection error");
++        goto error;
+     }
+ 
 -    ret = listen(fd, 0);
 -    if (ret < 0) {
 -        error_setg_errno(errp, errno, "can't listen on socket");
 -        closesocket(fd);
 -        return -1;
++    addr = qio_channel_socket_get_remote_address(sioc, NULL);
++    g_assert(addr != NULL);
++    uri = socket_uri(addr);
++    qemu_set_info_str(&s->nc, uri);
++    g_free(uri);
++
 +    ret = qemu_socket_try_set_nonblock(sioc->fd);
 +    if (addr->type == SOCKET_ADDRESS_TYPE_FD && ret < 0) {
 +        qemu_set_info_str(&s->nc, "can't use file descriptor %s (errno %d)",
 +                          addr->u.fd.str, -ret);
-+        return;
++        qapi_free_SocketAddress(addr);
++        goto error;
      }
 +    g_assert(ret == 0);
-+    qapi_free_SocketAddress(addr);
  
 -    nc = qemu_new_net_client(&net_stream_info, peer, model, name);
 -    s = DO_UPCAST(NetStreamState, nc, nc);
@@ -4872,10 +5055,17 @@ index d26c79d035fc..8e4618e3f84d 100644
 +
 +    s->ioc_read_tag = qio_channel_add_watch(s->ioc, G_IO_IN, net_stream_send,
 +                                            s, NULL);
++    s->nc.link_down = false;
++    qapi_free_SocketAddress(addr);
++
++    return;
++error:
++    object_unref(OBJECT(s->ioc));
++    s->ioc = NULL;
  }
  
  static int net_stream_client_init(NetClientState *peer,
-@@ -391,118 +345,18 @@ static int net_stream_client_init(NetClientState *peer,
+@@ -391,118 +350,19 @@ static int net_stream_client_init(NetClientState *peer,
                                    Error **errp)
  {
      NetStreamState *s;
@@ -4978,6 +5168,7 @@ index d26c79d035fc..8e4618e3f84d 100644
 -        return -1;
 -    }
 +    s->ioc = QIO_CHANNEL(sioc);
++    s->nc.link_down = true;
 +
 +    qio_channel_socket_connect_async(sioc, addr,
 +                                     net_stream_client_connected, s,
@@ -5004,10 +5195,10 @@ index d26c79d035fc..8e4618e3f84d 100644
  }
  
 diff --git a/qemu-options.hx b/qemu-options.hx
-index 1111e02a220c..8357ee2d96d7 100644
+index fafb214cb89f..a91f96a264cc 100644
 --- a/qemu-options.hx
 +++ b/qemu-options.hx
-@@ -2756,8 +2756,8 @@ DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
+@@ -2772,8 +2772,8 @@ DEF("netdev", HAS_ARG, QEMU_OPTION_netdev,
      "-netdev socket,id=str[,fd=h][,udp=host:port][,localaddr=host:port]\n"
      "                configure a network backend to connect to another network\n"
      "                using an UDP tunnel\n"
@@ -5019,81 +5210,88 @@ index 1111e02a220c..8357ee2d96d7 100644
      "                configure a network backend to connect to another network\n"
      "                using a socket connection in stream mode.\n"
 
-From patchwork Wed Oct  5 16:20:50 2022
+From patchwork Fri Oct 21 09:09:21 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
-X-Patchwork-Id: 12999482
+X-Patchwork-Id: 13014543
 Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id BE30EC433F5
-	for <qemu-devel@archiver.kernel.org>; Wed,  5 Oct 2022 16:54:33 +0000 (UTC)
-Received: from localhost ([::1]:45444 helo=lists1p.gnu.org)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id E03DCC4332F
+	for <qemu-devel@archiver.kernel.org>; Fri, 21 Oct 2022 09:58:50 +0000 (UTC)
+Received: from localhost ([::1] helo=lists.gnu.org)
 	by lists.gnu.org with esmtp (Exim 4.90_1)
 	(envelope-from
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
-	id 1og7fE-0004bY-EW
-	for qemu-devel@archiver.kernel.org; Wed, 05 Oct 2022 12:54:32 -0400
-Received: from eggs.gnu.org ([2001:470:142:3::10]:49448)
+	id 1olonh-00033i-Dy
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:58:49 -0400
+Received: from [::1] (helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
+	id 1olo3I-0005jc-Jk
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:10:52 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10])
  by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og79C-0007dT-SY
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:26 -0400
-Received: from mout.kundenserver.de ([217.72.192.74]:43509)
+ id 1olo2j-0004eC-Qh
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:10:18 -0400
+Received: from mout.kundenserver.de ([212.227.17.10])
  by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og799-0002qz-46
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:25 -0400
+ id 1olo2S-00023C-Tp
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:10:17 -0400
 Received: from lenovo-t14s.redhat.com ([82.142.8.70]) by
- mrelayeu.kundenserver.de (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis)
- id 1MQ5nK-1otOna3BDM-00M43W; Wed, 05 Oct 2022 18:21:15 +0200
+ mrelayeu.kundenserver.de (mreue106 [212.227.15.183]) with ESMTPSA (Nemesis)
+ id 1Mn1mb-1pUjhy2Rkd-00k79z; Fri, 21 Oct 2022 11:09:50 +0200
 From: Laurent Vivier <lvivier@redhat.com>
 To: qemu-devel@nongnu.org
-Cc: Thomas Huth <thuth@redhat.com>,
- =?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
- Eric Blake <eblake@redhat.com>,
+Cc: Thomas Huth <thuth@redhat.com>, xen-devel@lists.xenproject.org,
  "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
- David Gibson <david@gibson.dropbear.id.au>, Jason Wang <jasowang@redhat.com>,
- Samuel Thibault <samuel.thibault@ens-lyon.org>,
- Markus Armbruster <armbru@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
- Stefan Weil <sw@weilnetz.de>, Greg Kurz <groug@kaod.org>,
- Laurent Vivier <lvivier@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v10 16/17] tests/qtest: netdev: test stream and dgram backends
-Date: Wed,  5 Oct 2022 18:20:50 +0200
-Message-Id: <20221005162051.1120041-17-lvivier@redhat.com>
+ Laurent Vivier <lvivier@redhat.com>,
+ Anthony Perard <anthony.perard@citrix.com>, Stefan Weil <sw@weilnetz.de>,
+ David Gibson <david@gibson.dropbear.id.au>,
+ Stefano Stabellini <sstabellini@kernel.org>, Paul Durrant <paul@xen.org>,
+ Eric Blake <eblake@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+ Markus Armbruster <armbru@redhat.com>,
+ Samuel Thibault <samuel.thibault@ens-lyon.org>, Greg Kurz <groug@kaod.org>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>
+Subject: [PATCH v14 16/17] tests/qtest: netdev: test stream and dgram backends
+Date: Fri, 21 Oct 2022 11:09:21 +0200
+Message-Id: <20221021090922.170074-17-lvivier@redhat.com>
 X-Mailer: git-send-email 2.37.3
-In-Reply-To: <20221005162051.1120041-1-lvivier@redhat.com>
-References: <20221005162051.1120041-1-lvivier@redhat.com>
+In-Reply-To: <20221021090922.170074-1-lvivier@redhat.com>
+References: <20221021090922.170074-1-lvivier@redhat.com>
 MIME-Version: 1.0
-X-Provags-ID: V03:K1:iD2XF02Elofs207/BZbT/FrTr+RhUpI8/tqcJDdMEtBapIztTTN
- imwVTvXLkBKV4TV5+Tss057ESdW/CpvXGuK5DYkvFNnPqrJ9o8Jx3E1zDHAqFf8J9JvOjjQ
- 4QBSzJwfVyUUdljuQ/YkpVZq7ATvqledwyVCj0ORchGAhgy5Pvt8e0GSOsg/RujPMgpVntX
- /BKKBVtAYZ0nHewLRmjzA==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:rXDB0BlxXs4=:yvxZAai+M7cSRFcj9Fcp4G
- OKX6YuqaIQeL0RWGE91V5C3kIl7mh6zzU6AdiRw/+QkHgDQVeK6HOOcX5CbKB6jAcLjT0IOY0
- EB52GCh8q9/bqvZL9tThTqfQyg2rrFTRtiuWNPzeol19hcUMCs2S7Gdg1GpuJ/L88De4XoWRR
- HQipoHKi9loNNbYeZCVZnjBmb/3K8kmywSX5X9sgNdD/aHpJfUT5PDqOtTKQA8Muh7id6Q4xt
- lW5nwR+y3maz8rXM0GuxMq9dJ1k7/7f4ylvlWZOYxDgS8KZkrqdC05r6vHWrN8+aG9R4Hl8Fk
- 8IuPEaw8To7oLnSVO881I/Ak4VoIhtoQR7a2uy+98g1oKulrL7HZ7PO0oJS7vdDsbnSBkUnM3
- k9ViJJBQlr99wZbhvX9pr0HW30ChXyMeFZ6/Ub2hvPheZpFtlcepo7cTnQpn/T6QbM7XmAaM8
- RH01GvVDjskdPP09LAuMUxpdupRtmDEV+G3xNnuZpulmgEnQatGJ//x2O7dJmOXzZ7F2Mdwnw
- dxoAc1ECDTiyk6kGO+7Shom7jAHg9GuCFb3ALRIwktIog5WJgH5+zV2h3+BtCx68BILb1ZcWy
- TVZMukfMB/WZu0lkQQ2iPcxRn0X39wg+yOdM/YxcAsUcv2I24k83UKVfIyruIPfJ5elRfD/GR
- AuZDCUrNpwA+ZaP64E56Xjq4HLNJE8+M4X3NK0J7ZfBDJ+4LdfTNJDm+Xc04PfEHXPDzqkTRo
- t8NDuoZ8y+mOgE9zcoapGcBssQZOkHlO4Z+8TAopFnkRCteuHKRPbp4kmaUx+Qm+DGr3HBhYM
- zakkiNr
-Received-SPF: permerror client-ip=217.72.192.74;
+X-Provags-ID: V03:K1:CxcRoKY6c8c99dv+UPGTV3ROz1rs1O37uiVFETGeabLzE8wDu4N
+ srZFopyGGK3oExWmCMR6kTd0cDl7KXL3ZERhAP7wIhJ2QmHv9Py67pzArEOs6EnDYM5Gqts
+ hJw6jxbNWHjeuil20WbikCeD4C5kNazhXmIrUSnSPSyE3H0a9uWIappyojNFqHYDsJEvzt4
+ DH5LTWYPHXec18BG1ue0w==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:SRsdiqASwZw=:rkqVSVoamyy/aOi9wtGIY5
+ TuCcfWMpRIlWbgyRTyGrjxk1XQozGWJ8Z72hyZXHyTXQYixZ8U7rZ6XXy6ansxjfBugpYZii8
+ Hq3mU5pAz1yL8QkfiLlFydFy+vPuV5aIVFZywf7zdaCqVIDO0ISWD4WbL8scLwKdYnLg/grrj
+ pUr5osE+nBd2qD6+pWt4iYaARXrIJS4kJXAooyWEDQZuePzAJuBQdnbuf+9sgiOFUIXt2DnKX
+ Sa5bz0zZzXf+OJyQmw3KnBniCbWi1Q+b5hXtKi/ow0A0I8/vMEL4o8XgPxED1V2C4OJ2z54YH
+ y12HYp8DTXAV2dsvx59uQOJ0gO2ePt/fm5h8vMLm3qF8JImm5XbSHzYactrggRjCY+JdEfrIw
+ PZGtDP8LoHNo8Ee1QlF+i6NvG/uaGP471UnI+Eve1EH8cGA3CdHzY8OzACyrPK95SYHyT+Osg
+ PNSLES2fWLej5Fjl4nVduikMSnXwxTctEPwh16jYxQ9Ltrq6lVLPTQMg+yLrZ/BpBf+YumoqC
+ dIhHkSLQLIjAtA3Yk+jWOPQkDEnqQ9ukbnm/9sZF3cQbJM/R7zLoBLuX+w8UeT0+jIFoYKJ7Z
+ gwZ54cyYdGEklnpcbj5TVHzidAF7U3/9X8HQcGnkrS05JJBApvOXwDuWEqfFDeeoyGFweybQY
+ ThZHoslcNP8Ll31q/VFlUI5BFvZg3hVEmuQrtpdoGPVwqTg7WqAd2+HT0P8NSAv1fRnAEIzqC
+ oM+v31kuuoPbMasIW8SiOBoRMv1YO23/uUiWIEVI80NsqxJhqHRfnPAHUjzmfE7jYuru3cZdm
+ BIiRuHx
+Received-SPF: permerror client-ip=212.227.17.10;
  envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
 X-Spam_score_int: -18
 X-Spam_score: -1.9
 X-Spam_bar: -
-X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
- RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001,
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, SPF_FAIL=0.001,
  SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
 X-Spam_action: no action
 X-BeenThere: qemu-devel@nongnu.org
@@ -5112,14 +5310,15 @@ Sender: "Qemu-devel"
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 
 Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
 ---
  tests/qtest/meson.build     |   1 +
- tests/qtest/netdev-socket.c | 417 ++++++++++++++++++++++++++++++++++++
- 2 files changed, 418 insertions(+)
+ tests/qtest/netdev-socket.c | 420 ++++++++++++++++++++++++++++++++++++
+ 2 files changed, 421 insertions(+)
  create mode 100644 tests/qtest/netdev-socket.c
 
 diff --git a/tests/qtest/meson.build b/tests/qtest/meson.build
-index 455f1bbb7e52..464774e7b630 100644
+index c07a5b1a5f43..6953797e4e3e 100644
 --- a/tests/qtest/meson.build
 +++ b/tests/qtest/meson.build
 @@ -27,6 +27,7 @@ qtests_generic = [
@@ -5132,10 +5331,10 @@ index 455f1bbb7e52..464774e7b630 100644
    qtests_generic += [ 'modules-test' ]
 diff --git a/tests/qtest/netdev-socket.c b/tests/qtest/netdev-socket.c
 new file mode 100644
-index 000000000000..4ea66b4c6988
+index 000000000000..b24c0819b9ac
 --- /dev/null
 +++ b/tests/qtest/netdev-socket.c
-@@ -0,0 +1,417 @@
+@@ -0,0 +1,420 @@
 +/*
 + * QTest testcase for netdev stream and dgram
 + *
@@ -5230,7 +5429,7 @@ index 000000000000..4ea66b4c6988
 +
 +    port = inet_get_free_port();
 +    qts0 = qtest_initf("-nodefaults "
-+                       "-netdev stream,id=st0,addr.type=inet,"
++                       "-netdev stream,id=st0,server=true,addr.type=inet,"
 +                       "addr.ipv4=on,addr.ipv6=off,"
 +                       "addr.host=localhost,addr.port=%d", port);
 +
@@ -5261,7 +5460,7 @@ index 000000000000..4ea66b4c6988
 +
 +    port = inet_get_free_port();
 +    qts0 = qtest_initf("-nodefaults "
-+                       "-netdev stream,id=st0,addr.type=inet,"
++                       "-netdev stream,id=st0,server=true,addr.type=inet,"
 +                       "addr.ipv4=off,addr.ipv6=on,"
 +                       "addr.host=localhost,addr.port=%d", port);
 +
@@ -5296,7 +5495,8 @@ index 000000000000..4ea66b4c6988
 +    close(ret);
 +
 +    qts0 = qtest_initf("-nodefaults "
-+                       "-netdev stream,id=st0,addr.type=unix,addr.path=%s,",
++                       "-netdev stream,id=st0,server=true,"
++                       "addr.type=unix,addr.path=%s,",
 +                       path);
 +
 +    EXPECT_STATE(qts0, "st0: index=0,type=stream,\r\n", 0);
@@ -5329,7 +5529,8 @@ index 000000000000..4ea66b4c6988
 +    close(ret);
 +
 +    qts0 = qtest_initf("-nodefaults "
-+                       "-netdev stream,id=st0,addr.type=unix,addr.path=%s,"
++                       "-netdev stream,id=st0,server=true,"
++                       "addr.type=unix,addr.path=%s,"
 +                       "addr.abstract=on",
 +                       path);
 +
@@ -5373,7 +5574,8 @@ index 000000000000..4ea66b4c6988
 +    g_assert_cmpint(ret, !=, -1);
 +
 +    qts0 = qtest_initf("-nodefaults "
-+                       "-netdev stream,id=st0,addr.type=fd,addr.str=%d",
++                       "-netdev stream,id=st0,server=true,"
++                       "addr.type=fd,addr.str=%d",
 +                       sock0);
 +
 +    EXPECT_STATE(qts0, "st0: index=0,type=stream,\r\n", 0);
@@ -5385,7 +5587,7 @@ index 000000000000..4ea66b4c6988
 +    g_assert_cmpint(ret, !=, -1);
 +
 +    qts1 = qtest_initf("-nodefaults "
-+                       "-netdev stream,id=st0,server=off,addr.type=fd,addr.str=%d",
++                       "-netdev stream,id=st0,server=false,addr.type=fd,addr.str=%d",
 +                       sock1);
 +
 +
@@ -5554,83 +5756,91 @@ index 000000000000..4ea66b4c6988
 +    return ret;
 +}
 
-From patchwork Wed Oct  5 16:20:51 2022
+From patchwork Fri Oct 21 09:09:22 2022
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 X-Patchwork-Submitter: Laurent Vivier <lvivier@redhat.com>
-X-Patchwork-Id: 12999486
+X-Patchwork-Id: 13014526
 Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.lore.kernel.org (Postfix) with ESMTPS id 0C99BC433F5
-	for <qemu-devel@archiver.kernel.org>; Wed,  5 Oct 2022 17:06:04 +0000 (UTC)
-Received: from localhost ([::1]:35486 helo=lists1p.gnu.org)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 91911C433FE
+	for <qemu-devel@archiver.kernel.org>; Fri, 21 Oct 2022 09:43:42 +0000 (UTC)
+Received: from localhost ([::1] helo=lists.gnu.org)
 	by lists.gnu.org with esmtp (Exim 4.90_1)
 	(envelope-from
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
-	id 1og7qM-00019h-5M
-	for qemu-devel@archiver.kernel.org; Wed, 05 Oct 2022 13:06:02 -0400
-Received: from eggs.gnu.org ([2001:470:142:3::10]:46942)
+	id 1oloYz-0000si-AO
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:43:39 -0400
+Received: from [::1] (helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
+	id 1olo2p-00052p-Cf
+	for qemu-devel@archiver.kernel.org; Fri, 21 Oct 2022 05:10:23 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10])
  by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og797-0007U3-0s
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:21 -0400
-Received: from mout.kundenserver.de ([217.72.192.73]:33129)
+ id 1olo2b-0003tU-5N
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:10:09 -0400
+Received: from mout.kundenserver.de ([217.72.192.74])
  by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
  (Exim 4.90_1) (envelope-from <lvivier@redhat.com>)
- id 1og795-0002pw-0l
- for qemu-devel@nongnu.org; Wed, 05 Oct 2022 12:21:20 -0400
+ id 1olo2V-000254-0x
+ for qemu-devel@nongnu.org; Fri, 21 Oct 2022 05:10:07 -0400
 Received: from lenovo-t14s.redhat.com ([82.142.8.70]) by
- mrelayeu.kundenserver.de (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis)
- id 1N336J-1pKQ9G44CL-013JLj; Wed, 05 Oct 2022 18:21:16 +0200
+ mrelayeu.kundenserver.de (mreue106 [212.227.15.183]) with ESMTPSA (Nemesis)
+ id 1N2VKr-1pFHDk0Xh1-013zUl; Fri, 21 Oct 2022 11:09:51 +0200
 From: Laurent Vivier <lvivier@redhat.com>
 To: qemu-devel@nongnu.org
-Cc: Thomas Huth <thuth@redhat.com>,
- =?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>,
- Eric Blake <eblake@redhat.com>,
+Cc: Thomas Huth <thuth@redhat.com>, xen-devel@lists.xenproject.org,
  "Dr. David Alan Gilbert" <dgilbert@redhat.com>,
- David Gibson <david@gibson.dropbear.id.au>, Jason Wang <jasowang@redhat.com>,
- Samuel Thibault <samuel.thibault@ens-lyon.org>,
- Markus Armbruster <armbru@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
- Stefan Weil <sw@weilnetz.de>, Greg Kurz <groug@kaod.org>,
- Laurent Vivier <lvivier@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v10 17/17] net: stream: add QAPI events to report connection
+ Laurent Vivier <lvivier@redhat.com>,
+ Anthony Perard <anthony.perard@citrix.com>, Stefan Weil <sw@weilnetz.de>,
+ David Gibson <david@gibson.dropbear.id.au>,
+ Stefano Stabellini <sstabellini@kernel.org>, Paul Durrant <paul@xen.org>,
+ Eric Blake <eblake@redhat.com>, "Michael S. Tsirkin" <mst@redhat.com>,
+ Jason Wang <jasowang@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>,
+ Markus Armbruster <armbru@redhat.com>,
+ Samuel Thibault <samuel.thibault@ens-lyon.org>, Greg Kurz <groug@kaod.org>,
+	=?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>
+Subject: [PATCH v14 17/17] net: stream: add QAPI events to report connection
  state
-Date: Wed,  5 Oct 2022 18:20:51 +0200
-Message-Id: <20221005162051.1120041-18-lvivier@redhat.com>
+Date: Fri, 21 Oct 2022 11:09:22 +0200
+Message-Id: <20221021090922.170074-18-lvivier@redhat.com>
 X-Mailer: git-send-email 2.37.3
-In-Reply-To: <20221005162051.1120041-1-lvivier@redhat.com>
-References: <20221005162051.1120041-1-lvivier@redhat.com>
+In-Reply-To: <20221021090922.170074-1-lvivier@redhat.com>
+References: <20221021090922.170074-1-lvivier@redhat.com>
 MIME-Version: 1.0
-X-Provags-ID: V03:K1:FeeVUmUVqZAXA9vnWy09Ptp2DcaGUWfqZVV0nkmUM/fsVbz4FlP
- MV3gOqBiZsV07uDMlp0Eb2+Fw/Ldv4Mk6dYG9AEOHD7wKPu0M4KCN5v789VT8Y9o8sJlhHY
- VrrergbI5Ql5ewo6LvJ2LKLyaPmxRwTc8Hus8AFzUHpTiaR+R6S9RqHCjHN/jXpSj5tQl77
- QTLd5E1QlrW+eUo7hFKfA==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:3Mt3iotd5WY=:oKKoJR4CFw6QXT19Oi59zE
- Q63JgRPN7V5jIohJ74WpzgxhXHq23K2LqqRbnuOC6EleKf/0C7yPDco6adDmhB4yxaamGlWRl
- BstbaN4a5cdxcsmxaOPAu6QfJ07KfwU6Z2fB6Ai+fQzNCJxDi72A7x795CCCMhcXjhFLRlxAq
- PZ5Q+DzKc5C2+C1LyxAiAI4fDDbEo5w4TU4c1bzIeSQwGPvB/z6dFdoji69PsrvSVMWM0MtqM
- w4Lj32oZUQK4KHm8xYtro/mQqE5B1y/YQMtrZ4B2swR2FAy6SJ2gg/Qb6Cjhjz1s0WYiXX52I
- bs3H2xwzdGhMb170x4Y9lHqw5Im+E8FxejhYy/vpKAL97XLjYyb6Puo20sA7LWtLX/fiY0yu6
- 6zz0dYOqLp2hEs+1daiRYl8D/1tWEu8fXnlk+168I/3CVTkgQ+box6hwhWaIQJgGlesXM6533
- q31ODpIiALpZBKNByCzLp3edZh1Y+r1G7gBeDKrVrtEWxtDukMRng0F/pFQRuU3tk8BG3jbB7
- EV83IahpNxNOxwbCyRV4sXoBJaSBwF9tBpTt7lrwhsxLHY9n0AC6z7rv1RAMcl3qugmZKb8ud
- 2iYuFs1CU7zSdohG9eCp/9gZzNkROWGBp2P7Mp1wZS78rNP/1AuvaycjL2Ys0q16L0L2151c+
- nxBu9gsWS1Fa+1TnFwusK19UNhz3Y6ENY0GZi1yKeOnkhl3BHyoqLUZEsaCdmQy5VQV9WTThN
- tzdoKUbwmfzpI0w6LZqc8QX72OTz+/9bj9/5jxZX3eMKMZl0Oz/zyY5B4HOpPKgKaTAK0wv8q
- aeFUW9M
-Received-SPF: permerror client-ip=217.72.192.73;
+X-Provags-ID: V03:K1:3qigyZi+KVz96ySGS6bqVJaYaPxXAMgTyYwclTCtKTSb7A3gsIt
+ SdMTbioFbJo7FqHB+14qedMmyEF7GpvmUNv8gPVARyqLvd32BdEC90dhWYdE+8RSLucnhOf
+ TkRD8Tz10832VhOljwKfSqVSJYrOC2g8Lvaw7lA1g6tcnygpoYyRsuG4TonEL6gEu1y98Yk
+ Ui4PfpZmyHLzuXBbrc3Wg==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:u2SBYcxc29k=:Z/SFRNQr3jfmeh0w45tVSV
+ vtMdPTAgRWe4h7V3llXabx44mm5VsuCmFpmdi73loD6zH9Q+mqGGkgmOhFI9v1CNxWODjYUn3
+ UfjXRSwNrbsCXActkVXz6RNxTGtjaJMqexh4Dn+qjpdUIUKVgBslww8jC6iYHXw4zQZYRfrlQ
+ 7ombF82cX2ef/cKES/02n5QVwbr5KaK7rLNjR0EJel0UEvRskLQLiQ5nznxrX35EiCN+I7BHa
+ CYXDkuGzi2eU0viRa/mwuT44neFg1fUfCCJcDJ72b00U/24x8285y4ya6CXyyPe9p32Ub85XT
+ K0LST8UIFl+Ep78xuZ0tibVLYCCFVLTBRxpbCwn+zUYZrR3CL0BcH9j7sPaOqwDHA/GpqmcNT
+ 8PmbtUe72tNOYQPoM6yGfbn2lq7GMx89lebNLgPlki35gOICljAqYBPZXqIKv2vOc98pGbB8t
+ IN29Pari/OtGwyQ2uEgWA3Bac01JpTF4mkun7knlh91EuqCkPpoCvUxpAYvIwrlE0pvdAsfjB
+ hkKCghIg1POfKRIr10I7yW5eVJsQVYgiYniiFC8s5qvyiKwC/IYTRivWmGIQvUeo7QyR67rP0
+ qbteljVsGy2lSXwn6Uyevhdy4qq1YhSSRmWXaDvBjrs5LKJK5BumKqbDV2m+W7YPMf08O8JJv
+ NXnWaeNeZsPQue6u3ZVBmd8CXEbkzShFXps/YBFfWCedxvteoZHgl7traR7zVEp9cHcAu5Bjx
+ HR6terX2Ega5aoWEvbvVT7Gdrq4dUfICGgx/GrkhfptRslCOIgPx73MetcMgm1TZRHb8j1zXp
+ +tEC/mn
+Received-SPF: permerror client-ip=217.72.192.74;
  envelope-from=lvivier@redhat.com; helo=mout.kundenserver.de
 X-Spam_score_int: -18
 X-Spam_score: -1.9
 X-Spam_bar: -
 X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
- RCVD_IN_MSPIKE_H2=-0.001, SPF_FAIL=0.001,
- SPF_HELO_NONE=0.001 autolearn=no autolearn_force=no
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_HELO_NONE=0.001,
+ T_SPF_TEMPERROR=0.01 autolearn=ham autolearn_force=no
 X-Spam_action: no action
 X-BeenThere: qemu-devel@nongnu.org
 X-Mailman-Version: 2.1.29
@@ -5648,19 +5858,37 @@ Sender: "Qemu-devel"
  <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
 
 The netdev reports NETDEV_STREAM_CONNECTED event when the backend
-is connected, and NETDEV_STREAM_EOC when it is disconnected.
+is connected, and NETDEV_STREAM_DISCONNECTED when it is disconnected.
 
-The NETDEV_STREAM_CONNECTED event includes the URI of the destination
-address.
+The NETDEV_STREAM_CONNECTED event includes the destination address.
+
+This allows a system manager like libvirt to detect when the server
+fails.
+
+For instance with passt:
+
+{ 'execute': 'qmp_capabilities' }
+{ "return": { } }
+{ "timestamp": { "seconds": 1666341395, "microseconds": 505347 },
+    "event": "NETDEV_STREAM_CONNECTED",
+    "data": { "netdev-id": "netdev0",
+        "addr": { "path": "/tmp/passt_1.socket", "type": "unix" } } }
+
+[killing passt here]
+
+{ "timestamp": { "seconds": 1666341430, "microseconds": 968694 },
+    "event": "NETDEV_STREAM_DISCONNECTED",
+    "data": { "netdev-id": "netdev0" } }
 
 Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- net/stream.c  | 11 +++++++++--
- qapi/net.json | 46 ++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 55 insertions(+), 2 deletions(-)
+ net/stream.c  |  5 +++++
+ qapi/net.json | 49 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 54 insertions(+)
 
 diff --git a/net/stream.c b/net/stream.c
-index 8e4618e3f84d..926c6e6a015e 100644
+index 54c67e14d240..53b7040cc417 100644
 --- a/net/stream.c
 +++ b/net/stream.c
 @@ -38,6 +38,7 @@
@@ -5671,56 +5899,36 @@ index 8e4618e3f84d..926c6e6a015e 100644
  
  typedef struct NetStreamState {
      NetClientState nc;
-@@ -169,6 +170,8 @@ static gboolean net_stream_send(QIOChannel *ioc,
+@@ -168,6 +169,8 @@ static gboolean net_stream_send(QIOChannel *ioc,
          s->nc.link_down = true;
          qemu_set_info_str(&s->nc, "");
  
-+        qapi_event_send_netdev_stream_eoc(s->nc.name);
++        qapi_event_send_netdev_stream_disconnected(s->nc.name);
 +
          return G_SOURCE_REMOVE;
      }
      buf = buf1;
-@@ -244,9 +247,10 @@ static void net_stream_listen(QIONetListener *listener,
-     g_assert(addr != NULL);
+@@ -244,6 +247,7 @@ static void net_stream_listen(QIONetListener *listener,
      uri = socket_uri(addr);
      qemu_set_info_str(&s->nc, uri);
--    g_free(uri);
+     g_free(uri);
++    qapi_event_send_netdev_stream_connected(s->nc.name, addr);
      qapi_free_SocketAddress(addr);
- 
-+    qapi_event_send_netdev_stream_connected(s->nc.name, uri);
-+    g_free(uri);
  }
  
- static void net_stream_server_listening(QIOTask *task, gpointer opaque)
-@@ -318,12 +322,12 @@ static void net_stream_client_connected(QIOTask *task, gpointer opaque)
-     g_assert(addr != NULL);
-     uri = socket_uri(addr);
-     qemu_set_info_str(&s->nc, uri);
--    g_free(uri);
- 
-     ret = qemu_socket_try_set_nonblock(sioc->fd);
-     if (addr->type == SOCKET_ADDRESS_TYPE_FD && ret < 0) {
-         qemu_set_info_str(&s->nc, "can't use file descriptor %s (errno %d)",
-                           addr->u.fd.str, -ret);
-+        g_free(uri);
-         return;
-     }
-     g_assert(ret == 0);
-@@ -336,6 +340,9 @@ static void net_stream_client_connected(QIOTask *task, gpointer opaque)
- 
+@@ -335,6 +339,7 @@ static void net_stream_client_connected(QIOTask *task, gpointer opaque)
      s->ioc_read_tag = qio_channel_add_watch(s->ioc, G_IO_IN, net_stream_send,
                                              s, NULL);
-+
-+    qapi_event_send_netdev_stream_connected(s->nc.name, uri);
-+    g_free(uri);
- }
+     s->nc.link_down = false;
++    qapi_event_send_netdev_stream_connected(s->nc.name, addr);
+     qapi_free_SocketAddress(addr);
  
- static int net_stream_client_init(NetClientState *peer,
+     return;
 diff --git a/qapi/net.json b/qapi/net.json
-index 14d1531536c5..3173682b4e09 100644
+index 39388b1b6c41..c37b24717382 100644
 --- a/qapi/net.json
 +++ b/qapi/net.json
-@@ -891,3 +891,49 @@
+@@ -895,3 +895,52 @@
  ##
  { 'event': 'FAILOVER_NEGOTIATED',
    'data': {'device-id': 'str'} }
@@ -5731,29 +5939,32 @@ index 14d1531536c5..3173682b4e09 100644
 +# Emitted when the netdev stream backend is connected
 +#
 +# @netdev-id: QEMU netdev id that is connected
-+# @uri: The Uniform Resource Identifier identifying the destination address
++# @addr: The destination address
 +#
 +# Since: 7.2
 +#
 +# Example:
 +#
-+# <- { 'event': 'NETDEV_STREAM_CONNECTED',
-+#      'data': {'uri': 'tcp:::1:1234', 'netdev-id': 'netdev0'},
-+#      'timestamp': {'seconds': 1663330564, 'microseconds': 804317} }
++# <- { "event": "NETDEV_STREAM_CONNECTED",
++#      "data": { "netdev-id": "netdev0",
++#                "addr": { "port": "47666", "ipv6": true,
++#                          "host": "::1", "type": "inet" } },
++#      "timestamp": { "seconds": 1666269863, "microseconds": 311222 } }
 +#
 +# or
 +#
-+# <- { 'event': 'NETDEV_STREAM_CONNECTED',
-+#      'data': {'uri': ''unix:/tmp/qemu0', 'netdev-id': 'netdev0'},
-+#      'timestamp': {'seconds': 1663330564, 'microseconds': 804317} }
++# <- { "event": "NETDEV_STREAM_CONNECTED",
++#      "data": { "netdev-id": "netdev0",
++#                "addr": { "path": "/tmp/qemu0", "type": "unix" } },
++#      "timestamp": { "seconds": 1666269706, "microseconds": 413651 } }
 +#
 +##
 +{ 'event': 'NETDEV_STREAM_CONNECTED',
 +  'data': { 'netdev-id': 'str',
-+            'uri': 'str' } }
++            'addr': 'SocketAddress' } }
 +
 +##
-+# @NETDEV_STREAM_EOC:
++# @NETDEV_STREAM_DISCONNECTED:
 +#
 +# Emitted when the netdev stream backend is disconnected
 +#
@@ -5763,10 +5974,10 @@ index 14d1531536c5..3173682b4e09 100644
 +#
 +# Example:
 +#
-+# <- { 'event': 'NETDEV_STREAM_EOC',
++# <- { 'event': 'NETDEV_STREAM_DISCONNECTED',
 +#      'data': {'netdev-id': 'netdev0'},
 +#      'timestamp': {'seconds': 1663330937, 'microseconds': 526695} }
 +#
 +##
-+{ 'event': 'NETDEV_STREAM_EOC',
++{ 'event': 'NETDEV_STREAM_DISCONNECTED',
 +  'data': { 'netdev-id': 'str' } }
