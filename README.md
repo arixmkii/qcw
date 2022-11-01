@@ -55,7 +55,7 @@ Latest version (or stable later than v0.0.6) is a requirement. Should be install
 #### `QEMU`
 
 Version `7.2.0-dev` with 1 patch set from QEMU mailing list:
-* one set to enable unix domain sockets backed `-netdev`.
+* enable 9pfs on Windows.
 
 Both patches have numerous reviews already and probably will move forward in the next release window.
 
@@ -112,12 +112,6 @@ To run Podman Desktop call this inside shell (`"` are important because of the a
 ```bat
 "Podman Desktop"
 ```
-
-## Missing features
-
-* `9pfs` support - there is a patch set in QEMU devel mailing list, but it needs to be rebased and updated for the
-latest code changes. There are hopes that a new revision will appear during next release window.
-Last known update https://lists.gnu.org/archive/html/qemu-devel/2022-04/msg00983.html
 
 ## Known issues
 
