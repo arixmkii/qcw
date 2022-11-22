@@ -1,10 +1,10 @@
 # qcw
-Qemu Containers for Windows
+QEMU Containers for Windows
 
 ## About the project
 
 This project contains patches and build scripts to create binary distributions of the software for running containers
-on Windows using Qemu virtualization. It started in the scope of the discussion of the
+on Windows using QEMU virtualization. It started in the scope of the discussion of the
 [issue](https://github.com/containers/podman/issues/13006) in Podman project.
 
 The aim is to maintain rebuilds with a minimal set of changes to all needed projects and later to archive it or this
@@ -43,7 +43,7 @@ Version `0.5.0-dev` is used.
 
 #### `Podman`
 
-Version `4.3.0-dev` with a patch to enable using QEMU machine on Windows hosts. This is continuous work trying
+Version `4.4.0-dev` with a patch to enable using QEMU machine on Windows hosts. This is continuous work trying
 to upstream the changes, where possible. At the end this should come down to a single patch on top on a stable tag.
 Supposed to be a long living patchwork, because needs full support for some features on QEMU side (see QEMU specific
 patches).
@@ -54,7 +54,10 @@ Latest version (or stable later than v0.0.6) is a requirement. Should be install
 
 #### `QEMU`
 
-Version `7.2.0-dev` with 1 patch set from QEMU mailing list:
+Starting from version `0.0.6` of qcw it is possible to use with official windows builds of QEMU (if host FS mounts
+are not needed).
+
+Version `7.2.0` with 1 patch set from QEMU mailing list:
 * enable 9pfs on Windows.
 
 Both patches have numerous reviews already and probably will move forward in the next release window.
