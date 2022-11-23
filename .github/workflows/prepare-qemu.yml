@@ -51,7 +51,7 @@ jobs:
         ../configure --enable-gtk --enable-sdl
         ninja
 
-    - name: '📦 Pack bundle'
+    - name: '📦 Pack QEMU'
       shell: msys2 {0}
       run: |
         mkdir -p qcw
