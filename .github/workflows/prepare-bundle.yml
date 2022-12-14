@@ -53,7 +53,10 @@ jobs:
       shell: msys2 {0}
       run: |
         echo "$PATH"
-        ln -sf "/c/Program Files/Pandoc/pandoc.exe" "/d/a/_temp/msys64/usr/local/bin/pandoc.exe"
+        ls /usr
+        ls /usr/local
+        ls /usr/local/bin
+        ln -sf "/c/Program Files/Pandoc/pandoc.exe" "/usr/local/bin/pandoc.exe"
 
     - name: '🛠️ Build podman'
       working-directory: podman
