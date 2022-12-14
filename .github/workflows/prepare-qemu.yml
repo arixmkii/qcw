@@ -35,6 +35,8 @@ jobs:
           mingw-w64-x86_64-libssh
           mingw-w64-x86_64-libssh2
           mingw-w64-x86_64-go
+          mingw-w64-msitools
+          mingw-w64-x86_64-nsis
 
     - name: '📝 Checkout'
       uses: actions/checkout@v3
@@ -42,7 +44,7 @@ jobs:
         fetch-depth: 1
         submodules: true
 
-    - name: '🛠️ Build qemu'
+    - name: '🛠️ Build QEMU'
       working-directory: qemu
       shell: msys2 {0}
       run: |

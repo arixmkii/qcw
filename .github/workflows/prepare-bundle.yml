@@ -35,24 +35,30 @@ jobs:
           mingw-w64-x86_64-libssh
           mingw-w64-x86_64-libssh2
           mingw-w64-x86_64-go
+          mingw-w64-msitools
+          mingw-w64-x86_64-nsis
+
+    - name: 'Install pandoc'
+      uses: crazy-max/ghaction-chocolatey@v2
+      with:
+        args: install pandoc
 
     - name: '📝 Checkout'
       uses: actions/checkout@v3
       with:
         fetch-depth: 1
         submodules: true
-
-    - name: '🛠️ Build gvproxy'
-      working-directory: gvisor-tap-vsock
+ 
+    - name: 'Link tools'
       shell: msys2 {0}
       run: |
-        make gvproxy win-sshproxy
+        ln -sf "/c/Program Files/pandoc/pandoc.exe /usr/local/bin/pandoc.exe
 
     - name: '🛠️ Build podman'
       working-directory: podman
       shell: msys2 {0}
       run: |
-        make podman-remote
+        make podman-remote-release-windows_amd64.zip
 
     - name: '📥 Download xz'
       working-directory: xz
