@@ -39,27 +39,38 @@ jobs:
           mingw-w64-x86_64-msitools
           mingw-w64-x86_64-nsis
 
+    - name: '🏗️ Install tools'
+      uses: crazy-max/ghaction-chocolatey@v2
+      with:
+        args: install pandoc
+
     - name: '📝 Checkout'
       uses: actions/checkout@v3
       with:
         fetch-depth: 1
         submodules: true
-
-    - name: '📥 Download xz'
-      working-directory: xz
+ 
+    - name: '🔗 Link tools'
       shell: msys2 {0}
       run: |
-        ./download-xz.sh
+        mkdir -p /usr/local/bin
+        ln -sf "/c/Program Files/Pandoc/pandoc.exe" "/usr/local/bin/pandoc.exe"
+
+    - name: '🛠️ Build podman'
+      working-directory: podman
+      shell: msys2 {0}
+      run: |
+        make podman-remote-release-windows_amd64.zip
+        mkdir -p contrib/win-installer/current
+        cp *.zip contrib/win-installer/current/
 
     - name: '📦 Pack bundle'
       shell: msys2 {0}
       run: |
         mkdir -p qcw
-        cp -Lr xz/dist/bin_x86-64 qcw/xz
-        cp -Lr shells qcw/shells
 
     - name: '🚀 Upload artifact'
       uses: actions/upload-artifact@v3
       with:
-        name: qcw-bundle
+        name: qcw-podman
         path: qcw
