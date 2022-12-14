@@ -38,7 +38,7 @@ jobs:
           mingw-w64-x86_64-msitools
           mingw-w64-x86_64-nsis
 
-    - name: '🏗️ Install pandoc'
+    - name: '🏗️ Install tools'
       uses: crazy-max/ghaction-chocolatey@v2
       with:
         args: install pandoc
@@ -52,10 +52,7 @@ jobs:
     - name: '🔗 Link tools'
       shell: msys2 {0}
       run: |
-        echo "$PATH"
-        ls /usr
-        ls /usr/local
-        ls /usr/local/bin
+        mkdir -p /usr/local/bin
         ln -sf "/c/Program Files/Pandoc/pandoc.exe" "/usr/local/bin/pandoc.exe"
 
     - name: '🛠️ Build podman'
