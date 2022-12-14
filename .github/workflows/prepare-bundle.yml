@@ -38,7 +38,7 @@ jobs:
           mingw-w64-x86_64-msitools
           mingw-w64-x86_64-nsis
 
-    - name: 'Install pandoc'
+    - name: '🏗️ Install pandoc'
       uses: crazy-max/ghaction-chocolatey@v2
       with:
         args: install pandoc
@@ -49,16 +49,18 @@ jobs:
         fetch-depth: 1
         submodules: true
  
-    - name: 'Link tools'
+    - name: '🔗 Link tools'
       shell: msys2 {0}
       run: |
-        ln -sf "/c/Program Files/pandoc/pandoc.exe /usr/local/bin/pandoc.exe
+        ln -sf "/c/Program Files/Pandoc/pandoc.exe" "/usr/local/bin/pandoc.exe"
 
     - name: '🛠️ Build podman'
       working-directory: podman
       shell: msys2 {0}
       run: |
         make podman-remote-release-windows_amd64.zip
+        mkdir -p contrib/win-installer/current
+        cp *.zip contrib/win-installer/current/
 
     - name: '📥 Download xz'
       working-directory: xz
@@ -71,11 +73,6 @@ jobs:
       run: |
         mkdir -p qcw
         cp -Lr xz/dist/bin_x86-64 qcw/xz
-        mkdir -p qcw/podman
-        cp gvisor-tap-vsock/bin/gvproxy qcw/podman/gvproxy
-        cp gvisor-tap-vsock/bin/gvproxy qcw/podman/gvproxy.exe
-        cp gvisor-tap-vsock/bin/win-sshproxy.exe qcw/podman/win-sshproxy.exe
-        cp podman/bin/windows/podman.exe qcw/podman/podman.exe
         cp -Lr shells qcw/shells
 
     - name: '🚀 Upload artifact'
