@@ -52,7 +52,8 @@ jobs:
     - name: '🔗 Link tools'
       shell: msys2 {0}
       run: |
-        ln -sf "/c/Program Files/Pandoc/pandoc.exe" "/usr/local/bin/pandoc.exe"
+        echo "$PATH"
+        ln -sf "/c/Program Files/Pandoc/pandoc.exe" "/d/a/_temp/msys64/usr/local/bin/pandoc.exe"
 
     - name: '🛠️ Build podman'
       working-directory: podman
