@@ -1,4 +1,4 @@
-name: Prepare QCW bundle
+name: Prepare QCW podman
 
 on: workflow_dispatch
 
