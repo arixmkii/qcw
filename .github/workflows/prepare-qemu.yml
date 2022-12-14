@@ -22,6 +22,7 @@ jobs:
           mingw-w64-x86_64-toolchain
           python
           ninja
+          zip
           mingw-w64-x86_64-glib2
           mingw-w64-x86_64-pixman
           python-setuptools
