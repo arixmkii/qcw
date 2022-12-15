@@ -62,7 +62,6 @@ jobs:
       run: |
         make podman-remote-release-windows_amd64.zip
         export BUILD_PODMAN_VERSION=$(test/version/version | sed 's/-.*//')
-        echo $BUILD_PODMAN_VERSION
         mkdir -p contrib/win-installer/current
         cp *.zip contrib/win-installer/current/
         cd contrib/win-installer
@@ -73,7 +72,6 @@ jobs:
       run: |
         mkdir -p qcw
         export BUILD_PODMAN_VERSION=$(podman/test/version/version | sed 's/-.*//')
-        echo $BUILD_PODMAN_VERSION
         cp "podman/contrib/win-installer/podman-$BUILD_PODMAN_VERSION-dev-setup.exe" qcw/
 
     - name: '🚀 Upload artifact'
