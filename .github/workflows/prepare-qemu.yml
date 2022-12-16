@@ -49,17 +49,15 @@ jobs:
       working-directory: qemu
       shell: msys2 {0}
       run: |
-        mkdir build
-        cd build
-        ../configure --enable-gtk --enable-sdl
-        ninja
+        ../configure --enable-gtk --enable-sdl --disable-debug-info
+        make
+        make installer
 
     - name: '📦 Pack QEMU'
       shell: msys2 {0}
       run: |
         mkdir -p qcw
-        cp -Lr qemu/build/qemu-bundle/a/_temp/msys64/qemu qcw/qemu
-        ./qemu-pack/add_mingw64_dlls.sh
+        cp qemu/build/qemu-setup-*.exe qcw/
 
     - name: '🚀 Upload artifact'
       uses: actions/upload-artifact@v3
