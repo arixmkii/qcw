@@ -35,6 +35,7 @@ jobs:
           mingw-w64-x86_64-virglrenderer
           mingw-w64-x86_64-libssh
           mingw-w64-x86_64-libssh2
+          mingw-w64-x86_64-meson
           mingw-w64-x86_64-go
           mingw-w64-x86_64-msitools
           mingw-w64-x86_64-nsis
