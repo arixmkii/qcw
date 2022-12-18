@@ -64,15 +64,16 @@ Both patches have numerous reviews already and probably will move forward in the
 
 #### `XZ Utils`
 
-Version `5.4.0` w/o any changes.
+Version `5.2.9` w/o any changes.
 
 ## How to use
 
 ### Basics
 
-Donwload the archive and unpack it into your Windows machine to some location (`C:\qcw` for example).
-Then there are 2 preconfigured shell starters in `.\shells\` directory - one for QEMU and one should be backward
-compatible with default Podman for Windows behavior using WSL2 machines.
+Download installation packages of the release. Install qemu and podman using their installers. Then install
+`qcw-utils` in the desired directory using `powershell "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/arixmkii/qcw/main/qcw-utils.ps1'))"` (each release will have tagged version of this utility as well if
+one wants more control over tools version). You will have preconfigured shell launchers under `.\qcw-utils\shells\`
+when installation completes.
 
 Then run the podman machine init command as one would do with all other podman installations. The catch is to give
 2 mandatory config overrides:
