@@ -48,9 +48,9 @@ New-Item -Path $shellsTarget -Name "podman-wsl.bat" -ItemType File -Value $wslBa
 $xzUrl = "https://tukaani.org/xz/xz-5.2.9-windows.zip"
 $xzDl = New-TemporaryFile
 $xzExpand = New-TemporaryFile
-Invoke-WebRequest -Uri $xzUrl -OutFile $xzDl.FullName
+Invoke-WebRequest -Uri $xzUrl -OutFile ($xzDl.FullName + ".zip")
 Remove-Item $xzExpand.FullName
-Expand-Archive $xzDl.FullName -DestinationPath $xzExpand.FullName
+Expand-Archive ($xzDl.FullName + ".zip") -DestinationPath $xzExpand.FullName
 $xzBin = Join-Path $xzExpand "bin_x86-64"
 Copy-Item $xzBin $xzTarget -Recurse
 
