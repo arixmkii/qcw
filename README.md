@@ -71,7 +71,10 @@ Version `5.2.9` w/o any changes.
 ### Basics
 
 Download installation packages of the release. Install qemu and podman using their installers. Then install
-`qcw-utils` in the desired directory using `powershell "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/arixmkii/qcw/main/qcw-utils.ps1'))"` (each release will have tagged version of this utility as well if
+`qcw-utils` in the desired directory using
+`powershell -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/arixmkii/qcw/main/qcw-utils.ps1'))"` or
+`pwsh -c "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/arixmkii/qcw/main/qcw-utils.ps1'))"`
+(each release will have tagged version of this utility as well if
 one wants more control over tools version). You will have preconfigured shell launchers under `.\qcw-utils\shells\`
 when installation completes.
 
