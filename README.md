@@ -113,8 +113,10 @@ it with if found). It is enough to just call the application from the shell and 
 
 To run Podman Desktop call this inside shell (`"` are important because of the app name having whitespace):
 ```bat
-"Podman Desktop"
+start cmd /C "Podman Desktop"
 ```
+
+`start cmd /C` is needed for Podman Desktop not to lock your terminal. More info: https://github.com/containers/podman-desktop/issues/1050
 
 ## Known issues
 
