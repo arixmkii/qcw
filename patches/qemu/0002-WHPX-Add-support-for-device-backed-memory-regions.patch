@@ -1,0 +1,243 @@
+From patchwork Wed Jul 27 18:00:12 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Aidan Khoury <aidan@revers.engineering>
+X-Patchwork-Id: 12930761
+Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 25F01C04A68
+	for <qemu-devel@archiver.kernel.org>; Wed, 27 Jul 2022 20:18:03 +0000 (UTC)
+Received: from localhost ([::1]:47118 helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>)
+	id 1oGnTm-0000VH-2G
+	for qemu-devel@archiver.kernel.org; Wed, 27 Jul 2022 16:18:02 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10]:40412)
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <aidan@revers.engineering>)
+ id 1oGlM6-0003y2-PL
+ for qemu-devel@nongnu.org; Wed, 27 Jul 2022 14:02:00 -0400
+Received: from gorilla.birch.relay.mailchannels.net ([23.83.209.75]:48936)
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <aidan@revers.engineering>)
+ id 1oGlLv-0003jC-9y
+ for qemu-devel@nongnu.org; Wed, 27 Jul 2022 14:01:49 -0400
+X-Sender-Id: _forwarded-from|174.118.239.227
+Received: from relay.mailchannels.net (localhost [127.0.0.1])
+ by relay.mailchannels.net (Postfix) with ESMTP id CE8F36A1FFF
+ for <qemu-devel@nongnu.org>; Wed, 27 Jul 2022 18:01:01 +0000 (UTC)
+Received: from ptl-hosting.impi.io (unknown [127.0.0.6])
+ (Authenticated sender: sbjln7t7f3)
+ by relay.mailchannels.net (Postfix) with ESMTPA id 572346A1F9B
+ for <qemu-devel@nongnu.org>; Wed, 27 Jul 2022 18:01:01 +0000 (UTC)
+ARC-Seal: i=1; s=arc-2022; d=mailchannels.net; t=1658944861; a=rsa-sha256;
+ cv=none;
+ b=H0xk/Eu13mbyC9MesLs1NaKfahRtPaDUsriwHOQgnsJ+ZhrN+rwJXv1OoPqHXU1L/gxbiX
+ eP6kxUfOo9ViUK9Minwnf0VZOuecjsn+fDa1ZdfuWmdf08HpQZLhIpndBbSeHMHJKsRrO1
+ 8uw2OJMyHkxgt1A6MvcNIEtIs3ba62SwrivCjxOXsCw2VMdCaNpC2SXD8qllDGq0dFzfxz
+ mgjfUYWyR8DkPAmTS4kCKCY3Z4uMK5xexAEi67byvB6kN7xrphtbS9hQmQdrWWD4juZgKH
+ rixTXb3HAsPXlTpXgScD6IhhZrEV9CTKbOVZmMETwgvJwjTYm7pG/ImI+eNgGg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=mailchannels.net; s=arc-2022; t=1658944861;
+ h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+ to:to:cc:cc:mime-version:mime-version:
+ content-transfer-encoding:content-transfer-encoding;
+ bh=RKRtPcXj2vQ5BwIX8Ppl/YTORBe9OQZQQyGMlGUy3e8=;
+ b=zicJ8h3vWQVv7HeWDiNQasYGHtZ94gs8/MQ9CJ7FJEJLN4qRAh5zUMx6jPhcnnT9VQoZAA
+ pHvTYtLfGMvePpF1aRJ+w7S7d0rpR6xXus9ps+nlW458c0xwcNBSuBtnm6+ODjyitfqiat
+ /qAvh7Ku4GLFqGzH/DzHtls6j2UuRkhtIs3lLruZ9HetSE7sb/ITyuJOy/a8Pl67ObZYSr
+ WILDLxB6C6Y2y03UtL1z6+xKAzNAPQGhL3IC5H7+TuSB3jyGO/YJY1Fe0ndZVegW8g/gXh
+ UI14LM0IeU2+DfbmoJVIfS++2rl/8Pp5aD9Ifxp9RehLyLMNUK8lq4R5AklICw==
+ARC-Authentication-Results: i=1; rspamd-7447d7d98f-wsb25;
+ auth=pass smtp.auth=sbjln7t7f3 smtp.mailfrom=aidan@revers.engineering
+X-Sender-Id: _forwarded-from|174.118.239.227
+X-MC-Relay: Forwarding
+X-MailChannels-SenderId: _forwarded-from|174.118.239.227
+X-MailChannels-Auth-Id: sbjln7t7f3
+X-Little-Thoughtful: 254aab0b727911ad_1658944861587_3036677071
+X-MC-Loop-Signature: 1658944861587:855010816
+X-MC-Ingress-Time: 1658944861586
+Received: from ptl-hosting.impi.io ([TEMPUNAVAIL]. [198.12.12.226])
+ (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384)
+ by 100.116.106.72 (trex/6.7.1); Wed, 27 Jul 2022 18:01:01 +0000
+Received: from mailnull by ptl-hosting.impi.io with spam-scanner (Exim 4.95)
+ (envelope-from <aidan@revers.engineering>) id 1oGlL9-0003W6-7C
+ for qemu-devel@nongnu.org; Wed, 27 Jul 2022 14:00:59 -0400
+X-ImunifyEmail-Filter-Info: 
+ ewogICAgImlzX3NraXBwZWQiOiBmYWxzZSwKICAgICJ0aW1lX3JlYWw
+ iOiAwLjM5NTEyNCwKICAgICJzeW1ib2xzIjogewogICAgICAgICJNSU
+ 1FX1VOS05PV04iOiB7CiAgICAgICAgICAgICJtZXRyaWNfc2NvcmUiO
+ iAwLjEwMDAwMCwKICAgICAgICAgICAgIm9wdGlvbnMiOiBbCiAgICAg
+ ICAgICAgICAgICAidGV4dC9wbGFpbiIKICAgICAgICAgICAgXSwKICA
+ gICAgICAgICAgImRlc2NyaXB0aW9uIjogIk1pc3Npbmcgb3IgdW5rbm
+ 93biBjb250ZW50LXR5cGUiLAogICAgICAgICAgICAibmFtZSI6ICJNS
+ U1FX1VOS05PV04iLAogICAgICAgICAgICAic2NvcmUiOiAwLjEwMDAw
+ MAogICAgICAgIH0sCiAgICAgICAgIlJDVkRfVExTX0FMTCI6IHsKICA
+ gICAgICAgICAgIm1ldHJpY19zY29yZSI6IDAsCiAgICAgICAgICAgIC
+ JkZXNjcmlwdGlvbiI6ICJBbGwgaG9wcyB1c2VkIGVuY3J5cHRlZCB0c
+ mFuc3BvcnRzIiwKICAgICAgICAgICAgIm5hbWUiOiAiUkNWRF9UTFNf
+ QUxMIiwKICAgICAgICAgICAgInNjb3JlIjogMAogICAgICAgIH0sCiA
+ gICAgICAgIkFSQ19OQSI6IHsKICAgICAgICAgICAgIm1ldHJpY19zY2
+ 9yZSI6IDAsCiAgICAgICAgICAgICJkZXNjcmlwdGlvbiI6ICJBUkMgc
+ 2lnbmF0dXJlIGFic2VudCIsCiAgICAgICAgICAgICJuYW1lIjogIkFS
+ Q19OQSIsCiAgICAgICAgICAgICJzY29yZSI6IDAKICAgICAgICB9LAo
+ gICAgICAgICJUT19NQVRDSF9FTlZSQ1BUX1NPTUUiOiB7CiAgICAgIC
+ AgICAgICJtZXRyaWNfc2NvcmUiOiAwLAogICAgICAgICAgICAiZGVzY
+ 3JpcHRpb24iOiAiU29tZSBvZiB0aGUgcmVjaXBpZW50cyBtYXRjaCB0
+ aGUgZW52ZWxvcGUiLAogICAgICAgICAgICAibmFtZSI6ICJUT19NQVR
+ DSF9FTlZSQ1BUX1NPTUUiLAogICAgICAgICAgICAic2NvcmUiOiAwCi
+ AgICAgICAgfSwKICAgICAgICAiUl9NSVNTSU5HX0NIQVJTRVQiOiB7C
+ iAgICAgICAgICAgICJtZXRyaWNfc2NvcmUiOiAwLjUwMDAwMCwKICAg
+ ICAgICAgICAgImRlc2NyaXB0aW9uIjogIkNoYXJzZXQgaXMgbWlzc2l
+ uZyBpbiBhIG1lc3NhZ2UiLAogICAgICAgICAgICAibmFtZSI6ICJSX0
+ 1JU1NJTkdfQ0hBUlNFVCIsCiAgICAgICAgICAgICJzY29yZSI6IDAuN
+ TAwMDAwCiAgICAgICAgfSwKICAgICAgICAiQVNOIjogewogICAgICAg
+ ICAgICAibWV0cmljX3Njb3JlIjogMCwKICAgICAgICAgICAgIm9wdGl
+ vbnMiOiBbCiAgICAgICAgICAgICAgICAiYXNuOjgxMiwgaXBuZXQ6MT
+ c0LjExOC4xOTIuMC8xOCwgY291bnRyeTpDQSIKICAgICAgICAgICAgX
+ SwKICAgICAgICAgICAgIm5hbWUiOiAiQVNOIiwKICAgICAgICAgICAg
+ InNjb3JlIjogMAogICAgICAgIH0sCiAgICAgICAgIlJDVkRfVklBX1N
+ NVFBfQVVUSCI6IHsKICAgICAgICAgICAgIm1ldHJpY19zY29yZSI6ID
+ AsCiAgICAgICAgICAgICJkZXNjcmlwdGlvbiI6ICJBdXRoZW50aWNhd
+ GVkIGhhbmQtb2ZmIHdhcyBzZWVuIGluIFJlY2VpdmVkIGhlYWRlcnMi
+ LAogICAgICAgICAgICAibmFtZSI6ICJSQ1ZEX1ZJQV9TTVRQX0FVVEg
+ iLAogICAgICAgICAgICAic2NvcmUiOiAwCiAgICAgICAgfSwKICAgIC
+ AgICAiRlJPTV9IQVNfRE4iOiB7CiAgICAgICAgICAgICJtZXRyaWNfc
+ 2NvcmUiOiAwLAogICAgICAgICAgICAiZGVzY3JpcHRpb24iOiAiRnJv
+ bSBoZWFkZXIgaGFzIGEgZGlzcGxheSBuYW1lIiwKICAgICAgICAgICA
+ gIm5hbWUiOiAiRlJPTV9IQVNfRE4iLAogICAgICAgICAgICAic2Nvcm
+ UiOiAwCiAgICAgICAgfSwKICAgICAgICAiUkNQVF9DT1VOVF9USFJFR
+ SI6IHsKICAgICAgICAgICAgIm1ldHJpY19zY29yZSI6IDAsCiAgICAg
+ ICAgICAgICJvcHRpb25zIjogWwogICAgICAgICAgICAgICAgIjMiCiA
+ gICAgICAgICAgIF0sCiAgICAgICAgICAgICJkZXNjcmlwdGlvbiI6IC
+ IzLTUgcmVjaXBpZW50cyIsCiAgICAgICAgICAgICJuYW1lIjogIlJDU
+ FRfQ09VTlRfVEhSRUUiLAogICAgICAgICAgICAic2NvcmUiOiAwCiAg
+ ICAgICAgfSwKICAgICAgICAiVE9fRE5fU09NRSI6IHsKICAgICAgICA
+ gICAgIm1ldHJpY19zY29yZSI6IDAsCiAgICAgICAgICAgICJkZXNjcm
+ lwdGlvbiI6ICJTb21lIG9mIHRoZSByZWNpcGllbnRzIGhhdmUgZGlzc
+ GxheSBuYW1lcyIsCiAgICAgICAgICAgICJuYW1lIjogIlRPX0ROX1NP
+ TUUiLAogICAgICAgICAgICAic2NvcmUiOiAwCiAgICAgICAgfSwKICA
+ gICAgICAiTUlEX0NPTlRBSU5TX0ZST00iOiB7CiAgICAgICAgICAgIC
+ JtZXRyaWNfc2NvcmUiOiAxLAogICAgICAgICAgICAiZGVzY3JpcHRpb
+ 24iOiAiTWVzc2FnZS1JRCBjb250YWlucyBGcm9tIGFkZHJlc3MiLAog
+ ICAgICAgICAgICAibmFtZSI6ICJNSURfQ09OVEFJTlNfRlJPTSIsCiA
+ gICAgICAgICAgICJzY29yZSI6IDEKICAgICAgICB9LAogICAgICAgIC
+ JGUk9NX0VRX0VOVkZST00iOiB7CiAgICAgICAgICAgICJtZXRyaWNfc
+ 2NvcmUiOiAwLAogICAgICAgICAgICAiZGVzY3JpcHRpb24iOiAiRnJv
+ bSBhZGRyZXNzIGlzIHRoZSBzYW1lIGFzIHRoZSBlbnZlbG9wZSIsCiA
+ gICAgICAgICAgICJuYW1lIjogIkZST01fRVFfRU5WRlJPTSIsCiAgIC
+ AgICAgICAgICJzY29yZSI6IDAKICAgICAgICB9LAogICAgICAgICJNS
+ U1FX1RSQUNFIjogewogICAgICAgICAgICAibWV0cmljX3Njb3JlIjog
+ MCwKICAgICAgICAgICAgIm9wdGlvbnMiOiBbCiAgICAgICAgICAgICA
+ gICAiMDp+IgogICAgICAgICAgICBdLAogICAgICAgICAgICAibmFtZS
+ I6ICJNSU1FX1RSQUNFIiwKICAgICAgICAgICAgInNjb3JlIjogMAogI
+ CAgICAgIH0sCiAgICAgICAgIlJDVkRfQ09VTlRfT05FIjogewogICAg
+ ICAgICAgICAibWV0cmljX3Njb3JlIjogMCwKICAgICAgICAgICAgIm9
+ wdGlvbnMiOiBbCiAgICAgICAgICAgICAgICAiMSIKICAgICAgICAgIC
+ AgXSwKICAgICAgICAgICAgImRlc2NyaXB0aW9uIjogIk1lc3NhZ2Uga
+ GFzIG9uZSBSZWNlaXZlZCBoZWFkZXIiLAogICAgICAgICAgICAibmFt
+ ZSI6ICJSQ1ZEX0NPVU5UX09ORSIsCiAgICAgICAgICAgICJzY29yZSI
+ 6IDAKICAgICAgICB9CiAgICB9LAogICAgInJlcXVpcmVkX3Njb3JlIj
+ ogNywKICAgICJtZXNzYWdlcyI6IHt9LAogICAgImFjdGlvbiI6ICJub
+ yBhY3Rpb24iLAogICAgIm1lc3NhZ2UtaWQiOiAiMjAyMjA3MjcxODAw
+ MTIuNDU2MTUtMS1haWRhbkByZXZlcnMuZW5naW5lZXJpbmciLAogICA
+ gInNjb3JlIjogMS42MDAwMDAKfQ==
+X-ImunifyEmail-Filter-Score: 1.6
+X-ImunifyEmail-Filter-Action: no action
+Received: from cpeac202e0890b3-cmac202e0890b0.cpe.net.cable.rogers.com
+ ([174.118.239.227]:61760 helo=localhost.localdomain)
+ by ptl-hosting.impi.io with esmtpsa (TLS1.2) tls
+ TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 (Exim 4.95)
+ (envelope-from <aidan@revers.engineering>) id 1oGlL6-0002vW-T3;
+ Wed, 27 Jul 2022 14:00:58 -0400
+From: Aidan Khoury <aidan@revers.engineering>
+To: qemu-devel@nongnu.org
+Cc: sunilmut@microsoft.com,
+	Aidan Khoury <aidan@revers.engineering>
+Subject: [PATCH] WHPX: Add support for device backed memory regions
+Date: Wed, 27 Jul 2022 15:00:12 -0300
+Message-Id: <20220727180012.45615-1-aidan@revers.engineering>
+X-Mailer: git-send-email 2.37.1
+MIME-Version: 1.0
+X-AuthUser: 
+Received-SPF: pass client-ip=23.83.209.75;
+ envelope-from=aidan@revers.engineering;
+ helo=gorilla.birch.relay.mailchannels.net
+X-Spam_score_int: -18
+X-Spam_score: -1.9
+X-Spam_bar: -
+X-Spam_report: (-1.9 / 5.0 requ) BAYES_00=-1.9, RCVD_IN_DNSWL_NONE=-0.0001,
+ RCVD_IN_MSPIKE_H2=-0.001, SPF_HELO_NONE=0.001, SPF_PASS=-0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=ham autolearn_force=no
+X-Spam_action: no action
+X-Mailman-Approved-At: Wed, 27 Jul 2022 16:07:47 -0400
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+Sender: "Qemu-devel"
+ <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
+
+Due to skipping the mapping of read only device memory, Windows
+Hypervisor Platform would fail to emulate such memory accesses when booting
+OVMF EDK2 firmware. This patch adds ROM device memory region support
+for WHPX since the Windows Hypervisor Platform supports mapping read-only
+device memory, which allows successful booting of OVMF EDK2 firmware.
+
+Resolves: https://gitlab.com/qemu-project/qemu/-/issues/513
+          https://gitlab.com/qemu-project/qemu/-/issues/934
+Buglink: https://bugs.launchpad.net/bugs/1821595
+
+Signed-off-by: Aidan Khoury <aidan@revers.engineering>
+Tested-by: Helge Konetzka <hk@zapateado.de>
+---
+ target/i386/whpx/whpx-all.c | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/target/i386/whpx/whpx-all.c b/target/i386/whpx/whpx-all.c
+index b22a3314b4..7a61df1135 100644
+--- a/target/i386/whpx/whpx-all.c
++++ b/target/i386/whpx/whpx-all.c
+@@ -2363,11 +2363,18 @@ static void whpx_process_section(MemoryRegionSection *section, int add)
+     MemoryRegion *mr = section->mr;
+     hwaddr start_pa = section->offset_within_address_space;
+     ram_addr_t size = int128_get64(section->size);
++    bool is_romd = false;
+     unsigned int delta;
+     uint64_t host_va;
+ 
+     if (!memory_region_is_ram(mr)) {
+-        return;
++        if (memory_region_is_romd(mr)) {
++            is_romd = true;
++            warn_report("WHPX: ROMD region 0x%016" PRIx64 "->0x%016" PRIx64,
++                        start_pa, start_pa + size);
++        } else {
++            return;
++        }
+     }
+ 
+     delta = qemu_real_host_page_size() - (start_pa & ~qemu_real_host_page_mask());
+@@ -2386,7 +2393,7 @@ static void whpx_process_section(MemoryRegionSection *section, int add)
+             + section->offset_within_region + delta;
+ 
+     whpx_update_mapping(start_pa, size, (void *)(uintptr_t)host_va, add,
+-                        memory_region_is_rom(mr), mr->name);
++                        memory_region_is_rom(mr) || is_romd, mr->name);
+ }
+ 
+ static void whpx_region_add(MemoryListener *listener,
