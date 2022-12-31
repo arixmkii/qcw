@@ -1,4 +1,4 @@
-name: Prepare QCW podman
+name: Prepare QCW Podman
 
 on: workflow_dispatch
 
@@ -41,7 +41,7 @@ jobs:
         mkdir -p /usr/local/bin
         ln -sf "/c/Program Files/Pandoc/pandoc.exe" "/usr/local/bin/pandoc.exe"
 
-    - name: '🛠️ Build podman'
+    - name: '🛠️ Build Podman'
       working-directory: podman
       shell: msys2 {0}
       run: |
@@ -52,7 +52,7 @@ jobs:
         cd contrib/win-installer
         powershell -ExecutionPolicy Bypass -File build.ps1 $BUILD_PODMAN_VERSION dev current
 
-    - name: '📦 Pack bundle'
+    - name: '📦 Pack Podman'
       shell: msys2 {0}
       run: |
         mkdir -p qcw

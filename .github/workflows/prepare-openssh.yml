@@ -1,0 +1,35 @@
+name: Prepare QCW OpenSSH
+
+on: workflow_dispatch
+
+jobs:
+
+  build:
+    runs-on: windows-latest
+
+    steps:
+
+    - name: '🏗️ Install msys2'
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MSYS
+        update: true
+
+    - name: '📝 Checkout'
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 1
+        submodules: true
+
+    - name: '📦 Pack OpenSSH'
+      shell: msys2 {0}
+      run: |
+        mkdir -p ./qcw/var/lib/pacman
+        pacman -r ./qcw -Sy
+        pacman -r ./qcw -S msys2-runtime openssh filesystem
+
+    - name: '🚀 Upload artifact'
+      uses: actions/upload-artifact@v3
+      with:
+        name: qcw-openssh
+        path: qcw
