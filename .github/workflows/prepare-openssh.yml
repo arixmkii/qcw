@@ -19,14 +19,14 @@ jobs:
       uses: actions/checkout@v3
       with:
         fetch-depth: 1
-        submodules: true
+        submodules: false
 
     - name: '📦 Pack OpenSSH'
       shell: msys2 {0}
       run: |
         mkdir -p ./qcw/var/lib/pacman
-        pacman -r ./qcw -Sy
-        pacman -r ./qcw -S msys2-runtime openssh filesystem
+        pacman -r ./qcw --noconfirm -Sy
+        pacman -r ./qcw --noconfirm -S msys2-runtime openssh filesystem
 
     - name: '🚀 Upload artifact'
       uses: actions/upload-artifact@v3
