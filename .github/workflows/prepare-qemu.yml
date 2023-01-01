@@ -47,7 +47,7 @@ jobs:
       working-directory: qemu
       shell: msys2 {0}
       run: |
-        ./configure --enable-gtk --enable-sdl --disable-debug-info --disable-werror
+        ./configure --enable-gtk --enable-sdl --disable-debug-info
         make
         make installer
 
