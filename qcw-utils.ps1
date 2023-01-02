@@ -40,6 +40,9 @@ Invoke-WebRequest -Uri $xzUrl -OutFile ($xzDl.FullName + ".zip")
 Remove-Item $xzExpand.FullName
 Expand-Archive ($xzDl.FullName + ".zip") -DestinationPath $xzExpand.FullName
 $xzBin = Join-Path $xzExpand "bin_x86-64"
+$xzDoc = Join-Path $xzExpand "doc"
 Copy-Item $xzBin $xzTarget -Recurse
+$xzDocTarget = Join-Path $xzTarget "doc"
+Copy-Item $xzDoc $xzTarget -Recurse
 
 Write-Output "'qcw-utils' to '$target' folder installation completed"
