@@ -26,7 +26,7 @@ jobs:
       run: |
         mkdir -p ./qcw/var/lib/pacman
         pacman -r ./qcw --noconfirm -Sy
-        pacman -r ./qcw --noconfirm -S msys2-runtime openssh filesystem
+        pacman -r ./qcw --noconfirm -S msys2-runtime openssh filesystem coreutils
         rm -rf ./qcw/var ./qcw/usr/share/doc ./qcw/usr/share/man ./qcw/usr/share/info
 
     - name: '🚀 Upload artifact'
