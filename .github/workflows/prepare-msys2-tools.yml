@@ -1,4 +1,4 @@
-name: Prepare QCW OpenSSH
+name: Prepare QCW msys2-tools
 
 on: workflow_dispatch
 
@@ -21,7 +21,7 @@ jobs:
         fetch-depth: 1
         submodules: false
 
-    - name: '📦 Pack OpenSSH'
+    - name: '📦 Pack msys2-tools'
       shell: msys2 {0}
       run: |
         mkdir -p ./qcw/var/lib/pacman
@@ -32,5 +32,5 @@ jobs:
     - name: '🚀 Upload artifact'
       uses: actions/upload-artifact@v3
       with:
-        name: qcw-openssh
+        name: qcw-msys2-tools
         path: qcw
