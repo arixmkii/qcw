@@ -24,10 +24,16 @@ jobs:
     - name: '📦 Pack msys2-tools'
       shell: msys2 {0}
       run: |
-        mkdir -p ./qcw/var/lib/pacman
-        pacman -r ./qcw --noconfirm -Sy
-        pacman -r ./qcw --noconfirm -S msys2-runtime openssh filesystem coreutils
-        rm -rf ./qcw/var ./qcw/usr/share/doc ./qcw/usr/share/man ./qcw/usr/share/info
+        mkdir -p ./qcw
+        mkdir -p ./qcw-tmp/var/lib/pacman
+        pacman -r ./qcw-tmp --noconfirm -Sy
+        pacman -r ./qcw-tmp --noconfirm -S msys2-runtime openssh filesystem coreutils
+        rm -rf ./qcw-tmp/var ./qcw-tmp/usr/share/doc ./qcw-tmp/usr/share/man ./qcw-tmp/usr/share/info
+        cd qcw-tmp/
+        zip -9 -r ../qcw/msys2-tools.zip .
+        cd ../qcw
+        find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; > sha512.checksums
+        cat sha512.checksums
 
     - name: '🚀 Upload artifact'
       uses: actions/upload-artifact@v3
