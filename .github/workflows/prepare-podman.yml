@@ -58,6 +58,9 @@ jobs:
         mkdir -p qcw
         export BUILD_PODMAN_VERSION=$(podman/test/version/version | sed 's/-.*//')
         cp "podman/contrib/win-installer/podman-$BUILD_PODMAN_VERSION-dev-setup.exe" qcw/
+        cd qcw
+        sha512sum -b "podman-$BUILD_PODMAN_VERSION-dev-setup.exe" > "podman-$BUILD_PODMAN_VERSION-dev-setup.exe.sha512"
+        cat "podman-$BUILD_PODMAN_VERSION-dev-setup.exe.sha512"
 
     - name: '🚀 Upload artifact'
       uses: actions/upload-artifact@v3
