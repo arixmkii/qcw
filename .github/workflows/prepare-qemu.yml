@@ -56,6 +56,9 @@ jobs:
       run: |
         mkdir -p qcw
         cp qemu/build/qemu-setup-*.exe qcw/
+        cd qcw
+        find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; > sha512.checksums
+        cat sha512.checksums
 
     - name: '🚀 Upload artifact'
       uses: actions/upload-artifact@v3

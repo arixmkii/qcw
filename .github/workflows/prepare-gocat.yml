@@ -56,8 +56,8 @@ jobs:
         cd qcw-tmp/
         zip -9 -r ../qcw/gocat.zip .
         cd ../qcw
-        sha512sum -b "gocat.zip" > "gocat.zip.sha512"
-        cat "gocat.zip.sha512"
+        find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; > sha512.checksums
+        cat sha512.checksums
 
     - name: '🚀 Upload artifact'
       uses: actions/upload-artifact@v3

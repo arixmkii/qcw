@@ -59,8 +59,8 @@ jobs:
         export BUILD_PODMAN_VERSION=$(podman/test/version/version | sed 's/-.*//')
         cp "podman/contrib/win-installer/podman-$BUILD_PODMAN_VERSION-dev-setup.exe" qcw/
         cd qcw
-        sha512sum -b "podman-$BUILD_PODMAN_VERSION-dev-setup.exe" > "podman-$BUILD_PODMAN_VERSION-dev-setup.exe.sha512"
-        cat "podman-$BUILD_PODMAN_VERSION-dev-setup.exe.sha512"
+        find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; > sha512.checksums
+        cat sha512.checksums
 
     - name: '🚀 Upload artifact'
       uses: actions/upload-artifact@v3
