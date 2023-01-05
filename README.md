@@ -25,6 +25,7 @@ as even more experimental.
 
 Ordered alphabetically
 
+* `gocat` - [Github](https://github.com/sumup-oss/gocat) multipurpose networking relay;
 * `gvisor-tap-vsock` - [Github](https://github.com/containers/gvisor-tap-vsock) the tool to provide networking for
 accessing containers from Windows;
 * `Podman` - [home page](https://podman.io/) and [Github](https://github.com/containers/podman) free and open source
@@ -37,9 +38,13 @@ feature rich machine emulator;
 
 ### Versions and patches
 
+#### `gocat`
+
+Built from HEAD of the development branch. Added patch with updated dependencies.
+
 #### `gvisor-tap-vsock`
 
-Version `0.5.0-dev` is used.
+Version `0.5.0` is used.
 
 #### `Podman`
 

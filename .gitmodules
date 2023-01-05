@@ -1,9 +1,9 @@
-[submodule "gvisor-tap-vsock"]
-	path = gvisor-tap-vsock
-	url = https://github.com/arixmkii/gvisor-tap-vsock.git
 [submodule "podman"]
 	path = podman
 	url = https://github.com/arixmkii/podman.git
 [submodule "qemu"]
 	path = qemu
 	url = https://github.com/arixmkii/qemu.git
+[submodule "gocat"]
+	path = gocat
+	url = https://github.com/arixmkii/gocat.git

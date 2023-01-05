@@ -1,0 +1,66 @@
+name: Prepare QCW gocat
+
+on: workflow_dispatch
+
+jobs:
+
+  build:
+    runs-on: windows-latest
+
+    steps:
+
+    - name: '🏗️ Install msys2'
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          make
+          git
+          unzip
+          base-devel
+          mingw-w64-x86_64-toolchain
+          zip
+          mingw-w64-x86_64-go
+
+    - name: '🏗️ Install tools'
+      uses: crazy-max/ghaction-chocolatey@v2
+      with:
+        args: install pandoc
+
+    - name: '📝 Checkout'
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 1
+        submodules: true
+ 
+    - name: '🔗 Link tools'
+      shell: msys2 {0}
+      run: |
+        mkdir -p /usr/local/bin
+        ln -sf "/c/Program Files/Pandoc/pandoc.exe" "/usr/local/bin/pandoc.exe"
+
+    - name: '🛠️ Build gocat'
+      working-directory: gocat
+      shell: msys2 {0}
+      run: |
+        go build
+
+    - name: '📦 Pack gocat'
+      shell: msys2 {0}
+      run: |
+        mkdir -p qcw
+        mkdir -p qcw-tmp
+        cp "gocat/gocat.exe" qcw-tmp/
+        cp "gocat/LICENSE" qcw-tmp/
+        cd qcw-tmp/
+        zip -9 -r ../qcw/gocat.zip .
+        cd ../qcw
+        sha512sum -b "gocat.zip" > "gocat.zip.sha512"
+        cat "gocat.zip.sha512"
+
+    - name: '🚀 Upload artifact'
+      uses: actions/upload-artifact@v3
+      with:
+        name: qcw-gocat
+        path: qcw
