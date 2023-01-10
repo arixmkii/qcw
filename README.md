@@ -1,4 +1,5 @@
 # qcw
+
 QEMU Containers for Windows
 
 ## About the project
@@ -72,7 +73,7 @@ Both patches have numerous reviews already and probably will move forward in the
 
 Version `5.2.9` w/o any changes.
 
-## How to use
+## How to use Podman
 
 ### Basics
 
@@ -128,7 +129,11 @@ start cmd /C "Podman Desktop"
 
 `start cmd /C` is needed for Podman Desktop not to lock your terminal. More info: https://github.com/containers/podman-desktop/issues/1050
 
-## Known issues
+## How to use Lima
+
+TBD
+
+## Known issues Podman
 
 ### 1. Name collisions between QEMU and WSL2
 
@@ -140,3 +145,9 @@ both QEMU and WSL.
 
 There could be lefovers in `%TEMP%\podman`, which prevents `QEMU` or `gvproxy` startup. Solution is to shutdown machine
 and then cleanup this location manually before starting again.
+
+## Known issues Lima
+
+### 1. TBD
+
+TBD

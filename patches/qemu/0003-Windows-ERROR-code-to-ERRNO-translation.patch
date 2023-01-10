@@ -1,0 +1,138 @@
+From 6bcdf43f44f9bd57741b10ba09492bf4fc1e17ff Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Tue, 10 Jan 2023 13:14:41 +0200
+Subject: [PATCH] Windows ERROR code to ERRNO translation
+
+Patch author: Guohuai Shi <guohuai.shi@windriver.com>
+---
+ hw/9pfs/9p-util-win32.c | 53 ++++++++++++++++++++++++++++++++---------
+ 1 file changed, 42 insertions(+), 11 deletions(-)
+
+diff --git a/hw/9pfs/9p-util-win32.c b/hw/9pfs/9p-util-win32.c
+index 07e1fcc4f1..e52ba7671a 100644
+--- a/hw/9pfs/9p-util-win32.c
++++ b/hw/9pfs/9p-util-win32.c
+@@ -51,6 +51,31 @@
+ 
+ #define V9FS_MAGIC  0x53465039  /* string "9PFS" */
+ 
++/*
++ * Win32ErrToErrno - convert Win32 error to POSIX error number
++ *
++ * This function converts Win32 error to POSIX error number.
++ * e.g. ERROR_FILE_NOT_FOUND and ERROR_PATH_NOT_FOUND will be translated to
++ * ENOENT.
++ */
++
++static int Win32ErrToErrno(DWORD Win32Err)
++    {
++    switch(Win32Err)
++        {
++        case ERROR_FILE_NOT_FOUND: return ENOENT;
++        case ERROR_PATH_NOT_FOUND: return ENOENT;
++        case ERROR_INVALID_DRIVE: return ENODEV;
++        case ERROR_TOO_MANY_OPEN_FILES: return EMFILE;
++        case ERROR_ACCESS_DENIED: return EACCES;
++        case ERROR_INVALID_HANDLE: return EBADF;
++        case ERROR_NOT_ENOUGH_MEMORY: return ENOMEM;
++        case ERROR_FILE_EXISTS: return EEXIST;
++        case ERROR_DISK_FULL: return ENOSPC;
++        }
++    return EIO;
++    }
++
+ /*
+  * build_ads_name - construct Windows ADS name
+  *
+@@ -138,9 +163,8 @@ char *get_full_path_win32(HANDLE hDir, const char *name)
+     DWORD total_size;
+     DWORD name_size;
+ 
+-    if (hDir == INVALID_HANDLE_VALUE) {
++    if (hDir == INVALID_HANDLE_VALUE)
+         return NULL;
+-    }
+ 
+     full_file_name = g_malloc0(NAME_MAX);
+ 
+@@ -301,7 +325,7 @@ int fstatat_win32(int dirfd, const char *pathname,
+                        NULL);
+ 
+     if (hFile == INVALID_HANDLE_VALUE) {
+-        err = EACCES;
++        err = Win32ErrToErrno(GetLastError());
+         goto out;
+     }
+ 
+@@ -310,14 +334,14 @@ int fstatat_win32(int dirfd, const char *pathname,
+     /* check if it is a symbolic link */
+     if ((attribute == INVALID_FILE_ATTRIBUTES)
+         || (attribute & FILE_ATTRIBUTE_REPARSE_POINT) != 0) {
+-        errno = EACCES;
++        err = EACCES;
+         goto out;
+     }
+ 
+     ret = stat(full_file_name, statbuf);
+ 
+     if (GetFileInformationByHandle(hFile, &file_info) == 0) {
+-        errno = EACCES;
++        err = Win32ErrToErrno(GetLastError());
+         goto out;
+     }
+ 
+@@ -410,6 +434,11 @@ int renameat_win32(int olddirfd, const char *oldpath,
+                        NULL,
+                        OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+ 
++    if (hFile == INVALID_HANDLE_VALUE) {
++        err = Win32ErrToErrno(GetLastError());
++        goto out;
++    }
++
+     attribute = GetFileAttributes(full_old_name);
+ 
+     /* check if it is a symbolic link */
+@@ -465,7 +494,7 @@ int utimensat_win32(int dirfd, const char *pathname,
+                        NULL);
+ 
+     if (hFile == INVALID_HANDLE_VALUE) {
+-        err = EACCES;
++        err = Win32ErrToErrno(GetLastError());
+         goto out;
+     }
+ 
+@@ -528,6 +557,11 @@ int unlinkat_win32(int dirfd, const char *pathname, int flags)
+                        NULL,
+                        OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+ 
++    if (hFile == INVALID_HANDLE_VALUE) {
++        err = Win32ErrToErrno(GetLastError());
++        goto out;
++    }
++
+     attribute = GetFileAttributes(full_file_name);
+ 
+     /* check if it is a symbolic link */
+@@ -948,10 +982,7 @@ uint64_t qemu_stat_rdev_win32(void *fs_ctx)
+      *
+      * (Windows root path always starts from a driver letter like "C:\")
+      */
+-    if (data) {
+-        memcpy(&rdev, data->root_path, 3);
+-    }
+-
++    memcpy(&rdev, data->root_path, 3);
+     return rdev;
+ }
+ 
+@@ -959,5 +990,5 @@ uint64_t qemu_stat_blksize_win32(void *fs_ctx)
+ {
+     LocalData *data = ((FsContext *)fs_ctx)->private;
+ 
+-    return data ? (uint64_t)data->block_size : 0;
++    return (uint64_t)data->block_size;
+ }
+-- 
+2.39.0
+
