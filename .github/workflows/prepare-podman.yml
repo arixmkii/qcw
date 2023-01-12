@@ -23,6 +23,7 @@ jobs:
           zip
           mingw-w64-x86_64-go
           mingw-w64-x86_64-msitools
+          mingw-w64-x86_64-crt-git
 
     - name: '🏗️ Install tools'
       uses: crazy-max/ghaction-chocolatey@v2
