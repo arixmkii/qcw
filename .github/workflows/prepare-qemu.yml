@@ -12,30 +12,30 @@ jobs:
     - name: '🏗️ Install msys2'
       uses: msys2/setup-msys2@v2
       with:
-        msystem: MINGW64
+        msystem: UCRT64
         update: true
         install: >-
           make
           git
           unzip
           base-devel
-          mingw-w64-x86_64-toolchain
+          mingw-w64-ucrt-x86_64-toolchain
           python
           ninja
-          mingw-w64-x86_64-glib2
-          mingw-w64-x86_64-pixman
+          mingw-w64-ucrt-x86_64-glib2
+          mingw-w64-ucrt-x86_64-pixman
           python-setuptools
-          mingw-w64-x86_64-gtk3
-          mingw-w64-x86_64-SDL2
-          mingw-w64-x86_64-libslirp
-          mingw-w64-x86_64-SDL2_image
-          mingw-w64-x86_64-curl-gnutls
-          mingw-w64-x86_64-gnutls
-          mingw-w64-x86_64-virglrenderer
-          mingw-w64-x86_64-libssh
-          mingw-w64-x86_64-libssh2
-          mingw-w64-x86_64-meson
-          mingw-w64-x86_64-nsis
+          mingw-w64-ucrt-x86_64-gtk3
+          mingw-w64-ucrt-x86_64-SDL2
+          mingw-w64-ucrt-x86_64-libslirp
+          mingw-w64-ucrt-x86_64-SDL2_image
+          mingw-w64-ucrt-x86_64-curl-gnutls
+          mingw-w64-ucrt-x86_64-gnutls
+          mingw-w64-ucrt-x86_64-virglrenderer
+          mingw-w64-ucrt-x86_64-libssh
+          mingw-w64-ucrt-x86_64-libssh2
+          mingw-w64-ucrt-x86_64-meson
+          mingw-w64-ucrt-x86_64-nsis
 
     - name: '📝 Checkout'
       uses: actions/checkout@v3
