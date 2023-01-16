@@ -65,7 +65,7 @@ are not needed).
 
 Version `7.2.0` with 2 patch sets from QEMU mailing list:
 * enable 9pfs on Windows;
-* workaround for readonly plflash.
+* workaround for readonly pflash.
 
 Both patches have numerous reviews already and probably will move forward in the next release window.
 
@@ -73,11 +73,16 @@ Both patches have numerous reviews already and probably will move forward in the
 
 Version `5.2.9` w/o any changes.
 
+## How to use QEMU
+
+It is packaged the way similar to official builds, one can just follow official installation instructions. Changed from official
+buids are considered unstable and discouraged to be used on their own. This is why no additional manual is provided.
+
 ## How to use Podman
 
 ### Basics
 
-Download installation packages of the release. Install qemu and podman using their installers. Then install
+Download installation packages of the release. Install QEMU and Podman using their installers. Then install
 `qcw-utils` in the desired directory using
 `powershell -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/arixmkii/qcw/main/qcw-utils.ps1'))"` or
 `pwsh -c "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/arixmkii/qcw/main/qcw-utils.ps1'))"`
@@ -86,19 +91,26 @@ one wants more control over tools version). One will have preconfigured shell la
 when installation completes. When using `podman-default.bat` one needs to configure machine provider in
 `%APPDATA%\containers\containers.conf` setting `provider = "qemu"` or `provider = "wsl"` inside `[machine]` section.
 
-Then run the podman machine init command as one would do with all other podman installations. The catch is to give
+Then run the Podman machine init command as one would do with all other Podman installations. The catch is to give
 2 mandatory config overrides:
 ```bat
 podman machine init --image-path testing --username core
 ```
 
-* `--image-path` is mandatory to allow podman to donwload default (non WSL2) image for the machine (overriding the
+* `--image-path` is mandatory to allow Podman to donwload default (non WSL2) image for the machine (overriding the
 behavior of WSL2 option, which is dominant);
 * `--username` is needed as FCOS image is using different username than Fedora used in WSL2 (again overridind WSL2
 defaults).
 
-All other options (except virtfs volume mounts) from QEMU on MacOS/Linux should work, so, one should be able to
+All other options (except virtfs volume mounts) from QEMU on MacOS/Linux should work the same way, so, one should be able to
 tweak the machine to the needed performance requirements.
+
+To use filemounts on Windows (works only with the patched version of QEMU). Need to use Windows path in the source position
+defining every volume, for example `-v C:\Temp\Storage:/home/core/storage`. There is automatic conversion in place, so,
+`-v C:\Temp\Storage` is equal to `-v C:\Temp\Storage:/C/Temp/Storage`. Then using mounting the shared FS into container
+one needs to reference it using mapped target path. Having this mount `-v C:\Temp\Storage:/home/core/storage`, to Mount
+`C:\Temp\Storage\static` into container `/var/static` one would need to add `-v /home/core/storage/static:/var/static` to
+`podman run` command arguments.
 
 Then run the machine as normal
 ```bat
@@ -135,6 +147,15 @@ start cmd /C "Podman Desktop"
 ## How to use Lima
 
 TBD
+
+## Known issues QEMU
+
+### 1. Incomplete 9pfs implmenetation
+
+The patch used to enable 9pfs is a work in progress. Some of the functionality is missing or is unstable:
+* it is impossible to enumerate content of directories containing Windows symlinks;
+* it is impossible to enumerate content of directories containing Windows Unix domain socket records;
+* non determenistic access denied could be thrown on file overwrites because of some internal races.
 
 ## Known issues Podman
 
