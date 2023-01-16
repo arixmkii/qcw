@@ -82,8 +82,9 @@ Download installation packages of the release. Install qemu and podman using the
 `powershell -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/arixmkii/qcw/main/qcw-utils.ps1'))"` or
 `pwsh -c "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/arixmkii/qcw/main/qcw-utils.ps1'))"`
 (each release will have tagged version of this utility as well if
-one wants more control over tools version). You will have preconfigured shell launchers under `.\qcw-utils\shells\`
-when installation completes.
+one wants more control over tools version). One will have preconfigured shell launchers under `.\qcw-utils\shells\`
+when installation completes. When using `podman-default.bat` one needs to configure machine provider in
+`%APPDATA%\containers\containers.conf` setting `provider = "qemu"` or `provider = "wsl"` inside `[machine]` section.
 
 Then run the podman machine init command as one would do with all other podman installations. The catch is to give
 2 mandatory config overrides:
@@ -104,7 +105,7 @@ Then run the machine as normal
 podman machine start
 ```
 
-Then start your first container with
+Then start the first container with
 
 ```bat
 podman run -d --rm -p 8080:80 nginx
@@ -120,14 +121,16 @@ curl http://localhost:8080
 
 One needs to install latest Podman Desktop (v0.0.7 or newer) to use it with QEMU machine. The important requirement
 is that there should not be official Podman installation in the same system (because Podman Desktop will allways use
-it with if found). It is enough to just call the application from the shell and it will connect.
+it with if found). It is enough to just call the application from the shell and it will connect. Running Podman Desktop as
+usual (not from either of shells) will launch application ready to connect to the machine with the provider specified in
+`containers.conf` file.
 
 To run Podman Desktop call this inside shell (`"` are important because of the app name having whitespace):
 ```bat
 start cmd /C "Podman Desktop"
 ```
 
-`start cmd /C` is needed for Podman Desktop not to lock your terminal. More info: https://github.com/containers/podman-desktop/issues/1050
+`start cmd /C` is needed for Podman Desktop not to lock the terminal. More info: https://github.com/containers/podman-desktop/issues/1050
 
 ## How to use Lima
 

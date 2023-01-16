@@ -7,6 +7,12 @@ if (Test-Path -Path $target) {
     exit 1
 }
 
+$defaultBat = @"
+@ECHO OFF
+set QCW_DIR=%~dp0..
+set PATH=%QCW_DIR%\xz;%LOCALAPPDATA%\Programs\podman-desktop;%PROGRAMFILES%\qemu;%PATH%
+cmd /k "ECHO Welcome to Podman shell"
+"@
 
 $qemuBat = @"
 @ECHO OFF
@@ -19,17 +25,17 @@ cmd /k "ECHO Welcome to Podman with Qemu shell"
 $wslBat = @"
 @ECHO OFF
 set QCW_DIR=%~dp0..
-set PATH=%QCW_DIR%\xz;%LOCALAPPDATA%\Programs\podman-desktop;%PATH%
+set PATH=%QCW_DIR%\xz;%LOCALAPPDATA%\Programs\podman-desktop;%PROGRAMFILES%\qemu;%PATH%
 set CONTAINERS_MACHINE_PROVIDER=WSL
 cmd /k "ECHO Welcome to Podman with WSL shell"
 "@
-
 
 $shellsTarget = Join-Path $target "shells"
 $xzTarget = Join-Path $target "xz"
 New-Item -Path $target -ItemType Directory | Out-Null
 
 New-Item -Path $shellsTarget -ItemType Directory | Out-Null
+New-Item -Path $shellsTarget -Name "podman-default.bat" -ItemType File -Value $defaultBat | Out-Null
 New-Item -Path $shellsTarget -Name "podman-qemu.bat" -ItemType File -Value $qemuBat | Out-Null
 New-Item -Path $shellsTarget -Name "podman-wsl.bat" -ItemType File -Value $wslBat | Out-Null
 
