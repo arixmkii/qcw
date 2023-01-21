@@ -1,0 +1,37 @@
+From 59307e6bea876e2409d778075873eae8d412de95 Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Tue, 3 Jan 2023 11:07:42 +0200
+Subject: [PATCH v3] Windows installer: keep dependency cache
+
+It should be possible to reuse cache built by previous iteration
+to process next executables. Processed dependencies are already
+skipped later based on dll name.
+
+Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Reviewed-by: Bin Meng <bmeng.cn@gmail.com>
+---
+ scripts/nsis.py | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/scripts/nsis.py b/scripts/nsis.py
+index 03ed7608a2..7cffba70ff 100644
+--- a/scripts/nsis.py
++++ b/scripts/nsis.py
+@@ -91,12 +91,13 @@ def main():
+         print("Searching '%s' for the dependent dlls ..." % search_path)
+         dlldir = os.path.join(destdir + prefix, "dll")
+         os.mkdir(dlldir)
++        deps_cache = set()
+ 
+         for exe in glob.glob(os.path.join(destdir + prefix, "*.exe")):
+             signcode(exe)
+ 
+             # find all dll dependencies
+-            deps = set(find_deps(exe, search_path, set()))
++            deps = set(find_deps(exe, search_path, deps_cache))
+             deps.remove(exe)
+ 
+             # copy all dlls to the DLLDIR
+-- 
+2.39.0
+

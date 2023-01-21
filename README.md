@@ -63,9 +63,10 @@ Latest version (or stable later than v0.0.6) is a requirement. Should be install
 Starting from version `0.0.6` of qcw it is possible to use with official windows builds of QEMU (if host FS mounts
 are not needed).
 
-Version `7.2.0` with 2 patch sets from QEMU mailing list:
+Version `7.2.0` with 3 patch sets from QEMU mailing list:
 * enable 9pfs on Windows;
-* workaround for readonly pflash.
+* workaround for readonly pflash;
+* minor optimization in the installer build script.
 
 Both patches have numerous reviews already and probably will move forward in the next release window.
 
