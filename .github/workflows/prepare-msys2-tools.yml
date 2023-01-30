@@ -34,8 +34,9 @@ jobs:
         cd qcw-tmp/
         zip -9 -r ../qcw/msys2-tools.zip .
         cd ../qcw
-        find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; > sha512.checksums
-        cat sha512.checksums
+        find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
+        find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
+        cat sha.checksums
 
     - name: '🚀 Upload artifact'
       uses: actions/upload-artifact@v3
