@@ -11,6 +11,7 @@ $defaultBat = @"
 @ECHO OFF
 set QCW_DIR=%~dp0..
 set PATH=%QCW_DIR%\xz;%LOCALAPPDATA%\Programs\podman-desktop;%PROGRAMFILES%\qemu;%PATH%
+set ELECTRON_NO_ATTACH_CONSOLE=true
 cmd /k "ECHO Welcome to Podman shell"
 "@
 
@@ -19,6 +20,7 @@ $qemuBat = @"
 set QCW_DIR=%~dp0..
 set PATH=%QCW_DIR%\xz;%LOCALAPPDATA%\Programs\podman-desktop;%PROGRAMFILES%\qemu;%PATH%
 set CONTAINERS_MACHINE_PROVIDER=QEMU
+set ELECTRON_NO_ATTACH_CONSOLE=true
 cmd /k "ECHO Welcome to Podman with Qemu shell"
 "@
 
@@ -27,6 +29,7 @@ $wslBat = @"
 set QCW_DIR=%~dp0..
 set PATH=%QCW_DIR%\xz;%LOCALAPPDATA%\Programs\podman-desktop;%PROGRAMFILES%\qemu;%PATH%
 set CONTAINERS_MACHINE_PROVIDER=WSL
+set ELECTRON_NO_ATTACH_CONSOLE=true
 cmd /k "ECHO Welcome to Podman with WSL shell"
 "@
 

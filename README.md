@@ -132,18 +132,15 @@ curl http://localhost:8080
 
 ### With Podman Desktop
 
-One needs to install latest Podman Desktop (v0.0.7 or newer) to use it with QEMU machine. The important requirement
-is that there should not be official Podman installation in the same system (because Podman Desktop will allways use
-it with if found). It is enough to just call the application from the shell and it will connect. Running Podman Desktop as
+One needs to install latest Podman Desktop (v0.0.7 or newer) to use it with QEMU machine. Running Podman Desktop as
 usual (not from either of shells) will launch application ready to connect to the machine with the provider specified in
-`containers.conf` file.
+`containers.conf` file. Launching application from provided shell, will select QEMU or WSL flavor of Podman machine
+matching the behavior of the command line tool.
 
 To run Podman Desktop call this inside shell (`"` are important because of the app name having whitespace):
 ```bat
-start cmd /C "Podman Desktop"
+"Podman Desktop"
 ```
-
-`start cmd /C` is needed for Podman Desktop not to lock the terminal. More info: https://github.com/containers/podman-desktop/issues/1050
 
 ## How to use Lima
 
