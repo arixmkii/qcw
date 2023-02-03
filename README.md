@@ -45,11 +45,11 @@ Built from HEAD of the development branch. Added patch with updated dependencies
 
 #### `gvisor-tap-vsock`
 
-Version `0.5.0` is used.
+Version bundled with Podman is used
 
 #### `Podman`
 
-Version `4.4.0-dev` with a patch to enable using QEMU machine on Windows hosts. This is continuous work trying
+Version `4.5.0-dev` with a patch to enable using QEMU machine on Windows hosts. This is continuous work trying
 to upstream the changes, where possible. At the end this should come down to a single patch on top on a stable tag.
 Supposed to be a long living patchwork, because needs full support for some features on QEMU side (see QEMU specific
 patches).
