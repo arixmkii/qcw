@@ -132,7 +132,7 @@ curl http://localhost:8080
 
 ### With Podman Desktop
 
-One needs to install latest Podman Desktop (v0.0.7 or newer) to use it with QEMU machine. Running Podman Desktop as
+One needs to install latest Podman Desktop (v0.0.12 or newer) to use it with QEMU machine. Running Podman Desktop as
 usual (not from either of shells) will launch application ready to connect to the machine with the provider specified in
 `containers.conf` file. Launching application from provided shell, will select QEMU or WSL flavor of Podman machine
 matching the behavior of the command line tool.
