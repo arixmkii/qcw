@@ -1,0 +1,35 @@
+From 7c66b0be9d8b8c33a7426e77ee1a7dda5432a07d Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Sun, 15 Jan 2023 20:02:23 +0200
+Subject: [PATCH] Enable QEMU machine on Windows
+
+---
+ cmd/podman/machine/platform_windows.go | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/cmd/podman/machine/platform_windows.go b/cmd/podman/machine/platform_windows.go
+index ebfeb855e..1ee08bddb 100644
+--- a/cmd/podman/machine/platform_windows.go
++++ b/cmd/podman/machine/platform_windows.go
+@@ -5,6 +5,7 @@ import (
+ 	"strings"
+ 
+ 	"github.com/containers/podman/v4/pkg/machine"
++	"github.com/containers/podman/v4/pkg/machine/qemu"
+ 	"github.com/containers/podman/v4/pkg/machine/wsl"
+ 	"github.com/sirupsen/logrus"
+ )
+@@ -20,9 +21,7 @@ func GetSystemProvider(name string) machine.VirtProvider {
+ 	case "WSL":
+ 		return wsl.GetWSLProvider()
+ 	case "QEMU":
+-		logrus.Info("QEMU provider is work in progress https://github.com/containers/podman/issues/13006. Will use default provider.")
+-		return wsl.GetWSLProvider()
+-		// return qemu.GetVirtualizationProvider()
++		return qemu.GetVirtualizationProvider()
+ 	default:
+ 		if len(provider) > 0 {
+ 			logrus.Warnf("Unuspported provider specified %q. Will use default provider.", provider)
+-- 
+2.39.2
+

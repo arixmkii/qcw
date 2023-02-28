@@ -1,0 +1,485 @@
+From 7a51327f8313f3d3552dde87f7704049e03b2642 Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Sat, 4 Feb 2023 13:19:42 +0200
+Subject: [PATCH] Implement Unix domain socket support for VLAN
+
+This change adds support for new QEMU stream netdev added in 7.2.0.
+It is implemented as an opt-in mode for previously supported
+platforms and the only supported mode on Windows.
+
+Old FD netdev has changes only on podman side. Instead of previously
+used QMP socket address, it now has VLAN dedicated socket address to
+make both implementations more similar.
+
+As VLAN socket address has short lifespan (it exists only after
+forwarder has been started and before QEMU has finished startup),
+it is not promoted to persisted machine settings, but is rather
+calculated inside Start method.
+
+Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+---
+ pkg/machine/qemu/machine.go         | 216 +++++++++++++++++++---------
+ pkg/machine/qemu/machine_unix.go    |  19 ++-
+ pkg/machine/qemu/machine_windows.go |  30 ++++
+ 3 files changed, 199 insertions(+), 66 deletions(-)
+
+diff --git a/pkg/machine/qemu/machine.go b/pkg/machine/qemu/machine.go
+index 831260dcc..924005235 100644
+--- a/pkg/machine/qemu/machine.go
++++ b/pkg/machine/qemu/machine.go
+@@ -132,11 +132,19 @@ func (p *Virtualization) NewMachine(opts machine.InitOptions) (machine.VM, error
+ 	// Add network
+ 	// Right now the mac address is hardcoded so that the host networking gives it a specific IP address.  This is
+ 	// why we can only run one vm at a time right now
+-	cmd = append(cmd, []string{"-netdev", "socket,id=vlan,fd=3", "-device", "virtio-net-pci,netdev=vlan,mac=5a:94:ef:e4:0c:ee"}...)
++	if useFdVLan() {
++		cmd = append(cmd, []string{"-netdev", fdVlanNetdev()}...)
++	} else {
++		vlanSocket, err := machineSocket(vm.Name, "vlan", "")
++		if err != nil {
++			return nil, err
++		}
++		cmd = append(cmd, []string{"-netdev", socketVlanNetdev(vlanSocket.GetPath())}...)
++	}
+ 	if err := vm.setReadySocket(); err != nil {
+ 		return nil, err
+ 	}
+-
++	cmd = append(cmd, []string{"-device", "virtio-net-pci,netdev=vlan,mac=5a:94:ef:e4:0c:ee"}...)
+ 	// Add serial port for readiness
+ 	cmd = append(cmd, []string{
+ 		"-device", "virtio-serial",
+@@ -322,6 +330,9 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
+ 	}
+ 	v.Mounts = mounts
+ 	v.UID = os.Getuid()
++	if v.UID == -1 {
++		v.UID = 501 // Used on Windows to match FCOS image
++	}
+ 
+ 	// Add location of bootable image
+ 	v.CmdLine = append(v.CmdLine, "-drive", "if=virtio,file="+v.getImageFile())
+@@ -457,6 +468,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+ 	var (
+ 		conn           net.Conn
+ 		err            error
++		fd             *os.File
+ 		qemuSocketConn net.Conn
+ 		wait           = time.Millisecond * 500
+ 	)
+@@ -489,11 +501,6 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+ 		logrus.Errorf("machine %q is incompatible with this release of podman and needs to be recreated, starting for recovery only", v.Name)
+ 	}
+ 
+-	forwardSock, forwardState, err := v.startHostNetworking()
+-	if err != nil {
+-		return fmt.Errorf("unable to start host networking: %q", err)
+-	}
+-
+ 	rtPath, err := getRuntimeDir()
+ 	if err != nil {
+ 		return err
+@@ -507,29 +514,85 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+ 		}
+ 	}
+ 
+-	// If the qemusocketpath exists and the vm is off/down, we should rm
+-	// it before the dial as to avoid a segv
+-	if err := v.QMPMonitor.Address.Delete(); err != nil {
++	vlanSocket, err := machineSocket(v.Name, "vlan", "")
++	if err != nil {
+ 		return err
+ 	}
+-	for i := 0; i < 6; i++ {
+-		qemuSocketConn, err = net.Dial("unix", v.QMPMonitor.Address.GetPath())
+-		if err == nil {
+-			break
++
++	isFdVlanVM := false
++	cmdLine := v.CmdLine
++	for _, c := range v.CmdLine {
++		if c == fdVlanNetdev() {
++			isFdVlanVM = true
+ 		}
+-		time.Sleep(wait)
+-		wait++
+ 	}
+-	if err != nil {
+-		return err
++
++	cmdLine = propagateHostEnv(cmdLine)
++
++	// Show migration recommendation if machine was created with different settings
++	if isFdVlanVM != useFdVLan() {
++		logrus.Warn("Stored Podman Machine configuration doesn't match current settings")
++		if (isFdVlanVM) {
++			logrus.Warnf("Consider replacing %q with %q in machine config", fdVlanNetdev(), socketVlanNetdev(vlanSocket.GetPath()))
++		} else {
++			logrus.Warnf("Consider replacing %q with %q in machine config", socketVlanNetdev(vlanSocket.GetPath()), fdVlanNetdev())
++		}
+ 	}
+-	defer qemuSocketConn.Close()
+ 
+-	fd, err := qemuSocketConn.(*net.UnixConn).File()
++	// Disable graphic window when not in debug mode
++	// Done in start, so we're not suck with the debug level we used on init
++	if !logrus.IsLevelEnabled(logrus.DebugLevel) {
++		cmdLine = append(cmdLine, "-display", "none")
++	}
++
++	forwardSock, forwardState, forwarderProcess, err := v.startHostNetworking(vlanSocket)
+ 	if err != nil {
+-		return err
++		return fmt.Errorf("unable to start host networking: %q", err)
++	}
++	defer vlanSocket.Delete()
++
++	if isFdVlanVM {
++		// If the qemusocketpath exists and the vm is off/down, we should rm
++		// it before the dial as to avoid a segv
++		if err := vlanSocket.Delete(); err != nil {
++			return err
++		}
++
++		for i := 0; i < 6; i++ {
++			qemuSocketConn, err = net.Dial("unix", vlanSocket.GetPath())
++			if err == nil {
++				break
++			}
++			time.Sleep(wait)
++			wait++
++		}
++		if err != nil {
++			return err
++		}
++		defer qemuSocketConn.Close()
++
++		fd, err = qemuSocketConn.(*net.UnixConn).File()
++		if err != nil {
++			return err
++		}
++		defer fd.Close()
++	} else {
++		time.Sleep(wait)
++		for i := 0; i < 6; i++ {
++			// First need to verify that gvproxy is alive,
++			// because `.sock` file could belong to a different process
++			err := checkProcessStatus(machine.ForwarderBinaryName, forwarderProcess.Pid, nil)
++			if err != nil {
++				return err
++			}
++			_, err = os.Stat(vlanSocket.GetPath())
++			if err == nil {
++				break
++			}
++			time.Sleep(wait)
++			wait++
++		}
+ 	}
+-	defer fd.Close()
+ 	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
+ 	if err != nil {
+ 		return err
+@@ -542,17 +605,11 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+ 	defer dnw.Close()
+ 
+ 	attr := new(os.ProcAttr)
+-	files := []*os.File{dnr, dnw, dnw, fd}
+-	attr.Files = files
+-	cmdLine := v.CmdLine
+-
+-	cmdLine = propagateHostEnv(cmdLine)
+-
+-	// Disable graphic window when not in debug mode
+-	// Done in start, so we're not suck with the debug level we used on init
+-	if !logrus.IsLevelEnabled(logrus.DebugLevel) {
+-		cmdLine = append(cmdLine, "-display", "none")
++	files := []*os.File{dnr, dnw, dnw}
++	if fd != nil {
++		files = append(files, fd)
+ 	}
++	attr.Files = files
+ 
+ 	logrus.Debugf("qemu cmd: %v", cmdLine)
+ 
+@@ -564,7 +621,9 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+ 		Stdin:      dnr,
+ 		Stdout:     dnw,
+ 		Stderr:     stderrBuf,
+-		ExtraFiles: []*os.File{fd},
++	}
++	if fd != nil {
++		cmd.ExtraFiles = []*os.File{fd}
+ 	}
+ 	err = cmd.Start()
+ 	if err != nil {
+@@ -593,16 +652,11 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+ 		fmt.Println("Waiting for VM ...")
+ 	}
+ 
+-	socketPath, err := getRuntimeDir()
+-	if err != nil {
+-		return err
+-	}
+-
+ 	// The socket is not made until the qemu process is running so here
+ 	// we do a backoff waiting for it.  Once we have a conn, we break and
+ 	// then wait to read it.
+ 	for i := 0; i < 6; i++ {
+-		conn, err = net.Dial("unix", filepath.Join(socketPath, "podman", v.Name+"_ready.sock"))
++		conn, err = net.Dial("unix", v.ReadySocket.Path)
+ 		if err == nil {
+ 			break
+ 		}
+@@ -870,32 +924,42 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
+ 
+ // NewQMPMonitor creates the monitor subsection of our vm
+ func NewQMPMonitor(network, name string, timeout time.Duration) (Monitor, error) {
+-	rtDir, err := getRuntimeDir()
++	if timeout == 0 {
++		timeout = defaultQMPTimeout
++	}
++	address, err := machineSocket(name, "qmp", "")
+ 	if err != nil {
+ 		return Monitor{}, err
+ 	}
++	monitor := Monitor{
++		Network: network,
++		Address: *address,
++		Timeout: timeout,
++	}
++	return monitor, nil
++}
++
++func machineSocket(name, prefix, suffix string) (*machine.VMFile, error) {
++	rtDir, err := getRuntimeDir()
++	if err != nil {
++		return nil, err
++	}
+ 	if isRootful() {
+ 		rtDir = "/run"
+ 	}
+ 	rtDir = filepath.Join(rtDir, "podman")
+ 	if _, err := os.Stat(rtDir); os.IsNotExist(err) {
+ 		if err := os.MkdirAll(rtDir, 0755); err != nil {
+-			return Monitor{}, err
++			return nil, err
+ 		}
+ 	}
+-	if timeout == 0 {
+-		timeout = defaultQMPTimeout
++	if prefix != "" {
++		name = prefix + "_" + name
+ 	}
+-	address, err := machine.NewMachineFile(filepath.Join(rtDir, "qmp_"+name+".sock"), nil)
+-	if err != nil {
+-		return Monitor{}, err
++	if suffix != "" {
++		name = name + "_" + suffix
+ 	}
+-	monitor := Monitor{
+-		Network: network,
+-		Address: *address,
+-		Timeout: timeout,
+-	}
+-	return monitor, nil
++	return machine.NewMachineFile(filepath.Join(rtDir, name+".sock"), nil)
+ }
+ 
+ // Remove deletes all the files associated with a machine including ssh keys, the image itself
+@@ -1221,24 +1285,24 @@ func (p *Virtualization) Format() machine.ImageFormat {
+ 
+ // startHostNetworking runs a binary on the host system that allows users
+ // to set up port forwarding to the podman virtual machine
+-func (v *MachineVM) startHostNetworking() (string, apiForwardingState, error) {
++func (v *MachineVM) startHostNetworking(vlanSocket *machine.VMFile) (string, apiForwardingState, *os.Process, error) {
+ 	cfg, err := config.Default()
+ 	if err != nil {
+-		return "", noForwarding, err
++		return "", noForwarding, nil, err
+ 	}
+ 	binary, err := cfg.FindHelperBinary(machine.ForwarderBinaryName, false)
+ 	if err != nil {
+-		return "", noForwarding, err
++		return "", noForwarding, nil, err
+ 	}
+ 
+ 	attr := new(os.ProcAttr)
+ 	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
+ 	if err != nil {
+-		return "", noForwarding, err
++		return "", noForwarding, nil, err
+ 	}
+ 	dnw, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
+ 	if err != nil {
+-		return "", noForwarding, err
++		return "", noForwarding, nil, err
+ 	}
+ 
+ 	defer dnr.Close()
+@@ -1246,7 +1310,7 @@ func (v *MachineVM) startHostNetworking() (string, apiForwardingState, error) {
+ 
+ 	attr.Files = []*os.File{dnr, dnw, dnw}
+ 	cmd := []string{binary}
+-	cmd = append(cmd, []string{"-listen-qemu", fmt.Sprintf("unix://%s", v.QMPMonitor.Address.GetPath()), "-pid-file", v.PidFilePath.GetPath()}...)
++	cmd = append(cmd, []string{"-listen-qemu", fmt.Sprintf("unix://%s", strings.Replace(vlanSocket.GetPath(), "\\", "/", -1)), "-pid-file", v.PidFilePath.GetPath()}...)
+ 	// Add the ssh port
+ 	cmd = append(cmd, []string{"-ssh-port", fmt.Sprintf("%d", v.Port)}...)
+ 
+@@ -1260,11 +1324,11 @@ func (v *MachineVM) startHostNetworking() (string, apiForwardingState, error) {
+ 		cmd = append(cmd, "--debug")
+ 		fmt.Println(cmd)
+ 	}
+-	_, err = os.StartProcess(cmd[0], cmd, attr)
++	proc, err := os.StartProcess(cmd[0], cmd, attr)
+ 	if err != nil {
+-		return "", 0, fmt.Errorf("unable to execute: %q: %w", cmd, err)
++		return "", 0, nil, fmt.Errorf("unable to execute: %q: %w", cmd, err)
+ 	}
+-	return forwardSock, state, nil
++	return forwardSock, state, proc, nil
+ }
+ 
+ func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, apiForwardingState) {
+@@ -1282,10 +1346,11 @@ func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, apiForwa
+ 		forwardUser = "root"
+ 	}
+ 
+-	cmd = append(cmd, []string{"-forward-sock", socket.GetPath()}...)
+-	cmd = append(cmd, []string{"-forward-dest", destSock}...)
+-	cmd = append(cmd, []string{"-forward-user", forwardUser}...)
+-	cmd = append(cmd, []string{"-forward-identity", v.IdentityPath}...)
++	cmdWithPipe, err := forwardPipeArgs(cmd, v.Name, destSock, v.IdentityPath, forwardUser)
++	if err != nil {
++		return cmd, "", noForwarding
++	}
++	cmd = forwardSocketArgs(cmdWithPipe, socket.GetPath(), destSock, v.IdentityPath, forwardUser)
+ 
+ 	// The linking pattern is /var/run/docker.sock -> user global sock (link) -> machine sock (socket)
+ 	// This allows the helper to only have to maintain one constant target to the user, which can be
+@@ -1593,6 +1658,7 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
+ 		return nil, err
+ 	}
+ 	connInfo.PodmanSocket = podmanSocket
++	connInfo.PodmanPipe = podmanPipe(v.Name)
+ 	return &machine.InspectInfo{
+ 		ConfigPath:     v.ConfigPath,
+ 		ConnectionInfo: *connInfo,
+@@ -1747,6 +1813,26 @@ func (p *Virtualization) VMType() string {
+ 	return vmtype
+ }
+ 
++func fdVlanNetdev() string {
++	return "socket,id=vlan,fd=3"
++}
++
++func socketVlanNetdev(path string) string {
++	return fmt.Sprintf("stream,id=vlan,server=off,addr.type=unix,addr.path=%s", path)
++}
++
++func toVlanSockPath(qmpPath string) string {
++	return strings.Replace(qmpPath, "qmp_", "vlan_", 1)
++}
++
++func forwardSocketArgs(cmd []string, path string, destPath string, identityPath string, user string) []string {
++	cmd = append(cmd, []string{"-forward-sock", path}...)
++	cmd = append(cmd, []string{"-forward-dest", destPath}...)
++	cmd = append(cmd, []string{"-forward-user", user}...)
++	cmd = append(cmd, []string{"-forward-identity", identityPath}...)
++	return cmd
++}
++
+ func isRootful() bool {
+ 	// Rootless is not relevant on Windows. In the future rootless.IsRootless
+ 	// could be switched to return true on Windows, and other codepaths migrated
+diff --git a/pkg/machine/qemu/machine_unix.go b/pkg/machine/qemu/machine_unix.go
+index b798d03db..43c45e8d8 100644
+--- a/pkg/machine/qemu/machine_unix.go
++++ b/pkg/machine/qemu/machine_unix.go
+@@ -6,9 +6,11 @@ package qemu
+ import (
+ 	"bytes"
+ 	"fmt"
++	"os"
+ 	"strings"
+ 	"syscall"
+ 
++	"github.com/containers/podman/v4/pkg/machine"
+ 	"golang.org/x/sys/unix"
+ )
+ 
+@@ -24,7 +26,7 @@ func checkProcessStatus(processHint string, pid int, stderrBuf *bytes.Buffer) er
+ 	var status syscall.WaitStatus
+ 	pid, err := syscall.Wait4(pid, &status, syscall.WNOHANG, nil)
+ 	if err != nil {
+-		return fmt.Errorf("failed to read qem%su process status: %w", processHint, err)
++		return fmt.Errorf("failed to read %s process status: %w", processHint, err)
+ 	}
+ 	if pid > 0 {
+ 		// child exited
+@@ -33,6 +35,21 @@ func checkProcessStatus(processHint string, pid int, stderrBuf *bytes.Buffer) er
+ 	return nil
+ }
+ 
++func forwardPipeArgs(cmd []string, name string, destPath string, identityPath string, user string) ([]string, error) {
++	return cmd, nil
++}
++
++func podmanPipe(name string) *machine.VMFile {
++	return nil
++}
++
++func useFdVLan() bool {
++	if strings.ToUpper(os.Getenv("CONTAINERS_USE_SOCKET_VLAN")) == "TRUE" {
++		return false
++	}
++	return true
++}
++
+ func pathsFromVolume(volume string) []string {
+ 	return strings.SplitN(volume, ":", 3)
+ }
+diff --git a/pkg/machine/qemu/machine_windows.go b/pkg/machine/qemu/machine_windows.go
+index 04065cb1d..986ff61f7 100644
+--- a/pkg/machine/qemu/machine_windows.go
++++ b/pkg/machine/qemu/machine_windows.go
+@@ -28,6 +28,36 @@ func checkProcessStatus(processHint string, pid int, stderrBuf *bytes.Buffer) er
+ 	return nil
+ }
+ 
++func forwardPipeArgs(cmd []string, name string, destPath string, identityPath string, user string) ([]string, error) {
++	machinePipe := toPipeName(name)
++	if !machine.PipeNameAvailable(machinePipe) {
++		return nil, fmt.Errorf("could not start api proxy since expected pipe is not available: %s", machinePipe)
++	}
++	cmd = append(cmd, []string{"-forward-sock", fmt.Sprintf("npipe:////./pipe/%s", machinePipe)}...)
++	cmd = append(cmd, []string{"-forward-dest", destPath}...)
++	cmd = append(cmd, []string{"-forward-user", user}...)
++	cmd = append(cmd, []string{"-forward-identity", identityPath}...)
++	return cmd, nil
++}
++
++func podmanPipe(name string) *machine.VMFile {
++	return &machine.VMFile{Path: `\\.\pipe\` + toPipeName(name)}
++}
++
++func toPipeName(name string) string {
++	if !strings.HasPrefix(name, "qemu-podman") {
++		if !strings.HasPrefix(name, "podman") {
++			name = "podman-" + name
++		}
++		name = "qemu-" + name
++	}
++	return name
++}
++
++func useFdVLan() bool {
++	return false
++}
++
+ func pathsFromVolume(volume string) []string {
+ 	paths := strings.SplitN(volume, ":", 3)
+ 	driveLetterMatcher := regexp.MustCompile(`^(?:\\\\[.?]\\)?[a-zA-Z]$`)
+-- 
+2.39.2
+

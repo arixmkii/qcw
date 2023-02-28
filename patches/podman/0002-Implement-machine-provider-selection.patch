@@ -1,0 +1,411 @@
+From 80811c7e0257d4b48f0cd28fa6f3cace92e2a3d7 Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Sun, 15 Jan 2023 19:12:37 +0200
+Subject: [PATCH] Implement machine provider selection
+
+GetSystemDefaultProvider reworked to accept input parameter
+with the desired virtualization provider. All callers adjusted
+to read this from the config before requesting virtualization
+provider instance.
+
+Additional environment variable CONTAINERS_MACHINE_PROVIDER is
+supported to override the config for testing purposes.
+
+Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+---
+ cmd/podman/machine/info.go             | 12 ++++++------
+ cmd/podman/machine/init.go             |  8 +++++++-
+ cmd/podman/machine/inspect.go          |  9 ++++++++-
+ cmd/podman/machine/list.go             |  7 ++++++-
+ cmd/podman/machine/machine.go          |  9 ++++++++-
+ cmd/podman/machine/os/manager.go       |  9 ++++++++-
+ cmd/podman/machine/platform.go         | 22 ++++++++++++++++++++--
+ cmd/podman/machine/platform_windows.go | 26 ++++++++++++++++++++++++--
+ cmd/podman/machine/rm.go               |  8 +++++++-
+ cmd/podman/machine/set.go              |  9 ++++++++-
+ cmd/podman/machine/ssh.go              |  8 +++++++-
+ cmd/podman/machine/start.go            |  9 ++++++++-
+ cmd/podman/machine/stop.go             |  9 ++++++++-
+ cmd/podman/system/reset_machine.go     |  8 +++++++-
+ 14 files changed, 132 insertions(+), 21 deletions(-)
+
+diff --git a/cmd/podman/machine/info.go b/cmd/podman/machine/info.go
+index 9c7454379..2d2b0c0c5 100644
+--- a/cmd/podman/machine/info.go
++++ b/cmd/podman/machine/info.go
+@@ -101,7 +101,12 @@ func hostInfo() (*entities.MachineHostInfo, error) {
+ 	host.Arch = runtime.GOARCH
+ 	host.OS = runtime.GOOS
+ 
+-	provider := GetSystemDefaultProvider()
++	cfg, err := config.ReadCustomConfig()
++	if err != nil {
++		return nil, err
++	}
++
++	provider := GetSystemProvider(cfg.Machine.Provider)
+ 	var listOpts machine.ListOptions
+ 	listResponse, err := provider.List(listOpts)
+ 	if err != nil {
+@@ -110,11 +115,6 @@ func hostInfo() (*entities.MachineHostInfo, error) {
+ 
+ 	host.NumberOfMachines = len(listResponse)
+ 
+-	cfg, err := config.ReadCustomConfig()
+-	if err != nil {
+-		return nil, err
+-	}
+-
+ 	// Default state of machine is stopped
+ 	host.MachineState = "Stopped"
+ 	for _, vm := range listResponse {
+diff --git a/cmd/podman/machine/init.go b/cmd/podman/machine/init.go
+index 57cb90943..c703cfc88 100644
+--- a/cmd/podman/machine/init.go
++++ b/cmd/podman/machine/init.go
+@@ -8,6 +8,7 @@ import (
+ 	"os"
+ 
+ 	"github.com/containers/common/pkg/completion"
++	"github.com/containers/common/pkg/config"
+ 	"github.com/containers/podman/v4/cmd/podman/registry"
+ 	"github.com/containers/podman/v4/libpod/events"
+ 	"github.com/containers/podman/v4/pkg/machine"
+@@ -118,7 +119,12 @@ func initMachine(cmd *cobra.Command, args []string) error {
+ 		vm  machine.VM
+ 	)
+ 
+-	provider := GetSystemDefaultProvider()
++	cfg, err := config.ReadCustomConfig()
++	if err != nil {
++		return err
++	}
++
++	provider := GetSystemProvider(cfg.Machine.Provider)
+ 	initOpts.Name = defaultMachineName
+ 	if len(args) > 0 {
+ 		if len(args[0]) > maxMachineNameSize {
+diff --git a/cmd/podman/machine/inspect.go b/cmd/podman/machine/inspect.go
+index 410bb3889..4d82d11c1 100644
+--- a/cmd/podman/machine/inspect.go
++++ b/cmd/podman/machine/inspect.go
+@@ -6,6 +6,7 @@ package machine
+ import (
+ 	"os"
+ 
++	"github.com/containers/common/pkg/config"
+ 	"github.com/containers/common/pkg/report"
+ 	"github.com/containers/podman/v4/cmd/podman/common"
+ 	"github.com/containers/podman/v4/cmd/podman/registry"
+@@ -51,7 +52,13 @@ func inspect(cmd *cobra.Command, args []string) error {
+ 		args = append(args, defaultMachineName)
+ 	}
+ 	vms := make([]machine.InspectInfo, 0, len(args))
+-	provider := GetSystemDefaultProvider()
++
++	cfg, err := config.ReadCustomConfig()
++	if err != nil {
++		return err
++	}
++
++	provider := GetSystemProvider(cfg.Machine.Provider)
+ 	for _, vmName := range args {
+ 		vm, err := provider.LoadVMByName(vmName)
+ 		if err != nil {
+diff --git a/cmd/podman/machine/list.go b/cmd/podman/machine/list.go
+index 435771da5..340eae65e 100644
+--- a/cmd/podman/machine/list.go
++++ b/cmd/podman/machine/list.go
+@@ -66,7 +66,12 @@ func list(cmd *cobra.Command, args []string) error {
+ 		err          error
+ 	)
+ 
+-	provider := GetSystemDefaultProvider()
++	cfg, err := config.ReadCustomConfig()
++	if err != nil {
++		return err
++	}
++
++	provider := GetSystemProvider(cfg.Machine.Provider)
+ 	listResponse, err = provider.List(opts)
+ 	if err != nil {
+ 		return fmt.Errorf("listing vms: %w", err)
+diff --git a/cmd/podman/machine/machine.go b/cmd/podman/machine/machine.go
+index 0618337cc..1b468e906 100644
+--- a/cmd/podman/machine/machine.go
++++ b/cmd/podman/machine/machine.go
+@@ -13,6 +13,7 @@ import (
+ 	"sync"
+ 	"time"
+ 
++	"github.com/containers/common/pkg/config"
+ 	"github.com/containers/podman/v4/cmd/podman/registry"
+ 	"github.com/containers/podman/v4/cmd/podman/validate"
+ 	"github.com/containers/podman/v4/libpod/events"
+@@ -64,7 +65,13 @@ func autocompleteMachine(cmd *cobra.Command, args []string, toComplete string) (
+ 
+ func getMachines(toComplete string) ([]string, cobra.ShellCompDirective) {
+ 	suggestions := []string{}
+-	provider := GetSystemDefaultProvider()
++
++	cfg, err := config.ReadCustomConfig()
++	if err != nil {
++		return nil, cobra.ShellCompDirectiveNoFileComp
++	}
++
++	provider := GetSystemProvider(cfg.Machine.Provider)
+ 	machines, err := provider.List(machine.ListOptions{})
+ 	if err != nil {
+ 		cobra.CompErrorln(err.Error())
+diff --git a/cmd/podman/machine/os/manager.go b/cmd/podman/machine/os/manager.go
+index b6f9bd4ca..7aa1d0c29 100644
+--- a/cmd/podman/machine/os/manager.go
++++ b/cmd/podman/machine/os/manager.go
+@@ -9,6 +9,7 @@ import (
+ 	"os"
+ 	"strings"
+ 
++	"github.com/containers/common/pkg/config"
+ 	machineconfig "github.com/containers/common/pkg/machine"
+ 	"github.com/containers/podman/v4/cmd/podman/machine"
+ 	pkgMachine "github.com/containers/podman/v4/pkg/machine"
+@@ -48,7 +49,13 @@ func machineOSManager(opts ManagerOpts) (pkgOS.Manager, error) {
+ 	if opts.VMName == "" {
+ 		vmName = pkgMachine.DefaultMachineName
+ 	}
+-	provider := machine.GetSystemDefaultProvider()
++
++	cfg, err := config.ReadCustomConfig()
++	if err != nil {
++		return nil, err
++	}
++
++	provider := machine.GetSystemProvider(cfg.Machine.Provider)
+ 	vm, err := provider.LoadVMByName(vmName)
+ 	if err != nil {
+ 		return nil, err
+diff --git a/cmd/podman/machine/platform.go b/cmd/podman/machine/platform.go
+index 9e951326f..3c7671aae 100644
+--- a/cmd/podman/machine/platform.go
++++ b/cmd/podman/machine/platform.go
+@@ -4,10 +4,28 @@
+ package machine
+ 
+ import (
++	"os"
++	"strings"
++
+ 	"github.com/containers/podman/v4/pkg/machine"
+ 	"github.com/containers/podman/v4/pkg/machine/qemu"
++	"github.com/sirupsen/logrus"
+ )
+ 
+-func GetSystemDefaultProvider() machine.VirtProvider {
+-	return qemu.GetVirtualizationProvider()
++func GetSystemProvider(name string) machine.VirtProvider {
++	provider := name
++	providerOverride, found := os.LookupEnv("CONTAINERS_MACHINE_PROVIDER")
++	if found {
++		provider = providerOverride
++	}
++	provider = strings.ToUpper(strings.TrimSpace(provider))
++	switch provider {
++	case "QEMU":
++		return qemu.GetVirtualizationProvider()
++	default:
++		if len(provider) > 0 {
++			logrus.Warnf("Unuspported provider specified %q. Will use default provider.", provider)
++		}
++		return qemu.GetVirtualizationProvider()
++	}
+ }
+diff --git a/cmd/podman/machine/platform_windows.go b/cmd/podman/machine/platform_windows.go
+index 809725f8f..ebfeb855e 100644
+--- a/cmd/podman/machine/platform_windows.go
++++ b/cmd/podman/machine/platform_windows.go
+@@ -1,10 +1,32 @@
+ package machine
+ 
+ import (
++	"os"
++	"strings"
++
+ 	"github.com/containers/podman/v4/pkg/machine"
+ 	"github.com/containers/podman/v4/pkg/machine/wsl"
++	"github.com/sirupsen/logrus"
+ )
+ 
+-func GetSystemDefaultProvider() machine.VirtProvider {
+-	return wsl.GetWSLProvider()
++func GetSystemProvider(name string) machine.VirtProvider {
++	provider := name
++	providerOverride, found := os.LookupEnv("CONTAINERS_MACHINE_PROVIDER")
++	if found {
++		provider = providerOverride
++	}
++	provider = strings.ToUpper(strings.TrimSpace(provider))
++	switch provider {
++	case "WSL":
++		return wsl.GetWSLProvider()
++	case "QEMU":
++		logrus.Info("QEMU provider is work in progress https://github.com/containers/podman/issues/13006. Will use default provider.")
++		return wsl.GetWSLProvider()
++		// return qemu.GetVirtualizationProvider()
++	default:
++		if len(provider) > 0 {
++			logrus.Warnf("Unuspported provider specified %q. Will use default provider.", provider)
++		}
++		return wsl.GetWSLProvider()
++	}
+ }
+diff --git a/cmd/podman/machine/rm.go b/cmd/podman/machine/rm.go
+index 362c9a7d3..f8ad1a3c2 100644
+--- a/cmd/podman/machine/rm.go
++++ b/cmd/podman/machine/rm.go
+@@ -9,6 +9,7 @@ import (
+ 	"os"
+ 	"strings"
+ 
++	"github.com/containers/common/pkg/config"
+ 	"github.com/containers/podman/v4/cmd/podman/registry"
+ 	"github.com/containers/podman/v4/libpod/events"
+ 	"github.com/containers/podman/v4/pkg/machine"
+@@ -62,7 +63,12 @@ func rm(_ *cobra.Command, args []string) error {
+ 		vmName = args[0]
+ 	}
+ 
+-	provider := GetSystemDefaultProvider()
++	cfg, err := config.ReadCustomConfig()
++	if err != nil {
++		return err
++	}
++
++	provider := GetSystemProvider(cfg.Machine.Provider)
+ 	vm, err = provider.LoadVMByName(vmName)
+ 	if err != nil {
+ 		return err
+diff --git a/cmd/podman/machine/set.go b/cmd/podman/machine/set.go
+index 1b9e1b2bd..c1da0b0f0 100644
+--- a/cmd/podman/machine/set.go
++++ b/cmd/podman/machine/set.go
+@@ -8,6 +8,7 @@ import (
+ 	"os"
+ 
+ 	"github.com/containers/common/pkg/completion"
++	"github.com/containers/common/pkg/config"
+ 	"github.com/containers/podman/v4/cmd/podman/registry"
+ 	"github.com/containers/podman/v4/pkg/machine"
+ 	"github.com/spf13/cobra"
+@@ -84,7 +85,13 @@ func setMachine(cmd *cobra.Command, args []string) error {
+ 	if len(args) > 0 && len(args[0]) > 0 {
+ 		vmName = args[0]
+ 	}
+-	provider := GetSystemDefaultProvider()
++
++	cfg, err := config.ReadCustomConfig()
++	if err != nil {
++		return err
++	}
++
++	provider := GetSystemProvider(cfg.Machine.Provider)
+ 	vm, err = provider.LoadVMByName(vmName)
+ 	if err != nil {
+ 		return err
+diff --git a/cmd/podman/machine/ssh.go b/cmd/podman/machine/ssh.go
+index 1cadce916..7af6fb39d 100644
+--- a/cmd/podman/machine/ssh.go
++++ b/cmd/podman/machine/ssh.go
+@@ -53,7 +53,13 @@ func ssh(cmd *cobra.Command, args []string) error {
+ 
+ 	// Set the VM to default
+ 	vmName := defaultMachineName
+-	provider := GetSystemDefaultProvider()
++
++	cfg, err := config.ReadCustomConfig()
++	if err != nil {
++		return err
++	}
++
++	provider := GetSystemProvider(cfg.Machine.Provider)
+ 
+ 	// If len is greater than 0, it means we may have been
+ 	// provided the VM name.  If so, we check.  The VM name,
+diff --git a/cmd/podman/machine/start.go b/cmd/podman/machine/start.go
+index d7a642536..53b6dbd3f 100644
+--- a/cmd/podman/machine/start.go
++++ b/cmd/podman/machine/start.go
+@@ -6,6 +6,7 @@ package machine
+ import (
+ 	"fmt"
+ 
++	"github.com/containers/common/pkg/config"
+ 	"github.com/containers/podman/v4/cmd/podman/registry"
+ 	"github.com/containers/podman/v4/libpod/events"
+ 	"github.com/containers/podman/v4/pkg/machine"
+@@ -53,7 +54,13 @@ func start(_ *cobra.Command, args []string) error {
+ 		vmName = args[0]
+ 	}
+ 
+-	provider := GetSystemDefaultProvider()
++	cfg, err := config.ReadCustomConfig()
++	if err != nil {
++		return err
++	}
++
++	provider := GetSystemProvider(cfg.Machine.Provider)
++
+ 	vm, err = provider.LoadVMByName(vmName)
+ 	if err != nil {
+ 		return err
+diff --git a/cmd/podman/machine/stop.go b/cmd/podman/machine/stop.go
+index ce87a44c4..147f8216c 100644
+--- a/cmd/podman/machine/stop.go
++++ b/cmd/podman/machine/stop.go
+@@ -6,6 +6,7 @@ package machine
+ import (
+ 	"fmt"
+ 
++	"github.com/containers/common/pkg/config"
+ 	"github.com/containers/podman/v4/cmd/podman/registry"
+ 	"github.com/containers/podman/v4/libpod/events"
+ 	"github.com/containers/podman/v4/pkg/machine"
+@@ -42,7 +43,13 @@ func stop(cmd *cobra.Command, args []string) error {
+ 	if len(args) > 0 && len(args[0]) > 0 {
+ 		vmName = args[0]
+ 	}
+-	provider := GetSystemDefaultProvider()
++
++	cfg, err := config.ReadCustomConfig()
++	if err != nil {
++		return err
++	}
++
++	provider := GetSystemProvider(cfg.Machine.Provider)
+ 	vm, err = provider.LoadVMByName(vmName)
+ 	if err != nil {
+ 		return err
+diff --git a/cmd/podman/system/reset_machine.go b/cmd/podman/system/reset_machine.go
+index a07b4fb83..a47d12bca 100644
+--- a/cmd/podman/system/reset_machine.go
++++ b/cmd/podman/system/reset_machine.go
+@@ -4,10 +4,16 @@
+ package system
+ 
+ import (
++	"github.com/containers/common/pkg/config"
+ 	cmdMach "github.com/containers/podman/v4/cmd/podman/machine"
+ )
+ 
+ func resetMachine() error {
+-	provider := cmdMach.GetSystemDefaultProvider()
++	cfg, err := config.ReadCustomConfig()
++	if err != nil {
++		return err
++	}
++
++	provider := cmdMach.GetSystemProvider(cfg.Machine.Provider)
+ 	return provider.RemoveAndCleanMachines()
+ }
+-- 
+2.39.2
+
