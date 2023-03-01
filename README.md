@@ -19,8 +19,7 @@ possible in the first place.
 This is built for relatively fresh Windows systems, which has unix domain sockets support. The suport was announced
 starting with Windows 10 Insiders build in late 2017: https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/
 It will also require [Hyper-V](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/about/) support by
-default. It could be possible to run VM using [Intel HAXM](https://github.com/intel/haxm), but this should be treated
-as even more experimental.
+default.
 
 ## Included software
 
@@ -49,14 +48,14 @@ Version bundled with Podman is used
 
 #### `Podman`
 
-Version `4.5.0-dev` with a patch to enable using QEMU machine on Windows hosts. This is continuous work trying
-to upstream the changes, where possible. At the end this should come down to a single patch on top on a stable tag.
-Supposed to be a long living patchwork, because needs full support for some features on QEMU side (see QEMU specific
-patches).
+Version `4.5.0-dev` with 3 patch sets from Podman PRs:
+* implement Unix domain socket for VLAN;
+* implement machine provider selection;
+* enable QEMU provider on Windows platform.
 
 #### `Podman Desktop`
 
-Latest version (or stable later than v0.0.6) is a requirement. Should be installed via official setup mechanism.
+Latest version (or stable later than v0.0.12) is a requirement. Should be installed via official setup mechanism.
 
 #### `QEMU`
 
