@@ -1,0 +1,146 @@
+From 90d001f9c64ec6a9c942356c808833c03d0ab9c3 Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Mon, 20 Mar 2023 21:38:15 +0200
+Subject: [PATCH 2/2] Unify retry checks mechanism in QEMU machine
+
+Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+---
+ pkg/machine/qemu/machine.go | 75 ++++++++++++++++++++++---------------
+ 1 file changed, 45 insertions(+), 30 deletions(-)
+
+diff --git a/pkg/machine/qemu/machine.go b/pkg/machine/qemu/machine.go
+index 08b7a2d83..0d933caea 100644
+--- a/pkg/machine/qemu/machine.go
++++ b/pkg/machine/qemu/machine.go
+@@ -54,6 +54,8 @@ const (
+ 	dockerSock           = "/var/run/docker.sock"
+ 	dockerConnectTimeout = 5 * time.Second
+ 	apiUpTimeout         = 20 * time.Second
++	retryCountForStart   = 6
++	retryCountForStop    = 5
+ )
+ 
+ type apiForwardingState int
+@@ -560,14 +562,10 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+ 			return err
+ 		}
+ 
+-		for i := 0; i < 6; i++ {
++		err := retryRecoverableWithDelay(retryCountForStart, wait, 1.0, func() (error, error) {
+ 			qemuSocketConn, err = net.Dial("unix", vlanSocket.GetPath())
+-			if err == nil {
+-				break
+-			}
+-			time.Sleep(wait)
+-			wait++
+-		}
++			return err, nil
++		})
+ 		if err != nil {
+ 			return err
+ 		}
+@@ -580,19 +578,18 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+ 		defer fd.Close()
+ 	} else {
+ 		time.Sleep(wait)
+-		for i := 0; i < 6; i++ {
++		err := retryRecoverableWithDelay(retryCountForStart, wait, 1.0, func() (error, error) {
+ 			// First need to verify that gvproxy is alive,
+ 			// because `.sock` file could belong to a different process
+ 			err := checkProcessStatus(machine.ForwarderBinaryName, forwarderProcess.Pid, nil)
+ 			if err != nil {
+-				return err
++				return nil, err
+ 			}
+ 			_, err = os.Stat(vlanSocket.GetPath())
+-			if err == nil {
+-				break
+-			}
+-			time.Sleep(wait)
+-			wait++
++			return err, nil
++		})
++		if err != nil {
++			return err
+ 		}
+ 	}
+ 	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
+@@ -657,19 +654,16 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+ 	// The socket is not made until the qemu process is running so here
+ 	// we do a backoff waiting for it.  Once we have a conn, we break and
+ 	// then wait to read it.
+-	for i := 0; i < 6; i++ {
+-		conn, err = net.Dial("unix", v.ReadySocket.Path)
+-		if err == nil {
+-			break
++	err = retryRecoverableWithDelay(retryCountForStart, wait, 1.0, func() (error, error) {
++		var errRec error
++		conn, errRec = net.Dial("unix", v.ReadySocket.Path)
++		if errRec == nil {
++			return nil, nil
+ 		}
+ 		// check if qemu is still alive
+ 		err := checkProcessStatus("qemu", cmd.Process.Pid, stderrBuf)
+-		if err != nil {
+-			return err
+-		}
+-		time.Sleep(wait)
+-		wait++
+-	}
++		return errRec, err
++	})
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -890,17 +884,17 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
+ 		// machine to stop
+ 		fmt.Println("Waiting for VM to stop running...")
+ 		waitInternal := 250 * time.Millisecond
+-		for i := 0; i < 5; i++ {
++
++		_ = retryRecoverableWithDelay(retryCountForStop, waitInternal, 2.0, func() (error, error) {
+ 			state, err := v.State(false)
+ 			if err != nil {
+-				return err
++				return nil, err
+ 			}
+ 			if state != machine.Running {
+-				break
++				return nil, nil
+ 			}
+-			time.Sleep(waitInternal)
+-			waitInternal *= 2
+-		}
++			return fmt.Errorf("Retry"), nil
++		})
+ 		// after the machine stops running it normally takes about 1 second for the
+ 		// qemu VM to exit so we wait a bit to try to avoid issues
+ 		time.Sleep(2 * time.Second)
+@@ -1864,3 +1858,24 @@ func extractMountOptions(paths []string) (bool, string) {
+ 	}
+ 	return readonly, securityModel
+ }
++
++// `f func() (error, error)` returns recoverable (which will be retried) and fatal errors (which will short circuit).
++// Method itself returns only the last error causing unsuccessful termination or nil in case of success
++func retryRecoverableWithDelay(n int, wait time.Duration, factor float64, f func() (error, error)) error {
++	var rec error
++	for i := 0; i < n; i++ {
++		var nonrec error
++		rec, nonrec = f()
++		if nonrec != nil {
++			return nonrec
++		} else if rec == nil {
++			break
++		}
++		time.Sleep(wait)
++		wait = time.Duration(float64(wait) * factor)
++	}
++	if rec != nil {
++		return rec
++	}
++	return nil
++}
+-- 
+2.40.0
+
