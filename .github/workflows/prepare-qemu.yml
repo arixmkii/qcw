@@ -43,8 +43,21 @@ jobs:
         fetch-depth: 1
         submodules: true
 
+    - name: '🩹 Fetch and Patch'
+      shell: msys2 {0}
+      run: |
+        mkdir -p tmp-qemu
+        cd tmp-qemu
+        git init
+        git remote add origin https://gitlab.com/qemu-project/qemu.git
+        git fetch --depth 1 origin d37158bb2425e7ebffb167d611be01f1e9e6c86f
+        git checkout FETCH_HEAD
+        git apply ../patches/qemu/0001-9pfs-Add-9pfs-support-for-Windows-host.patch
+        git apply ../patches/qemu/0002-WHPX-Add-support-for-device-backed-memory-regions.patch
+        git apply ../patches/qemu/0003-Windows-installer-keep-dependency-cache.patch
+
     - name: '🛠️ Build QEMU'
-      working-directory: qemu
+      working-directory: tmp-qemu
       shell: msys2 {0}
       run: |
         ./configure --enable-gtk --enable-sdl --disable-debug-info --disable-opengl
@@ -55,7 +68,7 @@ jobs:
       shell: msys2 {0}
       run: |
         mkdir -p qcw
-        cp qemu/build/qemu-setup-*.exe qcw/
+        cp tmp-qemu/build/qemu-setup-*.exe qcw/
         cd qcw
         find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
         find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
