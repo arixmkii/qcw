@@ -5792,6 +5792,6 @@ index 12443b6ad5..aaa50e71f7 100644
 +fs_ss.add(when: 'CONFIG_DARWIN', if_true: files('9p-proxy.c',
 +                                                '9p-util-darwin.c'))
 +fs_ss.add(when: 'CONFIG_WIN32', if_true: files('9p-util-win32.c'))
- fs_ss.add(when: 'CONFIG_XEN', if_true: files('xen-9p-backend.c'))
+ fs_ss.add(when: 'CONFIG_XEN_BUS', if_true: files('xen-9p-backend.c'))
  softmmu_ss.add_all(when: 'CONFIG_FSDEV_9P', if_true: fs_ss)
  
