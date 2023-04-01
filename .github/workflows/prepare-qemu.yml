@@ -52,9 +52,9 @@ jobs:
         git remote add origin https://gitlab.com/qemu-project/qemu.git
         git fetch --depth 1 origin d37158bb2425e7ebffb167d611be01f1e9e6c86f
         git checkout FETCH_HEAD
-        git apply ../patches/qemu/0001-9pfs-Add-9pfs-support-for-Windows-host.patch
-        git apply ../patches/qemu/0002-WHPX-Add-support-for-device-backed-memory-regions.patch
-        git apply ../patches/qemu/0003-Windows-installer-keep-dependency-cache.patch
+        git apply --reject --whitespace=fix ../patches/qemu/0001-9pfs-Add-9pfs-support-for-Windows-host.patch
+        git apply --reject --whitespace=fix ../patches/qemu/0002-WHPX-Add-support-for-device-backed-memory-regions.patch
+        git apply --reject --whitespace=fix ../patches/qemu/0003-Windows-installer-keep-dependency-cache.patch
 
     - name: '🛠️ Build QEMU'
       working-directory: tmp-qemu
