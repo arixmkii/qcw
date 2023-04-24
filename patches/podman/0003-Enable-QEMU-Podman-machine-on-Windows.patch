@@ -1,7 +1,7 @@
-From 86d3a723568198199ead97fa673c4ce3780734e6 Mon Sep 17 00:00:00 2001
+From 771db2623bffa7a84c981208c0a7b4f681886ad3 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
-Date: Tue, 21 Mar 2023 10:25:41 +0200
-Subject: [PATCH] Enable QEMU machine on Windows
+Date: Sat, 1 Apr 2023 23:49:13 +0300
+Subject: [PATCH 3/3] Enable QEMU Podman machine on Windows
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
@@ -9,7 +9,7 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
  1 file changed, 3 insertions(+)
 
 diff --git a/cmd/podman/machine/platform_windows.go b/cmd/podman/machine/platform_windows.go
-index 02768feb2..9fbdc2a67 100644
+index a50f0efd0..a47b5c4e7 100644
 --- a/cmd/podman/machine/platform_windows.go
 +++ b/cmd/podman/machine/platform_windows.go
 @@ -7,6 +7,7 @@ import (
@@ -20,7 +20,7 @@ index 02768feb2..9fbdc2a67 100644
  	"github.com/containers/podman/v4/pkg/machine/wsl"
  )
  
-@@ -34,6 +35,8 @@ func GetSystemProvider(vmType *machine.VMType) (machine.VirtProvider, error) {
+@@ -29,6 +30,8 @@ func GetSystemProvider() (machine.VirtProvider, error) {
  		return wsl.GetWSLProvider(), nil
  	case machine.HyperVVirt:
  		return hyperv.GetVirtualizationProvider(), nil

@@ -1,35 +1,35 @@
-From 77588ee2a9747aec49ae08e9d4e2cac11dc512a1 Mon Sep 17 00:00:00 2001
+From ddd376c9eedd3bb78fc222ce9ff1f10097d59e84 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Sun, 15 Jan 2023 19:12:37 +0200
-Subject: [PATCH] Implement machine provider selection
+Subject: [PATCH 2/3] Implement machine provider selection
 
-GetSystemDefaultProvider reworked to accept input parameter
-with the desired virtualization provider.
+GetSystemDefaultProvider reworked to fetch provider value from
+the config file.
 
 Additional environment variable CONTAINERS_MACHINE_PROVIDER is
 supported to override the config for testing purposes.
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
- cmd/podman/machine/info.go             |  5 +++-
- cmd/podman/machine/init.go             |  5 +++-
- cmd/podman/machine/inspect.go          |  5 +++-
- cmd/podman/machine/list.go             |  5 +++-
- cmd/podman/machine/machine.go          |  5 +++-
- cmd/podman/machine/os/manager.go       |  5 +++-
- cmd/podman/machine/platform.go         | 31 +++++++++++++++++++++--
- cmd/podman/machine/platform_windows.go | 35 ++++++++++++++++++++------
- cmd/podman/machine/rm.go               |  5 +++-
- cmd/podman/machine/set.go              |  5 +++-
- cmd/podman/machine/ssh.go              |  5 +++-
- cmd/podman/machine/start.go            |  6 ++++-
- cmd/podman/machine/stop.go             |  5 +++-
- cmd/podman/system/reset_machine.go     |  5 +++-
- pkg/machine/config.go                  | 18 +++++++++++++
- 15 files changed, 124 insertions(+), 21 deletions(-)
+ cmd/podman/machine/info.go             |  5 ++++-
+ cmd/podman/machine/init.go             |  5 ++++-
+ cmd/podman/machine/inspect.go          |  5 ++++-
+ cmd/podman/machine/list.go             |  5 ++++-
+ cmd/podman/machine/machine.go          |  5 ++++-
+ cmd/podman/machine/os/manager.go       |  5 ++++-
+ cmd/podman/machine/platform.go         | 26 ++++++++++++++++++++--
+ cmd/podman/machine/platform_windows.go | 30 ++++++++++++++++++++------
+ cmd/podman/machine/rm.go               |  5 ++++-
+ cmd/podman/machine/set.go              |  5 ++++-
+ cmd/podman/machine/ssh.go              |  5 ++++-
+ cmd/podman/machine/start.go            |  6 +++++-
+ cmd/podman/machine/stop.go             |  5 ++++-
+ cmd/podman/system/reset_machine.go     |  5 ++++-
+ pkg/machine/config.go                  | 18 ++++++++++++++++
+ 15 files changed, 114 insertions(+), 21 deletions(-)
 
 diff --git a/cmd/podman/machine/info.go b/cmd/podman/machine/info.go
-index 38c506ee0..480f139f9 100644
+index 888728c89..fab6e329a 100644
 --- a/cmd/podman/machine/info.go
 +++ b/cmd/podman/machine/info.go
 @@ -101,7 +101,10 @@ func hostInfo() (*entities.MachineHostInfo, error) {
@@ -37,7 +37,7 @@ index 38c506ee0..480f139f9 100644
  	host.OS = runtime.GOOS
  
 -	provider := GetSystemDefaultProvider()
-+	provider, err := GetSystemProvider(nil)
++	provider, err := GetSystemProvider()
 +	if err != nil {
 +		return nil, err
 +	}
@@ -45,7 +45,7 @@ index 38c506ee0..480f139f9 100644
  	listResponse, err := provider.List(listOpts)
  	if err != nil {
 diff --git a/cmd/podman/machine/init.go b/cmd/podman/machine/init.go
-index 57cb90943..37fd11597 100644
+index 57cb90943..6c1c3626c 100644
 --- a/cmd/podman/machine/init.go
 +++ b/cmd/podman/machine/init.go
 @@ -118,7 +118,10 @@ func initMachine(cmd *cobra.Command, args []string) error {
@@ -53,7 +53,7 @@ index 57cb90943..37fd11597 100644
  	)
  
 -	provider := GetSystemDefaultProvider()
-+	provider, err := GetSystemProvider(nil)
++	provider, err := GetSystemProvider()
 +	if err != nil {
 +		return err
 +	}
@@ -61,7 +61,7 @@ index 57cb90943..37fd11597 100644
  	if len(args) > 0 {
  		if len(args[0]) > maxMachineNameSize {
 diff --git a/cmd/podman/machine/inspect.go b/cmd/podman/machine/inspect.go
-index 410bb3889..e918be116 100644
+index 410bb3889..893cb228a 100644
 --- a/cmd/podman/machine/inspect.go
 +++ b/cmd/podman/machine/inspect.go
 @@ -51,7 +51,10 @@ func inspect(cmd *cobra.Command, args []string) error {
@@ -69,7 +69,7 @@ index 410bb3889..e918be116 100644
  	}
  	vms := make([]machine.InspectInfo, 0, len(args))
 -	provider := GetSystemDefaultProvider()
-+	provider, err := GetSystemProvider(nil)
++	provider, err := GetSystemProvider()
 +	if err != nil {
 +		return err
 +	}
@@ -77,7 +77,7 @@ index 410bb3889..e918be116 100644
  		vm, err := provider.LoadVMByName(vmName)
  		if err != nil {
 diff --git a/cmd/podman/machine/list.go b/cmd/podman/machine/list.go
-index 435771da5..ebe0299ba 100644
+index 435771da5..89a05598f 100644
 --- a/cmd/podman/machine/list.go
 +++ b/cmd/podman/machine/list.go
 @@ -66,7 +66,10 @@ func list(cmd *cobra.Command, args []string) error {
@@ -85,7 +85,7 @@ index 435771da5..ebe0299ba 100644
  	)
  
 -	provider := GetSystemDefaultProvider()
-+	provider, err := GetSystemProvider(nil)
++	provider, err := GetSystemProvider()
 +	if err != nil {
 +		return err
 +	}
@@ -93,7 +93,7 @@ index 435771da5..ebe0299ba 100644
  	if err != nil {
  		return fmt.Errorf("listing vms: %w", err)
 diff --git a/cmd/podman/machine/machine.go b/cmd/podman/machine/machine.go
-index 0618337cc..18a5fb231 100644
+index 0618337cc..7c13f24c5 100644
 --- a/cmd/podman/machine/machine.go
 +++ b/cmd/podman/machine/machine.go
 @@ -64,7 +64,10 @@ func autocompleteMachine(cmd *cobra.Command, args []string, toComplete string) (
@@ -101,7 +101,7 @@ index 0618337cc..18a5fb231 100644
  func getMachines(toComplete string) ([]string, cobra.ShellCompDirective) {
  	suggestions := []string{}
 -	provider := GetSystemDefaultProvider()
-+	provider, err := GetSystemProvider(nil)
++	provider, err := GetSystemProvider()
 +	if err != nil {
 +		return nil, cobra.ShellCompDirectiveNoFileComp
 +	}
@@ -109,7 +109,7 @@ index 0618337cc..18a5fb231 100644
  	if err != nil {
  		cobra.CompErrorln(err.Error())
 diff --git a/cmd/podman/machine/os/manager.go b/cmd/podman/machine/os/manager.go
-index b6f9bd4ca..0f72b9e93 100644
+index b6f9bd4ca..4d4af9b5b 100644
 --- a/cmd/podman/machine/os/manager.go
 +++ b/cmd/podman/machine/os/manager.go
 @@ -48,7 +48,10 @@ func machineOSManager(opts ManagerOpts) (pkgOS.Manager, error) {
@@ -117,7 +117,7 @@ index b6f9bd4ca..0f72b9e93 100644
  		vmName = pkgMachine.DefaultMachineName
  	}
 -	provider := machine.GetSystemDefaultProvider()
-+	provider, err := machine.GetSystemProvider(nil)
++	provider, err := machine.GetSystemProvider()
 +	if err != nil {
 +		return nil, err
 +	}
@@ -125,10 +125,10 @@ index b6f9bd4ca..0f72b9e93 100644
  	if err != nil {
  		return nil, err
 diff --git a/cmd/podman/machine/platform.go b/cmd/podman/machine/platform.go
-index 9e951326f..fbc6b7b0d 100644
+index 9e951326f..9d0ee1ca7 100644
 --- a/cmd/podman/machine/platform.go
 +++ b/cmd/podman/machine/platform.go
-@@ -4,10 +4,37 @@
+@@ -4,10 +4,32 @@
  package machine
  
  import (
@@ -142,23 +142,18 @@ index 9e951326f..fbc6b7b0d 100644
  
 -func GetSystemDefaultProvider() machine.VirtProvider {
 -	return qemu.GetVirtualizationProvider()
-+func GetSystemProvider(vmType *machine.VMType) (machine.VirtProvider, error) {
-+	resolvedVMType := machine.QemuVirt
-+	if vmType != nil {
-+		resolvedVMType = *vmType
-+	} else {
-+		cfg, err := config.Default()
-+		if err != nil {
-+			return nil, err
-+		}
-+		provider := cfg.Machine.Provider
-+		if providerOverride, found := os.LookupEnv("CONTAINERS_MACHINE_PROVIDER"); found {
-+			provider = providerOverride
-+		}
-+		resolvedVMType, err = machine.ParseVMType(provider, machine.QemuVirt)
-+		if err != nil {
-+			return nil, err
-+		}
++func GetSystemProvider() (machine.VirtProvider, error) {
++	cfg, err := config.Default()
++	if err != nil {
++		return nil, err
++	}
++	provider := cfg.Machine.Provider
++	if providerOverride, found := os.LookupEnv("CONTAINERS_MACHINE_PROVIDER"); found {
++		provider = providerOverride
++	}
++	resolvedVMType, err := machine.ParseVMType(provider, machine.QemuVirt)
++	if err != nil {
++		return nil, err
 +	}
 +
 +	switch resolvedVMType {
@@ -169,10 +164,10 @@ index 9e951326f..fbc6b7b0d 100644
 +	}
  }
 diff --git a/cmd/podman/machine/platform_windows.go b/cmd/podman/machine/platform_windows.go
-index b0956e244..02768feb2 100644
+index b0956e244..a50f0efd0 100644
 --- a/cmd/podman/machine/platform_windows.go
 +++ b/cmd/podman/machine/platform_windows.go
-@@ -1,19 +1,40 @@
+@@ -1,19 +1,35 @@
  package machine
  
  import (
@@ -191,23 +186,18 @@ index b0956e244..02768feb2 100644
 -	// TODO this needs to be changed back
 -	if _, exists := os.LookupEnv("HYPERV"); exists {
 -		return hyperv.GetVirtualizationProvider()
-+func GetSystemProvider(vmType *machine.VMType) (machine.VirtProvider, error) {
-+	resolvedVMType := machine.QemuVirt
-+	if vmType != nil {
-+		resolvedVMType = *vmType
-+	} else {
-+		cfg, err := config.Default()
-+		if err != nil {
-+			return nil, err
-+		}
-+		provider := cfg.Machine.Provider
-+		if providerOverride, found := os.LookupEnv("CONTAINERS_MACHINE_PROVIDER"); found {
-+			provider = providerOverride
-+		}
-+		resolvedVMType, err = machine.ParseVMType(provider, machine.WSLVirt)
-+		if err != nil {
-+			return nil, err
-+		}
++func GetSystemProvider() (machine.VirtProvider, error) {
++	cfg, err := config.Default()
++	if err != nil {
++		return nil, err
++	}
++	provider := cfg.Machine.Provider
++	if providerOverride, found := os.LookupEnv("CONTAINERS_MACHINE_PROVIDER"); found {
++		provider = providerOverride
++	}
++	resolvedVMType, err := machine.ParseVMType(provider, machine.WSLVirt)
++	if err != nil {
++		return nil, err
 +	}
 +
 +	switch resolvedVMType {
@@ -221,7 +211,7 @@ index b0956e244..02768feb2 100644
 -	return wsl.GetWSLProvider()
  }
 diff --git a/cmd/podman/machine/rm.go b/cmd/podman/machine/rm.go
-index 6418b9141..9c5d4505a 100644
+index 6418b9141..1ea32603c 100644
 --- a/cmd/podman/machine/rm.go
 +++ b/cmd/podman/machine/rm.go
 @@ -63,7 +63,10 @@ func rm(_ *cobra.Command, args []string) error {
@@ -229,7 +219,7 @@ index 6418b9141..9c5d4505a 100644
  	}
  
 -	provider := GetSystemDefaultProvider()
-+	provider, err := GetSystemProvider(nil)
++	provider, err := GetSystemProvider()
 +	if err != nil {
 +		return err
 +	}
@@ -237,7 +227,7 @@ index 6418b9141..9c5d4505a 100644
  	if err != nil {
  		return err
 diff --git a/cmd/podman/machine/set.go b/cmd/podman/machine/set.go
-index 1b9e1b2bd..d61a4cb74 100644
+index 1b9e1b2bd..d25ae9178 100644
 --- a/cmd/podman/machine/set.go
 +++ b/cmd/podman/machine/set.go
 @@ -84,7 +84,10 @@ func setMachine(cmd *cobra.Command, args []string) error {
@@ -245,7 +235,7 @@ index 1b9e1b2bd..d61a4cb74 100644
  		vmName = args[0]
  	}
 -	provider := GetSystemDefaultProvider()
-+	provider, err := GetSystemProvider(nil)
++	provider, err := GetSystemProvider()
 +	if err != nil {
 +		return err
 +	}
@@ -253,7 +243,7 @@ index 1b9e1b2bd..d61a4cb74 100644
  	if err != nil {
  		return err
 diff --git a/cmd/podman/machine/ssh.go b/cmd/podman/machine/ssh.go
-index 1cadce916..f0ebeb784 100644
+index 1cadce916..083c3a97f 100644
 --- a/cmd/podman/machine/ssh.go
 +++ b/cmd/podman/machine/ssh.go
 @@ -53,7 +53,10 @@ func ssh(cmd *cobra.Command, args []string) error {
@@ -261,7 +251,7 @@ index 1cadce916..f0ebeb784 100644
  	// Set the VM to default
  	vmName := defaultMachineName
 -	provider := GetSystemDefaultProvider()
-+	provider, err := GetSystemProvider(nil)
++	provider, err := GetSystemProvider()
 +	if err != nil {
 +		return err
 +	}
@@ -269,7 +259,7 @@ index 1cadce916..f0ebeb784 100644
  	// If len is greater than 0, it means we may have been
  	// provided the VM name.  If so, we check.  The VM name,
 diff --git a/cmd/podman/machine/start.go b/cmd/podman/machine/start.go
-index d7a642536..761339363 100644
+index d7a642536..4dd4f7d4a 100644
 --- a/cmd/podman/machine/start.go
 +++ b/cmd/podman/machine/start.go
 @@ -53,7 +53,11 @@ func start(_ *cobra.Command, args []string) error {
@@ -277,7 +267,7 @@ index d7a642536..761339363 100644
  	}
  
 -	provider := GetSystemDefaultProvider()
-+	provider, err := GetSystemProvider(nil)
++	provider, err := GetSystemProvider()
 +	if err != nil {
 +		return err
 +	}
@@ -286,7 +276,7 @@ index d7a642536..761339363 100644
  	if err != nil {
  		return err
 diff --git a/cmd/podman/machine/stop.go b/cmd/podman/machine/stop.go
-index ce87a44c4..4e8d9f5c3 100644
+index ce87a44c4..5d10ce71a 100644
 --- a/cmd/podman/machine/stop.go
 +++ b/cmd/podman/machine/stop.go
 @@ -42,7 +42,10 @@ func stop(cmd *cobra.Command, args []string) error {
@@ -294,7 +284,7 @@ index ce87a44c4..4e8d9f5c3 100644
  		vmName = args[0]
  	}
 -	provider := GetSystemDefaultProvider()
-+	provider, err := GetSystemProvider(nil)
++	provider, err := GetSystemProvider()
 +	if err != nil {
 +		return err
 +	}
@@ -302,7 +292,7 @@ index ce87a44c4..4e8d9f5c3 100644
  	if err != nil {
  		return err
 diff --git a/cmd/podman/system/reset_machine.go b/cmd/podman/system/reset_machine.go
-index a07b4fb83..60efa8eff 100644
+index a07b4fb83..4994b422b 100644
 --- a/cmd/podman/system/reset_machine.go
 +++ b/cmd/podman/system/reset_machine.go
 @@ -8,6 +8,9 @@ import (
@@ -310,14 +300,14 @@ index a07b4fb83..60efa8eff 100644
  
  func resetMachine() error {
 -	provider := cmdMach.GetSystemDefaultProvider()
-+	provider, err := cmdMach.GetSystemProvider(nil)
++	provider, err := cmdMach.GetSystemProvider()
 +	if err != nil {
 +		return err
 +	}
  	return provider.RemoveAndCleanMachines()
  }
 diff --git a/pkg/machine/config.go b/pkg/machine/config.go
-index 1d073a1bf..6639268fe 100644
+index 1e1021d9a..76df5c247 100644
 --- a/pkg/machine/config.go
 +++ b/pkg/machine/config.go
 @@ -10,6 +10,7 @@ import (
@@ -328,10 +318,10 @@ index 1d073a1bf..6639268fe 100644
  	"time"
  
  	"github.com/containers/storage/pkg/homedir"
-@@ -400,3 +401,20 @@ func (v VMType) String() string {
- 	}
- 	return "qemu"
- }
+@@ -410,3 +411,20 @@ const (
+ 	MachineLocal
+ 	DockerGlobal
+ )
 +
 +func ParseVMType(input string, emptyFallback VMType) (VMType, error) {
 +	switch strings.TrimSpace(strings.ToLower(input)) {

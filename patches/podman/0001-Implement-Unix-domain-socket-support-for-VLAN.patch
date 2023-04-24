@@ -1,7 +1,7 @@
-From 7c5857a94c239439a649a07620ce7a3240656648 Mon Sep 17 00:00:00 2001
+From d95614484e033778def6682ab317ead38844eecc Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Sat, 4 Feb 2023 13:19:42 +0200
-Subject: [PATCH] Implement Unix domain socket support for VLAN
+Subject: [PATCH 1/3] Implement Unix domain socket support for VLAN
 
 This change adds support for new QEMU stream netdev added in 7.2.0.
 It is implemented as an opt-in mode for previously supported
@@ -18,16 +18,16 @@ calculated inside Start method.
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
- pkg/machine/qemu/machine.go         | 230 +++++++++++++++++++---------
+ pkg/machine/qemu/machine.go         | 234 +++++++++++++++++++---------
  pkg/machine/qemu/machine_unix.go    |  16 +-
  pkg/machine/qemu/machine_windows.go |  30 ++++
- 3 files changed, 203 insertions(+), 73 deletions(-)
+ 3 files changed, 207 insertions(+), 73 deletions(-)
 
 diff --git a/pkg/machine/qemu/machine.go b/pkg/machine/qemu/machine.go
-index fe2e6f1d1..97d7c33e7 100644
+index cdf76d0d4..a3e846c6f 100644
 --- a/pkg/machine/qemu/machine.go
 +++ b/pkg/machine/qemu/machine.go
-@@ -54,6 +54,8 @@ const (
+@@ -55,6 +55,8 @@ const (
  	dockerSock           = "/var/run/docker.sock"
  	dockerConnectTimeout = 5 * time.Second
  	apiUpTimeout         = 20 * time.Second
@@ -35,8 +35,8 @@ index fe2e6f1d1..97d7c33e7 100644
 +	retryCountForStop    = 5
  )
  
- type apiForwardingState int
-@@ -132,11 +134,19 @@ func (p *Virtualization) NewMachine(opts machine.InitOptions) (machine.VM, error
+ // NewMachine initializes an instance of a virtual machine based on the qemu
+@@ -123,11 +125,19 @@ func (p *Virtualization) NewMachine(opts machine.InitOptions) (machine.VM, error
  	// Add network
  	// Right now the mac address is hardcoded so that the host networking gives it a specific IP address.  This is
  	// why we can only run one vm at a time right now
@@ -58,7 +58,7 @@ index fe2e6f1d1..97d7c33e7 100644
  	// Add serial port for readiness
  	cmd = append(cmd, []string{
  		"-device", "virtio-serial",
-@@ -322,6 +332,9 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
+@@ -313,6 +323,9 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
  	}
  	v.Mounts = mounts
  	v.UID = os.Getuid()
@@ -68,7 +68,7 @@ index fe2e6f1d1..97d7c33e7 100644
  
  	// Add location of bootable image
  	v.CmdLine = append(v.CmdLine, "-drive", "if=virtio,file="+v.getImageFile())
-@@ -457,6 +470,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -475,6 +488,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  	var (
  		conn           net.Conn
  		err            error
@@ -76,7 +76,7 @@ index fe2e6f1d1..97d7c33e7 100644
  		qemuSocketConn net.Conn
  		wait           = time.Millisecond * 500
  	)
-@@ -489,11 +503,6 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -507,11 +521,6 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  		logrus.Errorf("machine %q is incompatible with this release of podman and needs to be recreated, starting for recovery only", v.Name)
  	}
  
@@ -88,7 +88,7 @@ index fe2e6f1d1..97d7c33e7 100644
  	rtPath, err := getRuntimeDir()
  	if err != nil {
  		return err
-@@ -507,29 +516,87 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -525,29 +534,88 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  		}
  	}
  
@@ -120,22 +120,23 @@ index fe2e6f1d1..97d7c33e7 100644
 +
 +	// Show migration recommendation if machine was created with different settings
 +	if isFdVlanVM != useFdVLan() {
-+		logrus.Warn("Stored Podman Machine configuration doesn't match current settings")
 +		if isFdVlanVM {
-+			logrus.Warnf("Consider replacing %q with %q in machine config", fdVlanNetdev(), socketVlanNetdev(vlanSocket.GetPath()))
++			logrus.Debug("This Podman Machine is configured to use FD VLAN, but current configuration for new machines is Socket VLAN")
++			logrus.Debugf("Consider replacing %q with %q in machine config", fdVlanNetdev(), socketVlanNetdev(vlanSocket.GetPath()))
 +		} else {
-+			logrus.Warnf("Consider replacing %q with %q in machine config", socketVlanNetdev(vlanSocket.GetPath()), fdVlanNetdev())
++			logrus.Debug("This Podman Machine is configured to use Socket VLAN, but current configuration for new machines is FD VLAN")
++			logrus.Debugf("Consider replacing %q with %q in machine config", socketVlanNetdev(vlanSocket.GetPath()), fdVlanNetdev())
 +		}
- 	}
--	defer qemuSocketConn.Close()
- 
--	fd, err := qemuSocketConn.(*net.UnixConn).File()
++	}
++
 +	// Disable graphic window when not in debug mode
 +	// Done in start, so we're not suck with the debug level we used on init
 +	if !logrus.IsLevelEnabled(logrus.DebugLevel) {
 +		cmdLine = append(cmdLine, "-display", "none")
-+	}
-+
+ 	}
+-	defer qemuSocketConn.Close()
+ 
+-	fd, err := qemuSocketConn.(*net.UnixConn).File()
 +	forwardSock, forwardState, forwarderProcess, err := v.startHostNetworking(vlanSocket)
  	if err != nil {
 -		return err
@@ -191,7 +192,7 @@ index fe2e6f1d1..97d7c33e7 100644
  	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
  	if err != nil {
  		return err
-@@ -542,29 +609,25 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -560,29 +628,25 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  	defer dnw.Close()
  
  	attr := new(os.ProcAttr)
@@ -233,7 +234,7 @@ index fe2e6f1d1..97d7c33e7 100644
  	}
  	err = cmd.Start()
  	if err != nil {
-@@ -593,16 +656,11 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -611,16 +675,11 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  		fmt.Println("Waiting for VM ...")
  	}
  
@@ -252,7 +253,7 @@ index fe2e6f1d1..97d7c33e7 100644
  		if err == nil {
  			break
  		}
-@@ -834,7 +892,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
+@@ -852,7 +911,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
  		// machine to stop
  		fmt.Println("Waiting for VM to stop running...")
  		waitInternal := 250 * time.Millisecond
@@ -261,7 +262,7 @@ index fe2e6f1d1..97d7c33e7 100644
  			state, err := v.State(false)
  			if err != nil {
  				return err
-@@ -870,32 +928,42 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
+@@ -888,32 +947,42 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
  
  // NewQMPMonitor creates the monitor subsection of our vm
  func NewQMPMonitor(network, name string, timeout time.Duration) (Monitor, error) {
@@ -317,37 +318,37 @@ index fe2e6f1d1..97d7c33e7 100644
  }
  
  // Remove deletes all the files associated with a machine including ssh keys, the image itself
-@@ -1221,24 +1289,24 @@ func (p *Virtualization) Format() machine.ImageFormat {
+@@ -1221,24 +1290,24 @@ func (p *Virtualization) Format() machine.ImageFormat {
  
  // startHostNetworking runs a binary on the host system that allows users
  // to set up port forwarding to the podman virtual machine
--func (v *MachineVM) startHostNetworking() (string, apiForwardingState, error) {
-+func (v *MachineVM) startHostNetworking(vlanSocket *machine.VMFile) (string, apiForwardingState, *os.Process, error) {
+-func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, error) {
++func (v *MachineVM) startHostNetworking(vlanSocket *machine.VMFile) (string, machine.APIForwardingState, *os.Process, error) {
  	cfg, err := config.Default()
  	if err != nil {
--		return "", noForwarding, err
-+		return "", noForwarding, nil, err
+-		return "", machine.NoForwarding, err
++		return "", machine.NoForwarding, nil, err
  	}
  	binary, err := cfg.FindHelperBinary(machine.ForwarderBinaryName, false)
  	if err != nil {
--		return "", noForwarding, err
-+		return "", noForwarding, nil, err
+-		return "", machine.NoForwarding, err
++		return "", machine.NoForwarding, nil, err
  	}
  
  	attr := new(os.ProcAttr)
  	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
  	if err != nil {
--		return "", noForwarding, err
-+		return "", noForwarding, nil, err
+-		return "", machine.NoForwarding, err
++		return "", machine.NoForwarding, nil, err
  	}
  	dnw, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
  	if err != nil {
--		return "", noForwarding, err
-+		return "", noForwarding, nil, err
+-		return "", machine.NoForwarding, err
++		return "", machine.NoForwarding, nil, err
  	}
  
  	defer dnr.Close()
-@@ -1246,7 +1314,7 @@ func (v *MachineVM) startHostNetworking() (string, apiForwardingState, error) {
+@@ -1246,7 +1315,7 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
  
  	attr.Files = []*os.File{dnr, dnw, dnw}
  	cmd := []string{binary}
@@ -356,7 +357,7 @@ index fe2e6f1d1..97d7c33e7 100644
  	// Add the ssh port
  	cmd = append(cmd, []string{"-ssh-port", fmt.Sprintf("%d", v.Port)}...)
  
-@@ -1260,11 +1328,11 @@ func (v *MachineVM) startHostNetworking() (string, apiForwardingState, error) {
+@@ -1260,11 +1329,11 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
  		cmd = append(cmd, "--debug")
  		fmt.Println(cmd)
  	}
@@ -370,8 +371,8 @@ index fe2e6f1d1..97d7c33e7 100644
 +	return forwardSock, state, proc, nil
  }
  
- func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, apiForwardingState) {
-@@ -1282,10 +1350,11 @@ func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, apiForwa
+ func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, machine.APIForwardingState) {
+@@ -1282,10 +1351,10 @@ func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, machine.
  		forwardUser = "root"
  	}
  
@@ -379,15 +380,14 @@ index fe2e6f1d1..97d7c33e7 100644
 -	cmd = append(cmd, []string{"-forward-dest", destSock}...)
 -	cmd = append(cmd, []string{"-forward-user", forwardUser}...)
 -	cmd = append(cmd, []string{"-forward-identity", v.IdentityPath}...)
-+	cmdWithPipe, err := forwardPipeArgs(cmd, v.Name, destSock, v.IdentityPath, forwardUser)
++	cmd, err = forwardSocketArgs(cmd, v.Name, socket.GetPath(), destSock, v.IdentityPath, forwardUser)
 +	if err != nil {
-+		return cmd, "", noForwarding
++		return cmd, "", machine.NoForwarding
 +	}
-+	cmd = forwardSocketArgs(cmdWithPipe, socket.GetPath(), destSock, v.IdentityPath, forwardUser)
  
  	// The linking pattern is /var/run/docker.sock -> user global sock (link) -> machine sock (socket)
  	// This allows the helper to only have to maintain one constant target to the user, which can be
-@@ -1593,6 +1662,7 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
+@@ -1601,6 +1670,7 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
  		return nil, err
  	}
  	connInfo.PodmanSocket = podmanSocket
@@ -395,7 +395,7 @@ index fe2e6f1d1..97d7c33e7 100644
  	return &machine.InspectInfo{
  		ConfigPath:     v.ConfigPath,
  		ConnectionInfo: *connInfo,
-@@ -1747,6 +1817,22 @@ func (p *Virtualization) VMType() machine.VMType {
+@@ -1755,6 +1825,26 @@ func (p *Virtualization) VMType() machine.VMType {
  	return vmtype
  }
  
@@ -407,12 +407,16 @@ index fe2e6f1d1..97d7c33e7 100644
 +	return fmt.Sprintf("stream,id=vlan,server=off,addr.type=unix,addr.path=%s", path)
 +}
 +
-+func forwardSocketArgs(cmd []string, path string, destPath string, identityPath string, user string) []string {
++func forwardSocketArgs(cmd []string, name string, path string, destPath string, identityPath string, user string) ([]string, error) {
++	cmd, err := forwardPipeArgs(cmd, name, destPath, identityPath, user)
++	if err != nil {
++		return cmd, err
++	}
 +	cmd = append(cmd, []string{"-forward-sock", path}...)
 +	cmd = append(cmd, []string{"-forward-dest", destPath}...)
 +	cmd = append(cmd, []string{"-forward-user", user}...)
 +	cmd = append(cmd, []string{"-forward-identity", identityPath}...)
-+	return cmd
++	return cmd, nil
 +}
 +
  func isRootful() bool {
