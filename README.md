@@ -48,7 +48,7 @@ Version bundled with Podman is used
 
 #### `Podman`
 
-Version `4.5.0-dev` with 3 patch sets from Podman PRs:
+Version `4.6.0-dev` with 3 patch sets from Podman PRs:
 * implement Unix domain socket for VLAN;
 * implement machine provider selection;
 * enable QEMU provider on Windows platform.
