@@ -49,9 +49,9 @@ Version bundled with Podman is used
 #### `Podman`
 
 Version `4.6.0-dev` with 3 patch sets from Podman PRs:
-* implement Unix domain socket for VLAN;
-* implement machine provider selection;
-* enable QEMU provider on Windows platform.
+* Use dynamic identity file names by default https://github.com/containers/podman/pull/18487;
+* Implement Unix domain socket support for VLAN https://github.com/containers/podman/pull/17473;
+* Enable QEMU Podman machine on Windows https://github.com/containers/podman/pull/18488.
 
 #### `Podman Desktop`
 
@@ -63,11 +63,9 @@ Starting from version `0.0.6` of qcw it is possible to use with official windows
 are not needed).
 
 Version `8.0.0` with 3 patch sets from QEMU mailing list:
-* enable 9pfs on Windows;
-* workaround for readonly pflash;
-* minor optimization in the installer build script.
-
-Both patches have numerous reviews already and probably will move forward in the next release window.
+* hw/9pfs: Add 9pfs support for Windows https://lists.gnu.org/archive/html/qemu-devel/2023-02/msg05533.html;
+* WHPX: Add support for device backed memory regions https://lists.gnu.org/archive/html/qemu-devel/2022-07/msg04837.html;
+* Windows installer: keep dependency cache https://lists.gnu.org/archive/html/qemu-devel/2023-01/msg03125.html.
 
 #### `XZ Utils`
 

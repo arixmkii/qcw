@@ -1,0 +1,258 @@
+From cbe197ab8360208734fe0af59dbb1bf0f0e2588a Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Wed, 3 May 2023 11:39:26 +0300
+Subject: [PATCH 1/3] Use dynamic identity file names by default
+
+Dynamically generated names supports up to four hex digits at the end
+to detect available file names. The range scan starts from VM SSH port
+to reduce collision probability. It is still possible to override
+dynamically generated file names using command line option during
+machine init.
+
+Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+---
+ cmd/podman/machine/init.go                    |  4 +++
+ .../markdown/podman-machine-init.1.md.in      |  8 +++++
+ pkg/machine/config.go                         |  1 +
+ pkg/machine/hyperv/machine.go                 |  9 +++--
+ pkg/machine/qemu/machine.go                   |  9 +++--
+ pkg/machine/wsl/machine.go                    | 22 +++++++-----
+ utils/identity.go                             | 35 +++++++++++++++++++
+ 7 files changed, 74 insertions(+), 14 deletions(-)
+ create mode 100644 utils/identity.go
+
+diff --git a/cmd/podman/machine/init.go b/cmd/podman/machine/init.go
+index c865ddffc..c69c05b6a 100644
+--- a/cmd/podman/machine/init.go
++++ b/cmd/podman/machine/init.go
+@@ -98,6 +98,10 @@ func init() {
+ 	flags.StringVar(&initOpts.Username, UsernameFlagName, cfg.ContainersConfDefaultsRO.Machine.User, "Username used in image")
+ 	_ = initCmd.RegisterFlagCompletionFunc(UsernameFlagName, completion.AutocompleteDefault)
+ 
++	identityFlagName := "identity"
++	flags.StringVar(&initOpts.Identity, identityFlagName, "", "Name of the identity used for keys")
++	_ = initCmd.RegisterFlagCompletionFunc(identityFlagName, completion.AutocompleteDefault)
++
+ 	ImagePathFlagName := "image-path"
+ 	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, cfg.ContainersConfDefaultsRO.Machine.Image, "Path to bootable image")
+ 	_ = initCmd.RegisterFlagCompletionFunc(ImagePathFlagName, completion.AutocompleteDefault)
+diff --git a/docs/source/markdown/podman-machine-init.1.md.in b/docs/source/markdown/podman-machine-init.1.md.in
+index e5242f8f4..72b21a08e 100644
+--- a/docs/source/markdown/podman-machine-init.1.md.in
++++ b/docs/source/markdown/podman-machine-init.1.md.in
+@@ -84,6 +84,14 @@ Username to use for executing commands in remote VM. Default value is `core`
+ for FCOS and `user` for Fedora (default on Windows hosts). Should match the one
+ used inside the resulting VM image.
+ 
++#### **--identity**
++
++Relative or absolute path to use for identity files (private key part). If the
++path is relative, then it would be evaluated relative to the default .ssh
++directory. All directories should be created in advance. If this is unset or
++is whitespace or empty, then the filename would be dinamically chosen for the
++machine.
++
+ #### **--volume**, **-v**=*source:target[:options]*
+ 
+ Mounts a volume from source to target.
+diff --git a/pkg/machine/config.go b/pkg/machine/config.go
+index c6587b369..ddcd5527d 100644
+--- a/pkg/machine/config.go
++++ b/pkg/machine/config.go
+@@ -34,6 +34,7 @@ type InitOptions struct {
+ 	Rootful            bool
+ 	UID                string // uid of the user that called machine
+ 	UserModeNetworking *bool  // nil = use backend/system default, false = disable, true = enable
++	Identity           string
+ }
+ 
+ type Status = string
+diff --git a/pkg/machine/hyperv/machine.go b/pkg/machine/hyperv/machine.go
+index 7eb737d5b..1dab88015 100644
+--- a/pkg/machine/hyperv/machine.go
++++ b/pkg/machine/hyperv/machine.go
+@@ -92,7 +92,11 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
+ 	m.ReadyHVSock = *eventHVSocket
+ 
+ 	sshDir := filepath.Join(homedir.Get(), ".ssh")
+-	m.IdentityPath = filepath.Join(sshDir, m.Name)
++	targetIdentity, err := utils.FindTargetIdentityPath(sshDir, opts.Identity, "podman-machine", m.Port)
++	if err != nil {
++		return false, err
++	}
++	m.IdentityPath = targetIdentity
+ 
+ 	// TODO This needs to be fixed in c-common
+ 	m.RemoteUsername = "core"
+@@ -110,7 +114,6 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
+ 	if len(opts.IgnitionPath) < 1 {
+ 		uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", fmt.Sprintf("/run/user/%d/podman/podman.sock", m.UID), strconv.Itoa(m.Port), m.RemoteUsername)
+ 		uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(m.Port), "root")
+-		identity := filepath.Join(sshDir, m.Name)
+ 
+ 		uris := []url.URL{uri, uriRoot}
+ 		names := []string{m.Name, m.Name + "-root"}
+@@ -122,7 +125,7 @@ func (m *HyperVMachine) Init(opts machine.InitOptions) (bool, error) {
+ 		}
+ 
+ 		for i := 0; i < 2; i++ {
+-			if err := machine.AddConnection(&uris[i], names[i], identity, opts.IsDefault && i == 0); err != nil {
++			if err := machine.AddConnection(&uris[i], names[i], m.IdentityPath, opts.IsDefault && i == 0); err != nil {
+ 				return false, err
+ 			}
+ 		}
+diff --git a/pkg/machine/qemu/machine.go b/pkg/machine/qemu/machine.go
+index 5d7e011fc..baf2c5c8f 100644
+--- a/pkg/machine/qemu/machine.go
++++ b/pkg/machine/qemu/machine.go
+@@ -243,7 +243,11 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
+ 		key string
+ 	)
+ 	sshDir := filepath.Join(homedir.Get(), ".ssh")
+-	v.IdentityPath = filepath.Join(sshDir, v.Name)
++	targetIdentity, err := utils.FindTargetIdentityPath(sshDir, opts.Identity, "podman-machine", v.Port)
++	if err != nil {
++		return false, err
++	}
++	v.IdentityPath = targetIdentity
+ 	v.Rootful = opts.Rootful
+ 
+ 	switch opts.ImagePath {
+@@ -320,7 +324,6 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
+ 	if len(opts.IgnitionPath) < 1 {
+ 		uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", fmt.Sprintf("/run/user/%d/podman/podman.sock", v.UID), strconv.Itoa(v.Port), v.RemoteUsername)
+ 		uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
+-		identity := filepath.Join(sshDir, v.Name)
+ 
+ 		uris := []url.URL{uri, uriRoot}
+ 		names := []string{v.Name, v.Name + "-root"}
+@@ -332,7 +335,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
+ 		}
+ 
+ 		for i := 0; i < 2; i++ {
+-			if err := machine.AddConnection(&uris[i], names[i], identity, opts.IsDefault && i == 0); err != nil {
++			if err := machine.AddConnection(&uris[i], names[i], v.IdentityPath, opts.IsDefault && i == 0); err != nil {
+ 				return false, err
+ 			}
+ 		}
+diff --git a/pkg/machine/wsl/machine.go b/pkg/machine/wsl/machine.go
+index 7e9aad401..3b9c3ed48 100644
+--- a/pkg/machine/wsl/machine.go
++++ b/pkg/machine/wsl/machine.go
+@@ -406,7 +406,14 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
+ 	_ = setupWslProxyEnv()
+ 	homeDir := homedir.Get()
+ 	sshDir := filepath.Join(homeDir, ".ssh")
+-	v.IdentityPath = filepath.Join(sshDir, v.Name)
++	targetIdentity, err := utils.FindTargetIdentityPath(sshDir, opts.Identity, "podman-machine", v.Port)
++	if err != nil {
++		return false, err
++	}
++	if filepath.Dir(targetIdentity) != sshDir {
++		return false, fmt.Errorf("can only place keys inside `%s` directory", sshDir)
++	}
++	v.IdentityPath = targetIdentity
+ 	v.Rootful = opts.Rootful
+ 	v.Version = currentMachineVersion
+ 
+@@ -436,7 +443,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
+ 		return false, err
+ 	}
+ 
+-	if err = createKeys(v, dist, sshDir); err != nil {
++	if err = createKeys(v, dist, filepath.Dir(targetIdentity), filepath.Base(targetIdentity)); err != nil {
+ 		return false, err
+ 	}
+ 
+@@ -447,7 +454,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
+ 		return false, err
+ 	}
+ 
+-	if err := setupConnections(v, opts, sshDir); err != nil {
++	if err := setupConnections(v, opts, v.IdentityPath); err != nil {
+ 		return false, err
+ 	}
+ 
+@@ -500,10 +507,9 @@ func (v *MachineVM) writeConfig() error {
+ 	return nil
+ }
+ 
+-func setupConnections(v *MachineVM, opts machine.InitOptions, sshDir string) error {
++func setupConnections(v *MachineVM, opts machine.InitOptions, identityPath string) error {
+ 	uri := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/user/1000/podman/podman.sock", strconv.Itoa(v.Port), v.RemoteUsername)
+ 	uriRoot := machine.SSHRemoteConnection.MakeSSHURL("localhost", "/run/podman/podman.sock", strconv.Itoa(v.Port), "root")
+-	identity := filepath.Join(sshDir, v.Name)
+ 
+ 	uris := []url.URL{uri, uriRoot}
+ 	names := []string{v.Name, v.Name + "-root"}
+@@ -515,7 +521,7 @@ func setupConnections(v *MachineVM, opts machine.InitOptions, sshDir string) err
+ 	}
+ 
+ 	for i := 0; i < 2; i++ {
+-		if err := machine.AddConnection(&uris[i], names[i], identity, opts.IsDefault && i == 0); err != nil {
++		if err := machine.AddConnection(&uris[i], names[i], identityPath, opts.IsDefault && i == 0); err != nil {
+ 			return err
+ 		}
+ 	}
+@@ -549,7 +555,7 @@ func provisionWSLDist(name string, imagePath string, prompt string) (string, err
+ 	return dist, nil
+ }
+ 
+-func createKeys(v *MachineVM, dist string, sshDir string) error {
++func createKeys(v *MachineVM, dist string, sshDir string, keyFile string) error {
+ 	user := v.RemoteUsername
+ 
+ 	if err := os.MkdirAll(sshDir, 0700); err != nil {
+@@ -560,7 +566,7 @@ func createKeys(v *MachineVM, dist string, sshDir string) error {
+ 		return fmt.Errorf("could not cycle WSL dist: %w", err)
+ 	}
+ 
+-	key, err := wslCreateKeys(sshDir, v.Name, dist)
++	key, err := wslCreateKeys(sshDir, keyFile, dist)
+ 	if err != nil {
+ 		return fmt.Errorf("could not create ssh keys: %w", err)
+ 	}
+diff --git a/utils/identity.go b/utils/identity.go
+new file mode 100644
+index 000000000..de4e58483
+--- /dev/null
++++ b/utils/identity.go
+@@ -0,0 +1,35 @@
++package utils
++
++import (
++	"errors"
++	"fmt"
++	"io/fs"
++	"os"
++	"path/filepath"
++	"strings"
++)
++
++func FindTargetIdentityPath(sshDir string, srcIdentity string, prefix string, rangeStart int) (string, error) {
++	identityFilepath := strings.TrimSpace(srcIdentity)
++	if len(identityFilepath) == 0 {
++		return FindAvailableIdentityPath(sshDir, prefix, rangeStart)
++	} else {
++		if filepath.IsAbs(identityFilepath) {
++			return identityFilepath, nil
++		} else {
++			return filepath.Join(sshDir, identityFilepath), nil
++		}
++	}
++}
++
++func FindAvailableIdentityPath(sshDir string, prefix string, rangeStart int) (string, error) {
++	for i := 0; i < 65536; i++ {
++		nextFilepath := filepath.Join(sshDir, fmt.Sprintf("%s-%04x", prefix, (rangeStart+i)%65536))
++		_, err1 := os.Stat(nextFilepath)
++		_, err2 := os.Stat(nextFilepath + ".pub")
++		if errors.Is(err1, fs.ErrNotExist) && errors.Is(err2, fs.ErrNotExist) {
++			return nextFilepath, nil
++		}
++	}
++	return "", errors.New("can't determine available identity filename")
++}
+-- 
+2.40.1
+

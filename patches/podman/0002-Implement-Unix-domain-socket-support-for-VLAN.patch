@@ -1,7 +1,7 @@
-From d95614484e033778def6682ab317ead38844eecc Mon Sep 17 00:00:00 2001
+From e8fd434cf485b1eee2e5140f3a83a5d203b92b5f Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Sat, 4 Feb 2023 13:19:42 +0200
-Subject: [PATCH 1/3] Implement Unix domain socket support for VLAN
+Subject: [PATCH 2/3] Implement Unix domain socket support for VLAN
 
 This change adds support for new QEMU stream netdev added in 7.2.0.
 It is implemented as an opt-in mode for previously supported
@@ -24,7 +24,7 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
  3 files changed, 207 insertions(+), 73 deletions(-)
 
 diff --git a/pkg/machine/qemu/machine.go b/pkg/machine/qemu/machine.go
-index cdf76d0d4..a3e846c6f 100644
+index baf2c5c8f..a80334d6e 100644
 --- a/pkg/machine/qemu/machine.go
 +++ b/pkg/machine/qemu/machine.go
 @@ -55,6 +55,8 @@ const (
@@ -58,7 +58,7 @@ index cdf76d0d4..a3e846c6f 100644
  	// Add serial port for readiness
  	cmd = append(cmd, []string{
  		"-device", "virtio-serial",
-@@ -313,6 +323,9 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
+@@ -317,6 +327,9 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
  	}
  	v.Mounts = mounts
  	v.UID = os.Getuid()
@@ -68,7 +68,7 @@ index cdf76d0d4..a3e846c6f 100644
  
  	// Add location of bootable image
  	v.CmdLine = append(v.CmdLine, "-drive", "if=virtio,file="+v.getImageFile())
-@@ -475,6 +488,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -483,6 +496,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  	var (
  		conn           net.Conn
  		err            error
@@ -76,7 +76,7 @@ index cdf76d0d4..a3e846c6f 100644
  		qemuSocketConn net.Conn
  		wait           = time.Millisecond * 500
  	)
-@@ -507,11 +521,6 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -515,11 +529,6 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  		logrus.Errorf("machine %q is incompatible with this release of podman and needs to be recreated, starting for recovery only", v.Name)
  	}
  
@@ -88,7 +88,7 @@ index cdf76d0d4..a3e846c6f 100644
  	rtPath, err := getRuntimeDir()
  	if err != nil {
  		return err
-@@ -525,29 +534,88 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -533,29 +542,88 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  		}
  	}
  
@@ -192,7 +192,7 @@ index cdf76d0d4..a3e846c6f 100644
  	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
  	if err != nil {
  		return err
-@@ -560,29 +628,25 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -568,29 +636,25 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  	defer dnw.Close()
  
  	attr := new(os.ProcAttr)
@@ -234,7 +234,7 @@ index cdf76d0d4..a3e846c6f 100644
  	}
  	err = cmd.Start()
  	if err != nil {
-@@ -611,16 +675,11 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -619,16 +683,11 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  		fmt.Println("Waiting for VM ...")
  	}
  
@@ -253,7 +253,7 @@ index cdf76d0d4..a3e846c6f 100644
  		if err == nil {
  			break
  		}
-@@ -852,7 +911,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
+@@ -867,7 +926,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
  		// machine to stop
  		fmt.Println("Waiting for VM to stop running...")
  		waitInternal := 250 * time.Millisecond
@@ -262,7 +262,7 @@ index cdf76d0d4..a3e846c6f 100644
  			state, err := v.State(false)
  			if err != nil {
  				return err
-@@ -888,32 +947,42 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
+@@ -903,32 +962,42 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
  
  // NewQMPMonitor creates the monitor subsection of our vm
  func NewQMPMonitor(network, name string, timeout time.Duration) (Monitor, error) {
@@ -318,7 +318,7 @@ index cdf76d0d4..a3e846c6f 100644
  }
  
  // Remove deletes all the files associated with a machine including ssh keys, the image itself
-@@ -1221,24 +1290,24 @@ func (p *Virtualization) Format() machine.ImageFormat {
+@@ -1233,24 +1302,24 @@ func (p *Virtualization) Format() machine.ImageFormat {
  
  // startHostNetworking runs a binary on the host system that allows users
  // to set up port forwarding to the podman virtual machine
@@ -348,7 +348,7 @@ index cdf76d0d4..a3e846c6f 100644
  	}
  
  	defer dnr.Close()
-@@ -1246,7 +1315,7 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
+@@ -1258,7 +1327,7 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
  
  	attr.Files = []*os.File{dnr, dnw, dnw}
  	cmd := []string{binary}
@@ -357,7 +357,7 @@ index cdf76d0d4..a3e846c6f 100644
  	// Add the ssh port
  	cmd = append(cmd, []string{"-ssh-port", fmt.Sprintf("%d", v.Port)}...)
  
-@@ -1260,11 +1329,11 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
+@@ -1272,11 +1341,11 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
  		cmd = append(cmd, "--debug")
  		fmt.Println(cmd)
  	}
@@ -372,7 +372,7 @@ index cdf76d0d4..a3e846c6f 100644
  }
  
  func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, machine.APIForwardingState) {
-@@ -1282,10 +1351,10 @@ func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, machine.
+@@ -1294,10 +1363,10 @@ func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, machine.
  		forwardUser = "root"
  	}
  
@@ -387,15 +387,15 @@ index cdf76d0d4..a3e846c6f 100644
  
  	// The linking pattern is /var/run/docker.sock -> user global sock (link) -> machine sock (socket)
  	// This allows the helper to only have to maintain one constant target to the user, which can be
-@@ -1601,6 +1670,7 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
+@@ -1613,6 +1682,7 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
  		return nil, err
  	}
  	connInfo.PodmanSocket = podmanSocket
 +	connInfo.PodmanPipe = podmanPipe(v.Name)
  	return &machine.InspectInfo{
- 		ConfigPath:     v.ConfigPath,
- 		ConnectionInfo: *connInfo,
-@@ -1755,6 +1825,26 @@ func (p *Virtualization) VMType() machine.VMType {
+ 		ConfigPath:         v.ConfigPath,
+ 		ConnectionInfo:     *connInfo,
+@@ -1768,6 +1838,26 @@ func (p *Virtualization) VMType() machine.VMType {
  	return vmtype
  }
  
@@ -508,5 +508,5 @@ index 04065cb1d..986ff61f7 100644
  	paths := strings.SplitN(volume, ":", 3)
  	driveLetterMatcher := regexp.MustCompile(`^(?:\\\\[.?]\\)?[a-zA-Z]$`)
 -- 
-2.40.0
+2.40.1
 
