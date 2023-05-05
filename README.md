@@ -154,16 +154,10 @@ The patch used to enable 9pfs is a work in progress. Some of the functionality i
 
 ## Known issues Podman
 
-### 1. Name collisions between QEMU and WSL2
+### 1. Sometimes sock files are not cleaned up (if somethign crashes)
 
-Machines are fully isolated, but the ssh public/private key naming scheme is not, so, if machine names are the same,
-then only one of them would have valid keys. Workaround is not to use default names for machines if user plans to use
-both QEMU and WSL.
-
-### 2. Sometimes sock files are not cleaned up (if somethign crashes)
-
-There could be lefovers in `%TEMP%\podman`, which prevents `QEMU` or `gvproxy` startup. Solution is to shutdown machine
-and then cleanup this location manually before starting again.
+There could be leftovers in `%TEMP%\podman`, which prevents `QEMU` or `gvproxy` startup. Solution is to shutdown machine
+and then clean up this location manually before starting again.
 
 ## Known issues Lima
 
