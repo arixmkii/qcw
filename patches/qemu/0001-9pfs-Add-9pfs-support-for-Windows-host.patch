@@ -518,6 +518,21 @@ index c314cf381d..90420a7578 100644
  
  ssize_t fgetxattrat_nofollow(int dirfd, const char *path, const char *name,
                               void *value, size_t size);
+diff --git a/hw/9pfs/9p-local.c b/hw/9pfs/9p-local.c
+index 9d07620235..b6102c9e5a 100644
+--- a/hw/9pfs/9p-local.c
++++ b/hw/9pfs/9p-local.c
+@@ -53,10 +53,6 @@
+ #define BTRFS_SUPER_MAGIC 0x9123683E
+ #endif
+
+-typedef struct {
+-    int mountfd;
+-} LocalData;
+-
+ int local_open_nofollow(FsContext *fs_ctx, const char *path, int flags,
+                         mode_t mode)
+ {
 diff --git a/hw/9pfs/9p-util-win32.c b/hw/9pfs/9p-util-win32.c
 new file mode 100644
 index 0000000000..a99d579a06
