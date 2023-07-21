@@ -4804,7 +4804,7 @@ index ea8c116059..778352b8ec 100644
 +    case ENOTEMPTY:     return L_ENOTEMPTY;
 +    case ELOOP:         return L_ELOOP;
 +    case ENOATTR:       return L_ENODATA;
-+    case ENOTSUP        return L_EOPNOTSUPP;
++    case ENOTSUP:       return L_EOPNOTSUPP;
 +    case EOPNOTSUPP:    return L_EOPNOTSUPP;
      }
  #else
