@@ -4998,7 +4998,7 @@ index 778352b8ec..824ac81ad3 100644
      case ELOOP:         return L_ELOOP;
 +#ifdef CONFIG_DARWIN
      case ENOATTR:       return L_ENODATA;
-     case ENOTSUP        return L_EOPNOTSUPP;
+     case ENOTSUP:       return L_EOPNOTSUPP;
      case EOPNOTSUPP:    return L_EOPNOTSUPP;
 +#endif
 +#ifdef CONFIG_WIN32
