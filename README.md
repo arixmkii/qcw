@@ -48,8 +48,8 @@ Version bundled with Podman is used
 
 #### `Podman`
 
-Version `4.6.0-dev` with 3 patch sets from Podman PRs:
-* Use dynamic identity file names by default https://github.com/containers/podman/pull/18487;
+Version `4.7.0-dev` with 3 patch sets from Podman PRs:
+* Change default QEMU CPU level to qemu64 on Windows amd64 https://github.com/containers/podman/pull/19518;
 * Implement Unix domain socket support for VLAN https://github.com/containers/podman/pull/17473;
 * Enable QEMU Podman machine on Windows https://github.com/containers/podman/pull/18488.
 
