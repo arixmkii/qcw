@@ -139,6 +139,14 @@ To run Podman Desktop call this inside shell (`"` are important because of the a
 "Podman Desktop"
 ```
 
+### Inside Hyper-V VM
+
+It is possible to run Podman with QEMU machine inside Hyper-V VM with nested virtualization enabled. On how to enable
+nested virtualization one should follow [official MS guide](https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/user-guide/enable-nested-virtualization). It is users responsibility to allocated enough resources for the VM to host a Podman machine of the expected
+size. If VM is configured correctly and the HW requirements for nested vitrualization are met, then workflow to run
+Podman machine should be the same as on bare metal (the performance is expected to be worse to some extent, because
+it runs inside a VM).
+
 ## How to use Lima
 
 TBD
