@@ -52,7 +52,7 @@ jobs:
         wget -q "https://download.qemu.org/qemu-$QEMU_VERSION.tar.xz.sig"
         gpg --keyserver keys.openpgp.org --recv-key CEACC9E15534EBABB82D3FA03353C9CEF108B584
         gpg "qemu-$QEMU_VERSION.tar.xz.sig"
-        mkdir -p /opt/X11/include
+        export MSYS=winsymlinks:lnk
         tar xJf "qemu-$QEMU_VERSION.tar.xz"
         mv "qemu-$QEMU_VERSION" qemu-release
         cd qemu-release
