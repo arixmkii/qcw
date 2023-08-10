@@ -1,6 +1,9 @@
-name: Prepare QCW QEMU (from Git)
+name: Prepare QCW QEMU (from TarBall sources)
 
 on: workflow_dispatch
+
+env:
+  QEMU_VERSION: 8.1.0-rc2
 
 jobs:
 
@@ -36,15 +39,30 @@ jobs:
           mingw-w64-ucrt-x86_64-libssh2
           mingw-w64-ucrt-x86_64-meson
           mingw-w64-ucrt-x86_64-nsis
+          wget
+          gpg
 
     - name: '📝 Checkout'
       uses: actions/checkout@v3
       with:
         fetch-depth: 1
-        submodules: true
+
+    - name: '📝 Fetch sources'
+      shell: msys2 {0}
+      run: |
+        wget "https://download.qemu.org/qemu-$QEMU_VERSION.tar.xz"
+        wget "https://download.qemu.org/qemu-$QEMU_VERSION.tar.xz.sig"
+        gpg --keyserver keys.openpgp.org --recv-key CEACC9E15534EBABB82D3FA03353C9CEF108B584
+        gpg "https://download.qemu.org/qemu-$QEMU_VERSION.tar.xz.sig"
+        tar xvJf "qemu-$QEMU_VERSION.tar.xz"
+        mv "qemu-$QEMU_VERSION" qemu-release
+        cd qemu-release
+        patch < ../patches/qemu/0001-9pfs-Add-9pfs-support-for-Windows-host.patch
+        patch < ../patches/qemu/0002-WHPX-Add-support-for-device-backed-memory-regions.patch
+        patch < ../patches/qemu/0003-Windows-installer-keep-dependency-cache.patch
 
     - name: '🛠️ Build QEMU'
-      working-directory: qemu
+      working-directory: qemu-release
       shell: msys2 {0}
       run: |
         ./configure --enable-gtk --enable-sdl --disable-debug-info
@@ -55,7 +73,7 @@ jobs:
       shell: msys2 {0}
       run: |
         mkdir -p qcw
-        cp qemu/build/qemu-setup-*.exe qcw/
+        cp qemu-release/build/qemu-setup-*.exe qcw/
         cd qcw
         find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
         find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
