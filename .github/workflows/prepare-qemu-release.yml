@@ -48,10 +48,10 @@ jobs:
     - name: '📝 Fetch sources'
       shell: msys2 {0}
       run: |
-        wget "https://download.qemu.org/qemu-$QEMU_VERSION.tar.xz"
-        wget "https://download.qemu.org/qemu-$QEMU_VERSION.tar.xz.sig"
+        wget -q "https://download.qemu.org/qemu-$QEMU_VERSION.tar.xz"
+        wget -q "https://download.qemu.org/qemu-$QEMU_VERSION.tar.xz.sig"
         gpg --keyserver keys.openpgp.org --recv-key CEACC9E15534EBABB82D3FA03353C9CEF108B584
-        gpg "https://download.qemu.org/qemu-$QEMU_VERSION.tar.xz.sig"
+        gpg "qemu-$QEMU_VERSION.tar.xz.sig"
         tar xvJf "qemu-$QEMU_VERSION.tar.xz"
         mv "qemu-$QEMU_VERSION" qemu-release
         cd qemu-release
