@@ -44,8 +44,6 @@ jobs:
       working-directory: podman
       shell: msys2 {0}
       run: |
-        echo FIXME Downgrading go version to 1.20.2-1
-        pacman -U --noconfirm https://repo.msys2.org/mingw/ucrt64/mingw-w64-ucrt-x86_64-go-1.20.2-1-any.pkg.tar.zst
         make podman-remote-release-windows_amd64.zip
         export BUILD_PODMAN_VERSION=$(test/version/version | sed 's/-.*//')
         mkdir -p contrib/win-installer/current
