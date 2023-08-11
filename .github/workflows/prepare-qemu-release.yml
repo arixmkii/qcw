@@ -3,7 +3,7 @@ name: Prepare QCW QEMU (from TarBall sources)
 on: workflow_dispatch
 
 env:
-  QEMU_VERSION: 8.1.0-rc2
+  QEMU_VERSION: 8.1.0-rc3
 
 jobs:
 
@@ -40,10 +40,21 @@ jobs:
           mingw-w64-ucrt-x86_64-meson
           mingw-w64-ucrt-x86_64-nsis
 
+    - name: '🏗️ Install tools'
+      uses: crazy-max/ghaction-chocolatey@v2
+      with:
+        args: install 7zip.install
+
     - name: '📝 Checkout'
       uses: actions/checkout@v3
       with:
         fetch-depth: 1
+
+    - name: '🔗 Link tools'
+      shell: msys2 {0}
+      run: |
+        mkdir -p /usr/local/bin
+        ln -sf "/c/Program Files/7-Zip/7z.exe" "/usr/local/bin/7z.exe"
 
     - name: '📝 Fetch sources'
       shell: msys2 {0}
@@ -52,8 +63,8 @@ jobs:
         wget -q "https://download.qemu.org/qemu-$QEMU_VERSION.tar.xz.sig"
         gpg --keyserver keys.openpgp.org --recv-key CEACC9E15534EBABB82D3FA03353C9CEF108B584
         gpg "qemu-$QEMU_VERSION.tar.xz.sig"
-        export MSYS=winsymlinks:lnk
-        tar xJf "qemu-$QEMU_VERSION.tar.xz"
+        7z x "qemu-$QEMU_VERSION.tar.xz"
+        7z x "qemu-$QEMU_VERSION.tar"
         mv "qemu-$QEMU_VERSION" qemu-release
         cd qemu-release
         patch < ../patches/qemu/0001-9pfs-Add-9pfs-support-for-Windows-host.patch
