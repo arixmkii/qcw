@@ -1,6 +1,10 @@
-name: Prepare QCW Podman (from Git)
+name: Prepare QCW Podman (from revision)
 
 on: workflow_dispatch
+
+env:
+  PODMAN_GITURL: https://github.com/containers/podman.git
+  PODMAN_SHA: 7bd60867debb18bb71d6a1c02f6d7c7ad66ec664
 
 jobs:
 
@@ -40,8 +44,21 @@ jobs:
         mkdir -p /usr/local/bin
         ln -sf "/c/Program Files/Pandoc/pandoc.exe" "/usr/local/bin/pandoc.exe"
 
+    - name: '📝 Fetch sources'
+      shell: msys2 {0}
+      run: |
+        mkdir podman-release
+        cd podman-release
+        git init
+        git remote add origin $PODMAN_GITURL
+        git fetch --depth 1 origin $PODMAN_SHA
+        git checkout FETCH_HEAD
+        patch -p 1 < ../patches/podman/0001-Change-default-QEMU-CPU-level-to-qemu64-on-Windows-a.patch
+        patch -p 1 < ../patches/podman/0002-Implement-Unix-domain-socket-support-for-VLAN.patch
+        patch -p 1 < ../patches/podman/0003-Enable-QEMU-Podman-machine-on-Windows.patch
+
     - name: '🛠️ Build Podman'
-      working-directory: podman
+      working-directory: podman-release
       shell: msys2 {0}
       run: |
         make podman-remote-release-windows_amd64.zip
@@ -55,8 +72,8 @@ jobs:
       shell: msys2 {0}
       run: |
         mkdir -p qcw
-        export BUILD_PODMAN_VERSION=$(podman/test/version/version | sed 's/-.*//')
-        cp "podman/contrib/win-installer/podman-$BUILD_PODMAN_VERSION-dev-setup.exe" qcw/
+        export BUILD_PODMAN_VERSION=$(podman-release/test/version/version | sed 's/-.*//')
+        cp "podman-release/contrib/win-installer/podman-$BUILD_PODMAN_VERSION-dev-setup.exe" qcw/
         cd qcw
         find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
         find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums

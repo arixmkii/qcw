@@ -1,4 +1,4 @@
-name: Prepare QCW gocat
+name: Prepare QCW gocat (from Git)
 
 on: workflow_dispatch
 
