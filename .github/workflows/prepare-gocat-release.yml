@@ -1,0 +1,69 @@
+name: Prepare QCW gocat (from revision)
+
+on: workflow_dispatch
+
+env:
+  GOCAT_GITURL: https://github.com/sumup-oss/gocat.git
+  GOCAT_SHA: cc6fb8a5db72948af31628b019575478522f4425
+
+jobs:
+
+  build:
+    runs-on: windows-latest
+
+    steps:
+
+    - name: '🏗️ Install msys2'
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: UCRT64
+        update: true
+        install: >-
+          make
+          git
+          unzip
+          base-devel
+          mingw-w64-ucrt-x86_64-toolchain
+          zip
+          mingw-w64-ucrt-x86_64-go
+
+    - name: '📝 Checkout'
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 1
+
+    - name: '📝 Fetch sources'
+      shell: msys2 {0}
+      run: |
+        mkdir gocat-release
+        cd gocat-release
+        git init
+        git remote add origin $(GOCAT_GITURL)
+        git fetch --depth 1 origin $(GOCAT_SHA)
+        git checkout FETCH_HEAD
+
+    - name: '🛠️ Build gocat'
+      working-directory: gocat-release
+      shell: msys2 {0}
+      run: |
+        go build
+
+    - name: '📦 Pack gocat'
+      shell: msys2 {0}
+      run: |
+        mkdir -p qcw
+        mkdir -p qcw-tmp
+        cp "gocat-release/gocat.exe" qcw-tmp/
+        cp "gocat-release/LICENSE" qcw-tmp/
+        cd qcw-tmp/
+        zip -9 -r ../qcw/gocat.zip .
+        cd ../qcw
+        find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
+        find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
+        cat sha.checksums
+
+    - name: '🚀 Upload artifact'
+      uses: actions/upload-artifact@v3
+      with:
+        name: qcw-gocat
+        path: qcw
