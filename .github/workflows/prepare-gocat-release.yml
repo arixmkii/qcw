@@ -38,8 +38,8 @@ jobs:
         mkdir gocat-release
         cd gocat-release
         git init
-        git remote add origin $(GOCAT_GITURL)
-        git fetch --depth 1 origin $(GOCAT_SHA)
+        git remote add origin $GOCAT_GITURL
+        git fetch --depth 1 origin $GOCAT_SHA
         git checkout FETCH_HEAD
         patch -p 1 < ../patches/gocat/0001-Updating-deps.patch
 
