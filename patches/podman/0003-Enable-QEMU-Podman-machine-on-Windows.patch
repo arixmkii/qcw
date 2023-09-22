@@ -1,22 +1,22 @@
-From 1e48b83b449141eff892d8d70c2c584807eb0734 Mon Sep 17 00:00:00 2001
+From d4fe0d4725a8c652a4a3ef54465769b471796e67 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Sat, 1 Apr 2023 23:49:13 +0300
 Subject: [PATCH 3/3] Enable QEMU Podman machine on Windows
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
- cmd/podman/machine/platform_windows.go       |  2 ++
- cmd/podman/machine/platform_windows_amd64.go | 10 ++++++++++
- cmd/podman/machine/platform_windows_arm64.go | 11 +++++++++++
+ pkg/machine/provider/platform_windows.go       |  2 ++
+ pkg/machine/provider/platform_windows_amd64.go | 10 ++++++++++
+ pkg/machine/provider/platform_windows_arm64.go | 11 +++++++++++
  3 files changed, 23 insertions(+)
- create mode 100644 cmd/podman/machine/platform_windows_amd64.go
- create mode 100644 cmd/podman/machine/platform_windows_arm64.go
+ create mode 100644 pkg/machine/provider/platform_windows_amd64.go
+ create mode 100644 pkg/machine/provider/platform_windows_arm64.go
 
-diff --git a/cmd/podman/machine/platform_windows.go b/cmd/podman/machine/platform_windows.go
-index 82b34e3c3..d521db90b 100644
---- a/cmd/podman/machine/platform_windows.go
-+++ b/cmd/podman/machine/platform_windows.go
-@@ -31,6 +31,8 @@ func GetSystemProvider() (machine.VirtProvider, error) {
+diff --git a/pkg/machine/provider/platform_windows.go b/pkg/machine/provider/platform_windows.go
+index ffa390aab..48223e92f 100644
+--- a/pkg/machine/provider/platform_windows.go
++++ b/pkg/machine/provider/platform_windows.go
+@@ -31,6 +31,8 @@ func Get() (machine.VirtProvider, error) {
  		return wsl.VirtualizationProvider(), nil
  	case machine.HyperVVirt:
  		return hyperv.VirtualizationProvider(), nil
@@ -25,13 +25,13 @@ index 82b34e3c3..d521db90b 100644
  	default:
  		return nil, fmt.Errorf("unsupported virtualization provider: `%s`", resolvedVMType.String())
  	}
-diff --git a/cmd/podman/machine/platform_windows_amd64.go b/cmd/podman/machine/platform_windows_amd64.go
+diff --git a/pkg/machine/provider/platform_windows_amd64.go b/pkg/machine/provider/platform_windows_amd64.go
 new file mode 100644
-index 000000000..4765f6865
+index 000000000..113ab2442
 --- /dev/null
-+++ b/cmd/podman/machine/platform_windows_amd64.go
++++ b/pkg/machine/provider/platform_windows_amd64.go
 @@ -0,0 +1,10 @@
-+package machine
++package provider
 +
 +import (
 +	"github.com/containers/podman/v4/pkg/machine"
@@ -41,13 +41,13 @@ index 000000000..4765f6865
 +func getQemuProvider() (machine.VirtProvider, error) {
 +	return qemu.VirtualizationProvider(), nil
 +}
-diff --git a/cmd/podman/machine/platform_windows_arm64.go b/cmd/podman/machine/platform_windows_arm64.go
+diff --git a/pkg/machine/provider/platform_windows_arm64.go b/pkg/machine/provider/platform_windows_arm64.go
 new file mode 100644
-index 000000000..82e5293f1
+index 000000000..b12051fb8
 --- /dev/null
-+++ b/cmd/podman/machine/platform_windows_arm64.go
++++ b/pkg/machine/provider/platform_windows_arm64.go
 @@ -0,0 +1,11 @@
-+package machine
++package provider
 +
 +import (
 +	"fmt"
@@ -59,5 +59,5 @@ index 000000000..82e5293f1
 +	return nil, fmt.Errorf("unsupported virtualization provider: `%s`", machine.QemuVirt.String())
 +}
 -- 
-2.41.0
+2.42.0
 

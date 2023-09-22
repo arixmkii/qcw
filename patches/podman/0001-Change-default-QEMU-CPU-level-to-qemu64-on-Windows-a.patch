@@ -1,4 +1,4 @@
-From 488ea3c4a2d027941e560b06a048f71ed94674ee Mon Sep 17 00:00:00 2001
+From c082ff18ec8d5633aac58db43290eaa4baf0201a Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Fri, 4 Aug 2023 22:26:04 +0300
 Subject: [PATCH 1/3] Change default QEMU CPU level to `qemu64` on Windows
@@ -30,5 +30,5 @@ index c6ea4afb5..01247cb60 100644
  }
  
 -- 
-2.41.0
+2.42.0
 
