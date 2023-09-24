@@ -1,4 +1,4 @@
-From 30e7c2796af55536c63637a34df2031870fa0cdd Mon Sep 17 00:00:00 2001
+From 203ffcd43e42b6a0790f103cc7c4d1804087e8da Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Mon, 31 Jul 2023 10:28:47 +0300
 Subject: [PATCH 2/3] Implement Unix domain socket support for VLAN
@@ -20,12 +20,12 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
  pkg/machine/machine_windows.go      |  11 ++
  pkg/machine/qemu/config.go          |  26 +++-
- pkg/machine/qemu/machine.go         | 202 +++++++++++++++++-----------
+ pkg/machine/qemu/machine.go         | 204 +++++++++++++++++-----------
  pkg/machine/qemu/machine_unix.go    |  52 ++++---
  pkg/machine/qemu/machine_windows.go |  58 ++++++--
  pkg/machine/wsl/machine.go          |   2 +-
  pkg/machine/wsl/util_windows.go     |   7 -
- 7 files changed, 241 insertions(+), 117 deletions(-)
+ 7 files changed, 243 insertions(+), 117 deletions(-)
 
 diff --git a/pkg/machine/machine_windows.go b/pkg/machine/machine_windows.go
 index 237264448..5aea8c33d 100644
@@ -108,7 +108,7 @@ index 632848bd0..90c1cb48c 100644
  }
  
 diff --git a/pkg/machine/qemu/machine.go b/pkg/machine/qemu/machine.go
-index 5b1045823..8ea1bfa2d 100644
+index 5b1045823..3a4676927 100644
 --- a/pkg/machine/qemu/machine.go
 +++ b/pkg/machine/qemu/machine.go
 @@ -42,6 +42,7 @@ const (
@@ -436,9 +436,12 @@ index 5b1045823..8ea1bfa2d 100644
  	cmd.PidFile = v.PidFilePath.GetPath()
  	cmd.SSHPort = v.Port
  
-@@ -1342,11 +1375,13 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
+@@ -1341,12 +1374,16 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
+ 		logrus.Debug(cmd)
  	}
  
++	cargs := cmd.ToCmdline()
++	logrus.Debugf("gvproxy cmd: %v", append([]string{binary}, cargs...))
  	c := cmd.Cmd(binary)
 -	c.ExtraFiles = []*os.File{dnr, dnw, dnw}
 +	c.Stdin = dnr
@@ -453,7 +456,7 @@ index 5b1045823..8ea1bfa2d 100644
  }
  
  func (v *MachineVM) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.GvproxyCommand, string, machine.APIForwardingState) {
-@@ -1364,10 +1399,10 @@ func (v *MachineVM) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.Gvpr
+@@ -1364,10 +1401,10 @@ func (v *MachineVM) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.Gvpr
  		forwardUser = "root"
  	}
  
@@ -461,14 +464,14 @@ index 5b1045823..8ea1bfa2d 100644
 -	cmd.AddForwardDest(destSock)
 -	cmd.AddForwardUser(forwardUser)
 -	cmd.AddForwardIdentity(v.IdentityPath)
-+	err = forwardSocketArgs(cmd, v.Name, socket.GetPath(), destSock, v.IdentityPath, forwardUser)
++	err = forwardSocketArgs(&cmd, v.Name, socket.GetPath(), destSock, v.IdentityPath, forwardUser)
 +	if err != nil {
 +		return cmd, "", machine.NoForwarding
 +	}
  
  	// The linking pattern is /var/run/docker.sock -> user global sock (link) -> machine sock (socket)
  	// This allows the helper to only have to maintain one constant target to the user, which can be
-@@ -1577,6 +1612,7 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
+@@ -1577,6 +1614,7 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
  		return nil, err
  	}
  	connInfo.PodmanSocket = podmanSocket
@@ -476,11 +479,11 @@ index 5b1045823..8ea1bfa2d 100644
  	return &machine.InspectInfo{
  		ConfigPath:         v.ConfigPath,
  		ConnectionInfo:     *connInfo,
-@@ -1643,6 +1679,18 @@ func (v *MachineVM) editCmdLine(flag string, value string) {
+@@ -1643,6 +1681,18 @@ func (v *MachineVM) editCmdLine(flag string, value string) {
  	}
  }
  
-+func forwardSocketArgs(cmd gvproxy.GvproxyCommand, name string, path string, destPath string, identityPath string, user string) error {
++func forwardSocketArgs(cmd *gvproxy.GvproxyCommand, name string, path string, destPath string, identityPath string, user string) error {
 +	err := forwardPipeArgs(cmd, name, destPath, identityPath, user)
 +	if err != nil {
 +		return err
@@ -496,7 +499,7 @@ index 5b1045823..8ea1bfa2d 100644
  	// Rootless is not relevant on Windows. In the future rootless.IsRootless
  	// could be switched to return true on Windows, and other codepaths migrated
 diff --git a/pkg/machine/qemu/machine_unix.go b/pkg/machine/qemu/machine_unix.go
-index e764013d8..9fa22c566 100644
+index e764013d8..38d52f2fa 100644
 --- a/pkg/machine/qemu/machine_unix.go
 +++ b/pkg/machine/qemu/machine_unix.go
 @@ -6,25 +6,43 @@ package qemu
@@ -551,7 +554,7 @@ index e764013d8..9fa22c566 100644
  	return nil
  }
  
-+func forwardPipeArgs(cmd gvproxy.GvproxyCommand, name string, destPath string, identityPath string, user string) error {
++func forwardPipeArgs(cmd *gvproxy.GvproxyCommand, name string, destPath string, identityPath string, user string) error {
 +	return nil
 +}
 +
@@ -585,7 +588,7 @@ index e764013d8..9fa22c566 100644
 -	return pid, nil
 -}
 diff --git a/pkg/machine/qemu/machine_windows.go b/pkg/machine/qemu/machine_windows.go
-index b31a4f1d1..e0422a447 100644
+index b31a4f1d1..a9fccbdd6 100644
 --- a/pkg/machine/qemu/machine_windows.go
 +++ b/pkg/machine/qemu/machine_windows.go
 @@ -6,14 +6,28 @@ import (
@@ -624,7 +627,7 @@ index b31a4f1d1..e0422a447 100644
  	return nil
  }
  
-+func forwardPipeArgs(cmd gvproxy.GvproxyCommand, name string, destPath string, identityPath string, user string) error {
++func forwardPipeArgs(cmd *gvproxy.GvproxyCommand, name string, destPath string, identityPath string, user string) error {
 +	machinePipe := toPipeName(name)
 +	if !machine.PipeNameAvailable(machinePipe) {
 +		return fmt.Errorf("could not start api proxy since expected pipe is not available: %s", machinePipe)
