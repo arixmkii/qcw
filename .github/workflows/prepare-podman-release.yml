@@ -4,7 +4,7 @@ on: workflow_dispatch
 
 env:
   PODMAN_GITURL: https://github.com/containers/podman.git
-  PODMAN_SHA: c3ab75ca459dc52661197c3dd42520bbd3317479
+  PODMAN_SHA: f64234969aa6bc43e3d99f56ee49066cbfa2b8cd
 
 jobs:
 
