@@ -41,7 +41,7 @@ jobs:
         git remote add origin $GOCAT_GITURL
         git fetch --depth 1 origin $GOCAT_SHA
         git checkout FETCH_HEAD
-        patch -l -p 1 < ../patches/gocat/0001-Updating-deps.patch
+        patch --binary -l -p 1 < ../patches/gocat/0001-Updating-deps.patch
 
     - name: '🛠️ Build gocat'
       working-directory: gocat-release
