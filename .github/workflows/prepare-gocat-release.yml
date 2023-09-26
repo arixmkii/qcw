@@ -27,6 +27,9 @@ jobs:
           zip
           mingw-w64-ucrt-x86_64-go
 
+    - name: '📝 Configure checkout'
+      run: git config --global core.autocrlf input
+
     - name: '📝 Checkout'
       uses: actions/checkout@v3
       with:
@@ -41,7 +44,7 @@ jobs:
         git remote add origin $GOCAT_GITURL
         git fetch --depth 1 origin $GOCAT_SHA
         git checkout FETCH_HEAD
-        patch -p 1 < ../patches/gocat/0001-Updating-deps.patch
+        patch --binary -l -p 1 < ../patches/gocat/0001-Updating-deps.patch
 
     - name: '🛠️ Build gocat'
       working-directory: gocat-release
