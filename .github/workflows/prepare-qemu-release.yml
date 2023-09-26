@@ -67,9 +67,9 @@ jobs:
         7z x "qemu-$QEMU_VERSION.tar"
         mv "qemu-$QEMU_VERSION" qemu-release
         cd qemu-release
-        patch --binary -l -p 1 < ../patches/qemu/0001-9pfs-Add-9pfs-support-for-Windows-host.patch
-        patch --binary -l -p 1 < ../patches/qemu/0002-WHPX-Add-support-for-device-backed-memory-regions.patch
-        patch --binary -l -p 1 < ../patches/qemu/0003-Windows-installer-keep-dependency-cache.patch
+        patch -p 1 < ../patches/qemu/0001-9pfs-Add-9pfs-support-for-Windows-host.patch
+        patch -p 1 < ../patches/qemu/0002-WHPX-Add-support-for-device-backed-memory-regions.patch
+        patch -p 1 < ../patches/qemu/0003-Windows-installer-keep-dependency-cache.patch
 
     - name: '🛠️ Build QEMU'
       working-directory: qemu-release
