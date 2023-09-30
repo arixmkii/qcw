@@ -1,4 +1,4 @@
-From 5a66ea2a007047de9bcdfb49f21504660ad3351c Mon Sep 17 00:00:00 2001
+From 00012ce4ed0e51282a9a3d1a0283ce9bb3251608 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 26 Sep 2023 14:52:38 +0300
 Subject: [PATCH 2/3] Implement Unix domain socket support for VLAN
@@ -17,25 +17,22 @@ it is not promoted to persisted machine settings, but is rather
 calculated inside Start method.
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
-
-# Conflicts:
-#	pkg/machine/e2e/config_darwin_test.go
 ---
  pkg/machine/e2e/README.md           |  23 +++
  pkg/machine/machine_windows.go      |  11 ++
  pkg/machine/qemu/config.go          |  26 +++-
- pkg/machine/qemu/machine.go         | 216 +++++++++++++++++-----------
+ pkg/machine/qemu/machine.go         | 209 +++++++++++++++++-----------
  pkg/machine/qemu/machine_unix.go    |  52 ++++---
  pkg/machine/qemu/machine_windows.go |  58 ++++++--
  pkg/machine/wsl/machine.go          |   2 +-
  pkg/machine/wsl/util_windows.go     |   7 -
- 8 files changed, 270 insertions(+), 125 deletions(-)
+ 8 files changed, 267 insertions(+), 121 deletions(-)
 
 diff --git a/pkg/machine/e2e/README.md b/pkg/machine/e2e/README.md
-index bf64b5c3f..12f338b3d 100644
+index a516dfdb3..5a1a3f719 100644
 --- a/pkg/machine/e2e/README.md
 +++ b/pkg/machine/e2e/README.md
-@@ -37,3 +37,26 @@ Note: Add `--focus-file "basic_test.go" ` to only run basic test
+@@ -40,3 +40,26 @@ Note: To run specfic test files, add the test files to the end of the winmake co
  1. `./test/tools/build/ginkgo -vv  --tags "remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp remote" -timeout=90m --trace --no-color  pkg/machine/e2e/.`
  
  Note: Add `--focus-file "basic_test.go" ` to only run basic test
@@ -85,7 +82,7 @@ index 237264448..5aea8c33d 100644
  	const da = syscall.STANDARD_RIGHTS_READ | syscall.PROCESS_QUERY_INFORMATION | syscall.SYNCHRONIZE
  	handle, err := syscall.OpenProcess(da, false, uint32(pid))
 diff --git a/pkg/machine/qemu/config.go b/pkg/machine/qemu/config.go
-index 632848bd0..90c1cb48c 100644
+index b1a84964f..4f6d04d2d 100644
 --- a/pkg/machine/qemu/config.go
 +++ b/pkg/machine/qemu/config.go
 @@ -42,7 +42,7 @@ func (v *MachineVM) setQMPMonitorSocket() error {
@@ -143,7 +140,7 @@ index 632848bd0..90c1cb48c 100644
  }
  
 diff --git a/pkg/machine/qemu/machine.go b/pkg/machine/qemu/machine.go
-index 5b1045823..5df364dbc 100644
+index 913484752..37afd48c2 100644
 --- a/pkg/machine/qemu/machine.go
 +++ b/pkg/machine/qemu/machine.go
 @@ -42,6 +42,7 @@ const (
@@ -361,7 +358,7 @@ index 5b1045823..5df364dbc 100644
  		state, err := v.State(false)
  		if err != nil {
  			return err
-@@ -907,14 +926,10 @@ func (v *MachineVM) ProxyPID() (int, error) {
+@@ -907,15 +926,14 @@ func (v *MachineVM) ProxyPID() (int, error) {
  	return proxyPid, nil
  }
  
@@ -371,15 +368,17 @@ index 5b1045823..5df364dbc 100644
 +func (v *MachineVM) cleanupVMProxyProcess(proxyPid int) error {
  	// Kill the process
 -	if err := proxyProc.Kill(); err != nil {
--		return err
--	}
--	// Remove the pidfile
--	if err := v.PidFilePath.Delete(); err != nil {
 +	if err := killProcess(proxyPid); err != nil {
  		return err
  	}
+-	// Remove the pidfile
+ 	if err := v.PidFilePath.Delete(); err != nil {
+-		return err
++		logrus.Debugf("Error while removing proxy pidfile: %v", err)
+ 	}
  	return nil
-@@ -962,7 +977,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
+ }
+@@ -962,7 +980,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
  		return stopErr
  	}
  
@@ -388,7 +387,7 @@ index 5b1045823..5df364dbc 100644
  		if stopErr == nil {
  			return err
  		}
-@@ -1037,7 +1052,7 @@ func (v *MachineVM) stopLocked() error {
+@@ -1037,7 +1055,7 @@ func (v *MachineVM) stopLocked() error {
  		return err
  	}
  
@@ -397,7 +396,7 @@ index 5b1045823..5df364dbc 100644
  		return err
  	}
  
-@@ -1069,7 +1084,11 @@ func (v *MachineVM) stopLocked() error {
+@@ -1069,7 +1087,11 @@ func (v *MachineVM) stopLocked() error {
  	}
  
  	fmt.Println("Waiting for VM to exit...")
@@ -410,7 +409,7 @@ index 5b1045823..5df364dbc 100644
  		time.Sleep(500 * time.Millisecond)
  	}
  
-@@ -1078,32 +1097,42 @@ func (v *MachineVM) stopLocked() error {
+@@ -1078,32 +1100,42 @@ func (v *MachineVM) stopLocked() error {
  
  // NewQMPMonitor creates the monitor subsection of our vm
  func NewQMPMonitor(network, name string, timeout time.Duration) (Monitor, error) {
@@ -466,7 +465,7 @@ index 5b1045823..5df364dbc 100644
  }
  
  // collectFilesToDestroy retrieves the files that will be destroyed by `Remove`
-@@ -1307,26 +1336,26 @@ func getDiskSize(path string) (uint64, error) {
+@@ -1307,18 +1339,18 @@ func getDiskSize(path string) (uint64, error) {
  
  // startHostNetworking runs a binary on the host system that allows users
  // to set up port forwarding to the podman virtual machine
@@ -483,32 +482,19 @@ index 5b1045823..5df364dbc 100644
 +		return "", machine.NoForwarding, nil, err
  	}
  
- 	dnr, dnw, err := machine.GetDevNullFiles()
- 	if err != nil {
--		return "", machine.NoForwarding, err
-+		return "", machine.NoForwarding, nil, err
- 	}
- 
- 	defer dnr.Close()
- 	defer dnw.Close()
- 
  	cmd := gvproxy.NewGvproxyCommand()
 -	cmd.AddQemuSocket(fmt.Sprintf("unix://%s", v.QMPMonitor.Address.GetPath()))
 +	cmd.AddQemuSocket(fmt.Sprintf("unix://%s", strings.ReplaceAll(vlanSocket.GetPath(), "\\", "/")))
  	cmd.PidFile = v.PidFilePath.GetPath()
  	cmd.SSHPort = v.Port
  
-@@ -1341,12 +1370,16 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
+@@ -1333,11 +1365,13 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
  		logrus.Debug(cmd)
  	}
  
 +	cargs := cmd.ToCmdline()
 +	logrus.Debugf("gvproxy cmd: %v", append([]string{binary}, cargs...))
  	c := cmd.Cmd(binary)
--	c.ExtraFiles = []*os.File{dnr, dnw, dnw}
-+	c.Stdin = dnr
-+	c.Stdout = dnw
-+	c.Stderr = dnw
  	if err := c.Start(); err != nil {
 -		return "", 0, fmt.Errorf("unable to execute: %q: %w", cmd.ToCmdline(), err)
 +		return "", 0, nil, fmt.Errorf("unable to execute: %q: %w", cmd.ToCmdline(), err)
@@ -518,7 +504,7 @@ index 5b1045823..5df364dbc 100644
  }
  
  func (v *MachineVM) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.GvproxyCommand, string, machine.APIForwardingState) {
-@@ -1364,10 +1397,10 @@ func (v *MachineVM) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.Gvpr
+@@ -1355,10 +1389,10 @@ func (v *MachineVM) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.Gvpr
  		forwardUser = "root"
  	}
  
@@ -533,7 +519,7 @@ index 5b1045823..5df364dbc 100644
  
  	// The linking pattern is /var/run/docker.sock -> user global sock (link) -> machine sock (socket)
  	// This allows the helper to only have to maintain one constant target to the user, which can be
-@@ -1577,6 +1610,7 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
+@@ -1568,6 +1602,7 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
  		return nil, err
  	}
  	connInfo.PodmanSocket = podmanSocket
@@ -541,7 +527,7 @@ index 5b1045823..5df364dbc 100644
  	return &machine.InspectInfo{
  		ConfigPath:         v.ConfigPath,
  		ConnectionInfo:     *connInfo,
-@@ -1643,6 +1677,18 @@ func (v *MachineVM) editCmdLine(flag string, value string) {
+@@ -1634,6 +1669,18 @@ func (v *MachineVM) editCmdLine(flag string, value string) {
  	}
  }
  
@@ -735,7 +721,7 @@ index b31a4f1d1..76a6a1ab1 100644
 -	return -1, nil
 -}
 diff --git a/pkg/machine/wsl/machine.go b/pkg/machine/wsl/machine.go
-index 25d6864b7..5afe8ba6b 100644
+index 38219a799..197d9510a 100644
 --- a/pkg/machine/wsl/machine.go
 +++ b/pkg/machine/wsl/machine.go
 @@ -1481,7 +1481,7 @@ func stopWinProxy(v *MachineVM) error {

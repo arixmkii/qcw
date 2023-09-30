@@ -1,11 +1,11 @@
-From 0b3a9797d22d52eb0c5a14ba27f1d880e2aa867c Mon Sep 17 00:00:00 2001
+From 1c61d6a66f042293d5dea91fb1691f38f612400d Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Sat, 1 Apr 2023 23:49:13 +0300
 Subject: [PATCH 3/3] Enable QEMU Podman machine on Windows
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
- pkg/machine/e2e/README.md                      |  9 +++++++++
+ pkg/machine/e2e/README.md                      | 11 +++++++++++
  pkg/machine/e2e/config_test.go                 | 14 ++++++++++++++
  pkg/machine/e2e/config_unix_test.go            | 13 +------------
  pkg/machine/e2e/config_windows_test.go         |  7 ++++++-
@@ -13,37 +13,39 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
  pkg/machine/provider/platform_windows.go       |  2 ++
  pkg/machine/provider/platform_windows_amd64.go | 10 ++++++++++
  pkg/machine/provider/platform_windows_arm64.go | 11 +++++++++++
- 8 files changed, 56 insertions(+), 13 deletions(-)
+ 8 files changed, 58 insertions(+), 13 deletions(-)
  create mode 100644 pkg/machine/provider/platform_windows_amd64.go
  create mode 100644 pkg/machine/provider/platform_windows_arm64.go
 
 diff --git a/pkg/machine/e2e/README.md b/pkg/machine/e2e/README.md
-index 12f338b3d..cded90f04 100644
+index 5a1a3f719..89f25067a 100644
 --- a/pkg/machine/e2e/README.md
 +++ b/pkg/machine/e2e/README.md
-@@ -25,6 +25,15 @@ Note: Add `--focus-file "basic_test.go" ` to only run basic test
+@@ -28,6 +28,17 @@ Note: To run specfic test files, add the test files to the end of the winmake co
  
- Note: Add `--focus-file "basic_test.go" ` to only run basic test
+ `./winmake localmachine "basic_test.go start_test.go"`
  
 +### QEMU
 +1. Install QEMU and add it to either user or sysmem PATH variable
 +1. Install Podman release (needed to have gvproxy binary)
 +1. Open a powershell as a regular user
 +1. $env:CONTAINERS_MACHINE_PROVIDER="qemu"
-+1. `./test/tools/build/ginkgo.exe -vv  --tags "remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp remote" -timeout=90m --trace --no-color  pkg/machine/e2e/. `
++1. `./winmake localmachine`
 +
-+Note: Add `--focus-file "basic_test.go" ` to only run basic test
++Note: To run specfic test files, add the test files to the end of the winmake command:
++
++`./winmake localmachine "basic_test.go start_test.go"`
 +
  ## MacOS
  
  ### Apple Hypervisor
 diff --git a/pkg/machine/e2e/config_test.go b/pkg/machine/e2e/config_test.go
-index 63e0fa7bb..a08cd320b 100644
+index 420505e70..f42c8bf7c 100644
 --- a/pkg/machine/e2e/config_test.go
 +++ b/pkg/machine/e2e/config_test.go
-@@ -217,3 +217,17 @@ func skipIfNotVmtype(vmType machine.VMType, message string) {
- func skipIfWSL(message string) {
- 	skipIfVmtype(machine.WSLVirt, message)
+@@ -226,3 +226,17 @@ func isVmtype(vmType machine.VMType) bool {
+ func isWSL() bool {
+ 	return isVmtype(machine.WSLVirt)
  }
 +
 +func getQemuFcosDownloadLocation(p machine.VirtProvider) string {
@@ -105,13 +107,13 @@ index 9fa63cd88..1f985eccf 100644
  	if err != nil {
  		Fail("unable to get WSL virtual image")
 diff --git a/pkg/machine/e2e/init_test.go b/pkg/machine/e2e/init_test.go
-index 5f0d128c9..8cb8c8a01 100644
+index 4ea370dff..33ce6f2f9 100644
 --- a/pkg/machine/e2e/init_test.go
 +++ b/pkg/machine/e2e/init_test.go
-@@ -147,6 +147,9 @@ var _ = Describe("podman machine init", func() {
- 		if testProvider.VMType() == machine.HyperVVirt {
+@@ -161,6 +161,9 @@ var _ = Describe("podman machine init", func() {
  			Skip("volumes are not supported on hyperv yet")
  		}
+ 		skipIfWSL("WSL volumes are much different.  This test will not pass as is")
 +		if testProvider.VMType() == machine.QemuVirt && runtime.GOOS == "windows" {
 +			Skip("volumes are not yet supported on official qemu builds running under Windows")
 +		}
