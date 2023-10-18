@@ -1,4 +1,4 @@
-From 1c61d6a66f042293d5dea91fb1691f38f612400d Mon Sep 17 00:00:00 2001
+From 827575f9e596bed03272f2277bc9cba73f87d523 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Sat, 1 Apr 2023 23:49:13 +0300
 Subject: [PATCH 3/3] Enable QEMU Podman machine on Windows
@@ -18,10 +18,10 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
  create mode 100644 pkg/machine/provider/platform_windows_arm64.go
 
 diff --git a/pkg/machine/e2e/README.md b/pkg/machine/e2e/README.md
-index 5a1a3f719..89f25067a 100644
+index c33d44e07..551a30420 100644
 --- a/pkg/machine/e2e/README.md
 +++ b/pkg/machine/e2e/README.md
-@@ -28,6 +28,17 @@ Note: To run specfic test files, add the test files to the end of the winmake co
+@@ -28,6 +28,17 @@ Note: To run specific test files, add the test files to the end of the winmake c
  
  `./winmake localmachine "basic_test.go start_test.go"`
  
@@ -107,7 +107,7 @@ index 9fa63cd88..1f985eccf 100644
  	if err != nil {
  		Fail("unable to get WSL virtual image")
 diff --git a/pkg/machine/e2e/init_test.go b/pkg/machine/e2e/init_test.go
-index 4ea370dff..33ce6f2f9 100644
+index 948d67a83..672f63d6a 100644
 --- a/pkg/machine/e2e/init_test.go
 +++ b/pkg/machine/e2e/init_test.go
 @@ -161,6 +161,9 @@ var _ = Describe("podman machine init", func() {
