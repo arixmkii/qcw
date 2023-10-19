@@ -1,4 +1,4 @@
-From 531c6a0a8d46d95ca570b07335506253ac69a76c Mon Sep 17 00:00:00 2001
+From 8d12f0f14f833d00063c06749291a1e66045c489 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 26 Sep 2023 14:52:38 +0300
 Subject: [PATCH 2/3] Implement Unix domain socket support for VLAN
@@ -25,10 +25,10 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
  pkg/machine/qemu/machine.go           | 209 ++++++++++++++++----------
  pkg/machine/qemu/machine_unix.go      |  52 ++++---
  pkg/machine/qemu/machine_windows.go   |  58 +++++--
- pkg/machine/qemu/qemu_command_test.go |   2 +-
+ pkg/machine/qemu/qemu_command_test.go |   3 +-
  pkg/machine/wsl/machine.go            |   2 +-
  pkg/machine/wsl/util_windows.go       |   7 -
- 10 files changed, 274 insertions(+), 124 deletions(-)
+ 10 files changed, 275 insertions(+), 124 deletions(-)
 
 diff --git a/pkg/machine/e2e/README.md b/pkg/machine/e2e/README.md
 index 7b0637a1d..c33d44e07 100644
@@ -736,15 +736,16 @@ index b31a4f1d1..76a6a1ab1 100644
 -	return -1, nil
 -}
 diff --git a/pkg/machine/qemu/qemu_command_test.go b/pkg/machine/qemu/qemu_command_test.go
-index 3a8848a07..7052eabd2 100644
+index 3a8848a07..5c58f84a5 100644
 --- a/pkg/machine/qemu/qemu_command_test.go
 +++ b/pkg/machine/qemu/qemu_command_test.go
-@@ -41,7 +41,7 @@ func TestQemuCmd(t *testing.T) {
+@@ -41,7 +41,8 @@ func TestQemuCmd(t *testing.T) {
  	cmd.SetCPUs(4)
  	cmd.SetIgnitionFile(*ignFile)
  	cmd.SetQmpMonitor(monitor)
 -	cmd.SetNetwork()
-+	cmd.SetNetwork("test-machine")
++	err = cmd.SetNetwork("test-machine")
++	assert.NoError(t, err)
  	cmd.SetSerialPort(*readySocket, *vmPidFile, "test-machine")
  	cmd.SetVirtfsMount("/tmp/path", "vol10", "none", true)
  	cmd.SetBootableImage(bootableImagePath)
