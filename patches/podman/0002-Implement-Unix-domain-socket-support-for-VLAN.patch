@@ -1,4 +1,4 @@
-From 2a621180df32621b1057e5a61db8236a411ad64d Mon Sep 17 00:00:00 2001
+From 35165d3204da265562f4c45cbd9d9ecae6c4fc16 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 26 Sep 2023 14:52:38 +0300
 Subject: [PATCH 2/3] Implement Unix domain socket support for VLAN
@@ -24,11 +24,11 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
  pkg/machine/qemu/config.go            |  11 +-
  pkg/machine/qemu/machine.go           | 178 ++++++++++++++++++--------
  pkg/machine/qemu/machine_unix.go      |  52 +++++---
- pkg/machine/qemu/machine_windows.go   |  58 +++++++--
+ pkg/machine/qemu/machine_windows.go   |  59 +++++++--
  pkg/machine/qemu/qemu_command_test.go |   3 +-
  pkg/machine/wsl/machine.go            |   2 +-
  pkg/machine/wsl/util_windows.go       |   7 -
- 10 files changed, 270 insertions(+), 98 deletions(-)
+ 10 files changed, 271 insertions(+), 98 deletions(-)
 
 diff --git a/pkg/machine/e2e/README.md b/pkg/machine/e2e/README.md
 index 7b0637a1d..c33d44e07 100644
@@ -84,7 +84,7 @@ index fe1d2fa5c..c4cf08d2c 100644
  	const da = syscall.STANDARD_RIGHTS_READ | syscall.PROCESS_QUERY_INFORMATION | syscall.SYNCHRONIZE
  	handle, err := syscall.OpenProcess(da, false, uint32(pid))
 diff --git a/pkg/machine/qemu/command.go b/pkg/machine/qemu/command.go
-index 12b0bd10a..f2f9987cd 100644
+index 6e6c8f31b..302256621 100644
 --- a/pkg/machine/qemu/command.go
 +++ b/pkg/machine/qemu/command.go
 @@ -40,10 +40,29 @@ func (q *QemuCmd) SetQmpMonitor(monitor Monitor) {
@@ -120,10 +120,10 @@ index 12b0bd10a..f2f9987cd 100644
  
  // SetSerialPort adds a serial port to the machine for readiness
 diff --git a/pkg/machine/qemu/config.go b/pkg/machine/qemu/config.go
-index 57066c10c..649bdbec1 100644
+index eb776097f..380474c67 100644
 --- a/pkg/machine/qemu/config.go
 +++ b/pkg/machine/qemu/config.go
-@@ -49,14 +49,17 @@ func (v *MachineVM) setQMPMonitorSocket() error {
+@@ -51,14 +51,17 @@ func (v *MachineVM) setQMPMonitorSocket() error {
  
  // setNewMachineCMD configure the CLI command that will be run to create the new
  // machine
@@ -143,7 +143,7 @@ index 57066c10c..649bdbec1 100644
  }
  
  // NewMachine initializes an instance of a virtual machine based on the qemu
-@@ -131,7 +134,9 @@ func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, e
+@@ -133,7 +136,9 @@ func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, e
  
  	// configure command to run
  	cmdOpts := setNewMachineCMDOpts{imageDir: dataDir}
@@ -155,10 +155,10 @@ index 57066c10c..649bdbec1 100644
  }
  
 diff --git a/pkg/machine/qemu/machine.go b/pkg/machine/qemu/machine.go
-index bcbda58f7..e952115ef 100644
+index f7fd7ef38..9cd29975b 100644
 --- a/pkg/machine/qemu/machine.go
 +++ b/pkg/machine/qemu/machine.go
-@@ -42,6 +42,7 @@ const (
+@@ -43,6 +43,7 @@ const (
  	MountType9p          = "9p"
  	dockerSock           = "/var/run/docker.sock"
  	dockerConnectTimeout = 5 * time.Second
@@ -166,7 +166,7 @@ index bcbda58f7..e952115ef 100644
  )
  
  type MachineVM struct {
-@@ -278,6 +279,9 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
+@@ -279,6 +280,9 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
  	}
  
  	v.UID = os.Getuid()
@@ -176,7 +176,7 @@ index bcbda58f7..e952115ef 100644
  
  	// Add location of bootable image
  	v.CmdLine.SetBootableImage(v.getImageFile())
-@@ -531,7 +535,8 @@ func (v *MachineVM) qemuPid() (int, error) {
+@@ -532,7 +536,8 @@ func (v *MachineVM) qemuPid() (int, error) {
  		logrus.Warnf("Reading QEMU pidfile: %v", err)
  		return -1, nil
  	}
@@ -186,7 +186,7 @@ index bcbda58f7..e952115ef 100644
  }
  
  // Start executes the qemu command line and forks it
-@@ -539,6 +544,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -540,6 +545,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  	var (
  		conn           net.Conn
  		err            error
@@ -194,7 +194,7 @@ index bcbda58f7..e952115ef 100644
  		qemuSocketConn net.Conn
  	)
  
-@@ -597,11 +603,6 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -598,11 +604,6 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  		logrus.Errorf("machine %q is incompatible with this release of podman and needs to be recreated, starting for recovery only", v.Name)
  	}
  
@@ -206,7 +206,7 @@ index bcbda58f7..e952115ef 100644
  	rtPath, err := getRuntimeDir()
  	if err != nil {
  		return err
-@@ -615,23 +616,57 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -616,23 +617,57 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  		}
  	}
  
@@ -274,7 +274,7 @@ index bcbda58f7..e952115ef 100644
  
  	dnr, dnw, err := machine.GetDevNullFiles()
  	if err != nil {
-@@ -641,7 +676,10 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -642,7 +677,10 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  	defer dnw.Close()
  
  	attr := new(os.ProcAttr)
@@ -286,7 +286,7 @@ index bcbda58f7..e952115ef 100644
  	attr.Files = files
  	cmdLine := v.CmdLine
  
-@@ -659,12 +697,14 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -660,12 +698,14 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  
  	// actually run the command that starts the virtual machine
  	cmd := &exec.Cmd{
@@ -307,7 +307,7 @@ index bcbda58f7..e952115ef 100644
  	}
  
  	if err := runStartVMCommand(cmd); err != nil {
-@@ -813,7 +853,7 @@ func (v *MachineVM) checkStatus(monitor *qmp.SocketMonitor) (machine.Status, err
+@@ -814,7 +854,7 @@ func (v *MachineVM) checkStatus(monitor *qmp.SocketMonitor) (machine.Status, err
  func (v *MachineVM) waitForMachineToStop() error {
  	fmt.Println("Waiting for VM to stop running...")
  	waitInternal := 250 * time.Millisecond
@@ -316,7 +316,7 @@ index bcbda58f7..e952115ef 100644
  		state, err := v.State(false)
  		if err != nil {
  			return err
-@@ -846,15 +886,14 @@ func (v *MachineVM) ProxyPID() (int, error) {
+@@ -847,15 +887,14 @@ func (v *MachineVM) ProxyPID() (int, error) {
  	return proxyPid, nil
  }
  
@@ -336,7 +336,7 @@ index bcbda58f7..e952115ef 100644
  	}
  	return nil
  }
-@@ -898,7 +937,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
+@@ -899,7 +938,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
  		return stopErr
  	}
  
@@ -345,7 +345,7 @@ index bcbda58f7..e952115ef 100644
  		if stopErr == nil {
  			return err
  		}
-@@ -973,7 +1012,7 @@ func (v *MachineVM) stopLocked() error {
+@@ -974,7 +1013,7 @@ func (v *MachineVM) stopLocked() error {
  		return err
  	}
  
@@ -354,7 +354,7 @@ index bcbda58f7..e952115ef 100644
  		return err
  	}
  
-@@ -1005,7 +1044,11 @@ func (v *MachineVM) stopLocked() error {
+@@ -1006,7 +1045,11 @@ func (v *MachineVM) stopLocked() error {
  	}
  
  	fmt.Println("Waiting for VM to exit...")
@@ -367,7 +367,7 @@ index bcbda58f7..e952115ef 100644
  		time.Sleep(500 * time.Millisecond)
  	}
  
-@@ -1014,32 +1057,42 @@ func (v *MachineVM) stopLocked() error {
+@@ -1015,32 +1058,42 @@ func (v *MachineVM) stopLocked() error {
  
  // NewQMPMonitor creates the monitor subsection of our vm
  func NewQMPMonitor(network, name string, timeout time.Duration) (Monitor, error) {
@@ -387,7 +387,7 @@ index bcbda58f7..e952115ef 100644
 +	return monitor, nil
 +}
 +
-+func machineSocket(name, prefix, suffix string) (*machine.VMFile, error) {
++func machineSocket(name, prefix, suffix string) (*define.VMFile, error) {
 +	rtDir, err := getRuntimeDir()
 +	if err != nil {
 +		return nil, err
@@ -407,7 +407,7 @@ index bcbda58f7..e952115ef 100644
 +	if prefix != "" {
 +		name = prefix + "_" + name
  	}
--	address, err := machine.NewMachineFile(filepath.Join(rtDir, "qmp_"+name+".sock"), nil)
+-	address, err := define.NewMachineFile(filepath.Join(rtDir, "qmp_"+name+".sock"), nil)
 -	if err != nil {
 -		return Monitor{}, err
 +	if suffix != "" {
@@ -419,16 +419,16 @@ index bcbda58f7..e952115ef 100644
 -		Timeout: timeout,
 -	}
 -	return monitor, nil
-+	return machine.NewMachineFile(filepath.Join(rtDir, name+".sock"), nil)
++	return define.NewMachineFile(filepath.Join(rtDir, name+".sock"), nil)
  }
  
  // collectFilesToDestroy retrieves the files that will be destroyed by `Remove`
-@@ -1240,18 +1293,18 @@ func getDiskSize(path string) (uint64, error) {
+@@ -1241,18 +1294,18 @@ func getDiskSize(path string) (uint64, error) {
  
  // startHostNetworking runs a binary on the host system that allows users
  // to set up port forwarding to the podman virtual machine
 -func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, error) {
-+func (v *MachineVM) startHostNetworking(vlanSocket *machine.VMFile) (string, machine.APIForwardingState, *os.Process, error) {
++func (v *MachineVM) startHostNetworking(vlanSocket *define.VMFile) (string, machine.APIForwardingState, *os.Process, error) {
  	cfg, err := config.Default()
  	if err != nil {
 -		return "", machine.NoForwarding, err
@@ -446,7 +446,7 @@ index bcbda58f7..e952115ef 100644
  	cmd.PidFile = v.PidFilePath.GetPath()
  	cmd.SSHPort = v.Port
  
-@@ -1266,11 +1319,13 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
+@@ -1267,11 +1320,13 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
  		logrus.Debug(cmd)
  	}
  
@@ -462,7 +462,7 @@ index bcbda58f7..e952115ef 100644
  }
  
  func (v *MachineVM) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.GvproxyCommand, string, machine.APIForwardingState) {
-@@ -1288,10 +1343,10 @@ func (v *MachineVM) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.Gvpr
+@@ -1289,10 +1344,10 @@ func (v *MachineVM) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.Gvpr
  		forwardUser = "root"
  	}
  
@@ -477,7 +477,7 @@ index bcbda58f7..e952115ef 100644
  
  	// The linking pattern is /var/run/docker.sock -> user global sock (link) -> machine sock (socket)
  	// This allows the helper to only have to maintain one constant target to the user, which can be
-@@ -1487,6 +1542,7 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
+@@ -1488,6 +1543,7 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
  		return nil, err
  	}
  	connInfo.PodmanSocket = podmanSocket
@@ -485,7 +485,7 @@ index bcbda58f7..e952115ef 100644
  	return &machine.InspectInfo{
  		ConfigPath:         v.ConfigPath,
  		ConnectionInfo:     *connInfo,
-@@ -1553,6 +1609,18 @@ func (v *MachineVM) editCmdLine(flag string, value string) {
+@@ -1554,6 +1610,18 @@ func (v *MachineVM) editCmdLine(flag string, value string) {
  	}
  }
  
@@ -505,7 +505,7 @@ index bcbda58f7..e952115ef 100644
  	// Rootless is not relevant on Windows. In the future rootless.IsRootless
  	// could be switched to return true on Windows, and other codepaths migrated
 diff --git a/pkg/machine/qemu/machine_unix.go b/pkg/machine/qemu/machine_unix.go
-index e764013d8..34fa9f44c 100644
+index e764013d8..385611117 100644
 --- a/pkg/machine/qemu/machine_unix.go
 +++ b/pkg/machine/qemu/machine_unix.go
 @@ -6,25 +6,43 @@ package qemu
@@ -517,7 +517,7 @@ index e764013d8..34fa9f44c 100644
  	"syscall"
  
 +	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
-+	"github.com/containers/podman/v4/pkg/machine"
++	"github.com/containers/podman/v4/pkg/machine/define"
  	"golang.org/x/sys/unix"
  )
  
@@ -564,7 +564,7 @@ index e764013d8..34fa9f44c 100644
 +	return nil
 +}
 +
-+func podmanPipe(name string) *machine.VMFile {
++func podmanPipe(name string) *define.VMFile {
 +	return nil
 +}
 +
@@ -594,15 +594,16 @@ index e764013d8..34fa9f44c 100644
 -	return pid, nil
 -}
 diff --git a/pkg/machine/qemu/machine_windows.go b/pkg/machine/qemu/machine_windows.go
-index b31a4f1d1..76a6a1ab1 100644
+index b31a4f1d1..9692b8eaa 100644
 --- a/pkg/machine/qemu/machine_windows.go
 +++ b/pkg/machine/qemu/machine_windows.go
-@@ -6,14 +6,28 @@ import (
+@@ -6,14 +6,29 @@ import (
  	"regexp"
  	"strings"
  
 +	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
  	"github.com/containers/podman/v4/pkg/machine"
++	"github.com/containers/podman/v4/pkg/machine/define"
  )
  
 -func isProcessAlive(pid int) bool {
@@ -629,7 +630,7 @@ index b31a4f1d1..76a6a1ab1 100644
  }
  
  func checkProcessStatus(processHint string, pid int, stderrBuf *bytes.Buffer) error {
-@@ -28,6 +42,36 @@ func checkProcessStatus(processHint string, pid int, stderrBuf *bytes.Buffer) er
+@@ -28,6 +43,36 @@ func checkProcessStatus(processHint string, pid int, stderrBuf *bytes.Buffer) er
  	return nil
  }
  
@@ -645,8 +646,8 @@ index b31a4f1d1..76a6a1ab1 100644
 +	return nil
 +}
 +
-+func podmanPipe(name string) *machine.VMFile {
-+	return &machine.VMFile{Path: `\\.\pipe\` + toPipeName(name)}
++func podmanPipe(name string) *define.VMFile {
++	return &define.VMFile{Path: `\\.\pipe\` + toPipeName(name)}
 +}
 +
 +func toPipeName(name string) string {
@@ -666,7 +667,7 @@ index b31a4f1d1..76a6a1ab1 100644
  func pathsFromVolume(volume string) []string {
  	paths := strings.SplitN(volume, ":", 3)
  	driveLetterMatcher := regexp.MustCompile(`^(?:\\\\[.?]\\)?[a-zA-Z]$`)
-@@ -50,11 +94,3 @@ func extractTargetPath(paths []string) string {
+@@ -50,11 +95,3 @@ func extractTargetPath(paths []string) string {
  	dedup := regexp.MustCompile(`//+`)
  	return dedup.ReplaceAllLiteralString("/"+target, "/")
  }
@@ -679,7 +680,7 @@ index b31a4f1d1..76a6a1ab1 100644
 -	return -1, nil
 -}
 diff --git a/pkg/machine/qemu/qemu_command_test.go b/pkg/machine/qemu/qemu_command_test.go
-index 3a8848a07..5c58f84a5 100644
+index 5041dcb15..0597035b9 100644
 --- a/pkg/machine/qemu/qemu_command_test.go
 +++ b/pkg/machine/qemu/qemu_command_test.go
 @@ -41,7 +41,8 @@ func TestQemuCmd(t *testing.T) {
@@ -693,10 +694,10 @@ index 3a8848a07..5c58f84a5 100644
  	cmd.SetVirtfsMount("/tmp/path", "vol10", "none", true)
  	cmd.SetBootableImage(bootableImagePath)
 diff --git a/pkg/machine/wsl/machine.go b/pkg/machine/wsl/machine.go
-index d29aa0236..4011dd31b 100644
+index 51d96e743..8fcc66f81 100644
 --- a/pkg/machine/wsl/machine.go
 +++ b/pkg/machine/wsl/machine.go
-@@ -1542,7 +1542,7 @@ func stopWinProxy(v *MachineVM) error {
+@@ -1544,7 +1544,7 @@ func stopWinProxy(v *MachineVM) error {
  	if err != nil {
  		return nil
  	}
