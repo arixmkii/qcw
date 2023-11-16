@@ -1,4 +1,4 @@
-From 522113e4a9b95f4936f5b362b6753a484555bde4 Mon Sep 17 00:00:00 2001
+From a673dfce6a2d74abfecf156177c5586229c60061 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 26 Sep 2023 14:52:38 +0300
 Subject: [PATCH 2/3] Implement Unix domain socket support for VLAN

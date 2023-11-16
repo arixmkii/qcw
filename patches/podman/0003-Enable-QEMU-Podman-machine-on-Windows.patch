@@ -1,4 +1,4 @@
-From c81fe5f067588eb20390b818f00f51d5c9691baf Mon Sep 17 00:00:00 2001
+From d46f219b6838481331086555600219977bda2e67 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Sat, 1 Apr 2023 23:49:13 +0300
 Subject: [PATCH 3/3] Enable QEMU Podman machine on Windows
@@ -40,10 +40,10 @@ index c33d44e07..551a30420 100644
  
  ### Apple Hypervisor
 diff --git a/pkg/machine/e2e/config_test.go b/pkg/machine/e2e/config_test.go
-index 50ed7da5e..cda7039ed 100644
+index 60e9187a5..10ba3a21e 100644
 --- a/pkg/machine/e2e/config_test.go
 +++ b/pkg/machine/e2e/config_test.go
-@@ -226,3 +226,17 @@ func isVmtype(vmType machine.VMType) bool {
+@@ -234,3 +234,17 @@ func isVmtype(vmType machine.VMType) bool {
  func isWSL() bool {
  	return isVmtype(machine.WSLVirt)
  }
