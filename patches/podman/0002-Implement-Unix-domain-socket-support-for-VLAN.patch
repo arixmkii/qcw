@@ -1,4 +1,4 @@
-From 35165d3204da265562f4c45cbd9d9ecae6c4fc16 Mon Sep 17 00:00:00 2001
+From 522113e4a9b95f4936f5b362b6753a484555bde4 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 26 Sep 2023 14:52:38 +0300
 Subject: [PATCH 2/3] Implement Unix domain socket support for VLAN
@@ -84,10 +84,10 @@ index fe1d2fa5c..c4cf08d2c 100644
  	const da = syscall.STANDARD_RIGHTS_READ | syscall.PROCESS_QUERY_INFORMATION | syscall.SYNCHRONIZE
  	handle, err := syscall.OpenProcess(da, false, uint32(pid))
 diff --git a/pkg/machine/qemu/command.go b/pkg/machine/qemu/command.go
-index 6e6c8f31b..302256621 100644
+index c8dc31510..82e701888 100644
 --- a/pkg/machine/qemu/command.go
 +++ b/pkg/machine/qemu/command.go
-@@ -40,10 +40,29 @@ func (q *QemuCmd) SetQmpMonitor(monitor Monitor) {
+@@ -41,10 +41,29 @@ func (q *QemuCmd) SetQmpMonitor(monitor Monitor) {
  }
  
  // SetNetwork adds a network device to the machine
@@ -118,12 +118,12 @@ index 6e6c8f31b..302256621 100644
 +	return fmt.Sprintf("stream,id=vlan,server=off,addr.type=unix,addr.path=%s", path)
  }
  
- // SetSerialPort adds a serial port to the machine for readiness
+ // SetNetwork adds a network device to the machine
 diff --git a/pkg/machine/qemu/config.go b/pkg/machine/qemu/config.go
-index eb776097f..380474c67 100644
+index eef465370..8256dbc25 100644
 --- a/pkg/machine/qemu/config.go
 +++ b/pkg/machine/qemu/config.go
-@@ -51,14 +51,17 @@ func (v *MachineVM) setQMPMonitorSocket() error {
+@@ -52,15 +52,18 @@ func (v *MachineVM) setQMPMonitorSocket() error {
  
  // setNewMachineCMD configure the CLI command that will be run to create the new
  // machine
@@ -139,11 +139,12 @@ index eb776097f..380474c67 100644
 +		return err
 +	}
  	v.CmdLine.SetSerialPort(v.ReadySocket, v.VMPidFilePath, v.Name)
+ 	v.CmdLine.SetUSBHostPassthrough(v.USBs)
 +	return nil
  }
  
- // NewMachine initializes an instance of a virtual machine based on the qemu
-@@ -133,7 +136,9 @@ func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, e
+ func parseUSBs(usbs []string) ([]machine.USBConfig, error) {
+@@ -195,7 +198,9 @@ func (p *QEMUVirtualization) NewMachine(opts machine.InitOptions) (machine.VM, e
  
  	// configure command to run
  	cmdOpts := setNewMachineCMDOpts{imageDir: dataDir}
@@ -155,7 +156,7 @@ index eb776097f..380474c67 100644
  }
  
 diff --git a/pkg/machine/qemu/machine.go b/pkg/machine/qemu/machine.go
-index f7fd7ef38..9cd29975b 100644
+index 7ae051eeb..8416293e7 100644
 --- a/pkg/machine/qemu/machine.go
 +++ b/pkg/machine/qemu/machine.go
 @@ -43,6 +43,7 @@ const (
@@ -165,8 +166,8 @@ index f7fd7ef38..9cd29975b 100644
 +	retryCountForStop    = 5
  )
  
- type MachineVM struct {
-@@ -279,6 +280,9 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
+ // qemuReadyUnit is a unit file that sets up the virtual serial device
+@@ -252,6 +253,9 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
  	}
  
  	v.UID = os.Getuid()
@@ -176,7 +177,7 @@ index f7fd7ef38..9cd29975b 100644
  
  	// Add location of bootable image
  	v.CmdLine.SetBootableImage(v.getImageFile())
-@@ -532,7 +536,8 @@ func (v *MachineVM) qemuPid() (int, error) {
+@@ -531,7 +535,8 @@ func (v *MachineVM) qemuPid() (int, error) {
  		logrus.Warnf("Reading QEMU pidfile: %v", err)
  		return -1, nil
  	}
@@ -186,7 +187,7 @@ index f7fd7ef38..9cd29975b 100644
  }
  
  // Start executes the qemu command line and forks it
-@@ -540,6 +545,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -539,6 +544,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  	var (
  		conn           net.Conn
  		err            error
@@ -194,7 +195,7 @@ index f7fd7ef38..9cd29975b 100644
  		qemuSocketConn net.Conn
  	)
  
-@@ -598,11 +604,6 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -597,11 +603,6 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  		logrus.Errorf("machine %q is incompatible with this release of podman and needs to be recreated, starting for recovery only", v.Name)
  	}
  
@@ -206,7 +207,7 @@ index f7fd7ef38..9cd29975b 100644
  	rtPath, err := getRuntimeDir()
  	if err != nil {
  		return err
-@@ -616,23 +617,57 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -615,23 +616,57 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  		}
  	}
  
@@ -274,7 +275,7 @@ index f7fd7ef38..9cd29975b 100644
  
  	dnr, dnw, err := machine.GetDevNullFiles()
  	if err != nil {
-@@ -642,7 +677,10 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -641,7 +676,10 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  	defer dnw.Close()
  
  	attr := new(os.ProcAttr)
@@ -286,7 +287,7 @@ index f7fd7ef38..9cd29975b 100644
  	attr.Files = files
  	cmdLine := v.CmdLine
  
-@@ -660,12 +698,14 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
+@@ -659,12 +697,14 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
  
  	// actually run the command that starts the virtual machine
  	cmd := &exec.Cmd{
@@ -307,7 +308,7 @@ index f7fd7ef38..9cd29975b 100644
  	}
  
  	if err := runStartVMCommand(cmd); err != nil {
-@@ -814,7 +854,7 @@ func (v *MachineVM) checkStatus(monitor *qmp.SocketMonitor) (machine.Status, err
+@@ -813,7 +853,7 @@ func (v *MachineVM) checkStatus(monitor *qmp.SocketMonitor) (machine.Status, err
  func (v *MachineVM) waitForMachineToStop() error {
  	fmt.Println("Waiting for VM to stop running...")
  	waitInternal := 250 * time.Millisecond
@@ -316,7 +317,7 @@ index f7fd7ef38..9cd29975b 100644
  		state, err := v.State(false)
  		if err != nil {
  			return err
-@@ -847,15 +887,14 @@ func (v *MachineVM) ProxyPID() (int, error) {
+@@ -846,15 +886,14 @@ func (v *MachineVM) ProxyPID() (int, error) {
  	return proxyPid, nil
  }
  
@@ -336,7 +337,7 @@ index f7fd7ef38..9cd29975b 100644
  	}
  	return nil
  }
-@@ -899,7 +938,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
+@@ -898,7 +937,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
  		return stopErr
  	}
  
@@ -345,7 +346,7 @@ index f7fd7ef38..9cd29975b 100644
  		if stopErr == nil {
  			return err
  		}
-@@ -974,7 +1013,7 @@ func (v *MachineVM) stopLocked() error {
+@@ -973,7 +1012,7 @@ func (v *MachineVM) stopLocked() error {
  		return err
  	}
  
@@ -354,7 +355,7 @@ index f7fd7ef38..9cd29975b 100644
  		return err
  	}
  
-@@ -1006,7 +1045,11 @@ func (v *MachineVM) stopLocked() error {
+@@ -1005,7 +1044,11 @@ func (v *MachineVM) stopLocked() error {
  	}
  
  	fmt.Println("Waiting for VM to exit...")
@@ -367,7 +368,7 @@ index f7fd7ef38..9cd29975b 100644
  		time.Sleep(500 * time.Millisecond)
  	}
  
-@@ -1015,32 +1058,42 @@ func (v *MachineVM) stopLocked() error {
+@@ -1014,32 +1057,42 @@ func (v *MachineVM) stopLocked() error {
  
  // NewQMPMonitor creates the monitor subsection of our vm
  func NewQMPMonitor(network, name string, timeout time.Duration) (Monitor, error) {
@@ -423,7 +424,7 @@ index f7fd7ef38..9cd29975b 100644
  }
  
  // collectFilesToDestroy retrieves the files that will be destroyed by `Remove`
-@@ -1241,18 +1294,18 @@ func getDiskSize(path string) (uint64, error) {
+@@ -1240,18 +1293,18 @@ func getDiskSize(path string) (uint64, error) {
  
  // startHostNetworking runs a binary on the host system that allows users
  // to set up port forwarding to the podman virtual machine
@@ -446,7 +447,7 @@ index f7fd7ef38..9cd29975b 100644
  	cmd.PidFile = v.PidFilePath.GetPath()
  	cmd.SSHPort = v.Port
  
-@@ -1267,11 +1320,13 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
+@@ -1266,11 +1319,13 @@ func (v *MachineVM) startHostNetworking() (string, machine.APIForwardingState, e
  		logrus.Debug(cmd)
  	}
  
@@ -462,7 +463,7 @@ index f7fd7ef38..9cd29975b 100644
  }
  
  func (v *MachineVM) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.GvproxyCommand, string, machine.APIForwardingState) {
-@@ -1289,10 +1344,10 @@ func (v *MachineVM) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.Gvpr
+@@ -1288,10 +1343,10 @@ func (v *MachineVM) setupAPIForwarding(cmd gvproxy.GvproxyCommand) (gvproxy.Gvpr
  		forwardUser = "root"
  	}
  
@@ -477,7 +478,7 @@ index f7fd7ef38..9cd29975b 100644
  
  	// The linking pattern is /var/run/docker.sock -> user global sock (link) -> machine sock (socket)
  	// This allows the helper to only have to maintain one constant target to the user, which can be
-@@ -1488,6 +1543,7 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
+@@ -1487,6 +1542,7 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
  		return nil, err
  	}
  	connInfo.PodmanSocket = podmanSocket
@@ -485,7 +486,7 @@ index f7fd7ef38..9cd29975b 100644
  	return &machine.InspectInfo{
  		ConfigPath:         v.ConfigPath,
  		ConnectionInfo:     *connInfo,
-@@ -1554,6 +1610,18 @@ func (v *MachineVM) editCmdLine(flag string, value string) {
+@@ -1553,6 +1609,18 @@ func (v *MachineVM) editCmdLine(flag string, value string) {
  	}
  }
  
@@ -694,10 +695,10 @@ index 5041dcb15..0597035b9 100644
  	cmd.SetVirtfsMount("/tmp/path", "vol10", "none", true)
  	cmd.SetBootableImage(bootableImagePath)
 diff --git a/pkg/machine/wsl/machine.go b/pkg/machine/wsl/machine.go
-index 51d96e743..8fcc66f81 100644
+index bd6b391cf..b3eb69e8a 100644
 --- a/pkg/machine/wsl/machine.go
 +++ b/pkg/machine/wsl/machine.go
-@@ -1544,7 +1544,7 @@ func stopWinProxy(v *MachineVM) error {
+@@ -1547,7 +1547,7 @@ func stopWinProxy(v *MachineVM) error {
  	if err != nil {
  		return nil
  	}
