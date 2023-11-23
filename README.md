@@ -48,7 +48,7 @@ Version bundled with Podman is used
 
 #### `Podman`
 
-Version `4.8.0-dev` with 3 patch sets from Podman PRs:
+Version `5.0.0-dev` with 3 patch sets from Podman PRs:
 * Change default QEMU CPU level to qemu64 on Windows amd64 https://github.com/containers/podman/pull/19518;
 * Implement Unix domain socket support for VLAN https://github.com/containers/podman/pull/17473;
 * Enable QEMU Podman machine on Windows https://github.com/containers/podman/pull/18488.
@@ -62,7 +62,7 @@ Latest version (or stable later than v0.0.12) is a requirement. Should be instal
 Starting from version `0.0.6` of qcw it is possible to use with official windows builds of QEMU (if host FS mounts
 are not needed).
 
-Version `8.1.2` with 3 patch sets from QEMU mailing list:
+Version `8.2.0-rc1` with 3 patch sets from QEMU mailing list:
 * hw/9pfs: Add 9pfs support for Windows https://lists.gnu.org/archive/html/qemu-devel/2023-02/msg05533.html;
 * WHPX: Add support for device backed memory regions https://lists.gnu.org/archive/html/qemu-devel/2022-07/msg04837.html;
 * Windows installer: keep dependency cache https://lists.gnu.org/archive/html/qemu-devel/2023-01/msg03125.html.
