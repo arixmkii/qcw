@@ -1,0 +1,24 @@
+From 1ccd6ad5e8f9402bd349f61a8baa5a1bc48c40f0 Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Thu, 23 Nov 2023 16:22:15 +0200
+Subject: [PATCH 4/4] Fix docs build under msys2 on Windows
+
+---
+ hack/markdown-preprocess | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/hack/markdown-preprocess b/hack/markdown-preprocess
+index 11fa1ea9e..fcb0fa5f1 100755
+--- a/hack/markdown-preprocess
++++ b/hack/markdown-preprocess
+@@ -54,6 +54,7 @@ class Preprocessor():
+                     fh_out.write(line)
+ 
+         os.chmod(outfile_tmp, 0o444)
++        os.unlink(outfile)
+         os.rename(outfile_tmp, outfile)
+ 
+     def track_optionfile(self, optionfile: str):
+-- 
+2.43.0
+
