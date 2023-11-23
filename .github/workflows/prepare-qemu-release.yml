@@ -4,6 +4,7 @@ on: workflow_dispatch
 
 env:
   QEMU_VERSION: 8.2.0-rc1
+  MSYS: 'winsymlinks:native'
 
 jobs:
 
@@ -18,27 +19,49 @@ jobs:
         msystem: UCRT64
         update: true
         install: >-
-          make
-          git
-          unzip
           base-devel
-          mingw-w64-ucrt-x86_64-toolchain
-          python
-          ninja
-          mingw-w64-ucrt-x86_64-glib2
-          mingw-w64-ucrt-x86_64-pixman
-          python-setuptools
-          mingw-w64-ucrt-x86_64-gtk3
-          mingw-w64-ucrt-x86_64-SDL2
-          mingw-w64-ucrt-x86_64-libslirp
-          mingw-w64-ucrt-x86_64-SDL2_image
+          bison
+          diffutils
+          flex
+          git
+          grep
+          make
+          sed
+          unzip
+          mingw-w64-ucrt-x86_64-binutils
+          mingw-w64-ucrt-x86_64-capstone
+          mingw-w64-ucrt-x86_64-ccache
           mingw-w64-ucrt-x86_64-curl-gnutls
+          mingw-w64-ucrt-x86_64-cyrus-sasl
+          mingw-w64-ucrt-x86_64-dtc
+          mingw-w64-ucrt-x86_64-gcc
+          mingw-w64-ucrt-x86_64-glib2
           mingw-w64-ucrt-x86_64-gnutls
-          mingw-w64-ucrt-x86_64-virglrenderer
+          mingw-w64-ucrt-x86_64-gtk3
+          mingw-w64-ucrt-x86_64-libgcrypt
+          mingw-w64-ucrt-x86_64-libjpeg-turbo
+          mingw-w64-ucrt-x86_64-libnfs
+          mingw-w64-ucrt-x86_64-libpng
+          mingw-w64-ucrt-x86_64-libslirp
           mingw-w64-ucrt-x86_64-libssh
-          mingw-w64-ucrt-x86_64-libssh2
+          mingw-w64-ucrt-x86_64-libtasn1
+          mingw-w64-ucrt-x86_64-libusb
+          mingw-w64-ucrt-x86_64-lzo2
           mingw-w64-ucrt-x86_64-meson
+          mingw-w64-ucrt-x86_64-nettle
+          mingw-w64-ucrt-x86_64-ninja
           mingw-w64-ucrt-x86_64-nsis
+          mingw-w64-ucrt-x86_64-pixman
+          mingw-w64-ucrt-x86_64-pkgconf
+          mingw-w64-ucrt-x86_64-python
+          mingw-w64-ucrt-x86_64-SDL2
+          mingw-w64-ucrt-x86_64-SDL2_image
+          mingw-w64-ucrt-x86_64-snappy
+          mingw-w64-ucrt-x86_64-spice
+          mingw-w64-ucrt-x86_64-toolchain
+          mingw-w64-ucrt-x86_64-usbredir
+          mingw-w64-ucrt-x86_64-virglrenderer
+          mingw-w64-ucrt-x86_64-zstd
 
     - name: '🏗️ Install tools'
       uses: crazy-max/ghaction-chocolatey@v2
