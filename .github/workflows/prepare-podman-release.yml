@@ -4,7 +4,7 @@ on: workflow_dispatch
 
 env:
   PODMAN_GITURL: https://github.com/containers/podman.git
-  PODMAN_SHA: b4eb88fca4c48e90067a3558db48eccfa3580261
+  PODMAN_SHA: 1486ee51896deb3c22553425bc23ec0e0d2733de
 
 jobs:
 
@@ -58,7 +58,6 @@ jobs:
         patch --binary -l -p 1 < ../patches/podman/0001-Change-default-QEMU-CPU-level-to-qemu64-on-Windows-a.patch
         patch --binary -l -p 1 < ../patches/podman/0002-Implement-Unix-domain-socket-support-for-VLAN.patch
         patch --binary -l -p 1 < ../patches/podman/0003-Enable-QEMU-Podman-machine-on-Windows.patch
-        patch --binary -l -p 1 < ../patches/podman/0004-Remove-unnencessary-pregenerated-doc.patch
 
     - name: '🛠️ Build Podman'
       working-directory: podman-release

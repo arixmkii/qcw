@@ -1,0 +1,3216 @@
+From patchwork Thu Nov 23 15:56:07 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Patchwork-Submitter: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+X-Patchwork-Id: 13466398
+Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 118C6C61D97
+	for <qemu-devel@archiver.kernel.org>; Thu, 23 Nov 2023 15:59:02 +0000 (UTC)
+Received: from localhost ([::1] helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces@nongnu.org>)
+	id 1r6C44-0005wg-Fn; Thu, 23 Nov 2023 10:56:28 -0500
+Received: from eggs.gnu.org ([2001:470:142:3::10])
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C43-0005wO-MQ
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:27 -0500
+Received: from mail-wm1-x32d.google.com ([2a00:1450:4864:20::32d])
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_128_GCM_SHA256:128)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C40-0002Js-LV
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:27 -0500
+Received: by mail-wm1-x32d.google.com with SMTP id
+ 5b1f17b1804b1-4094301d505so6539055e9.2
+ for <qemu-devel@nongnu.org>; Thu, 23 Nov 2023 07:56:23 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=linaro.org; s=google; t=1700754982; x=1701359782; darn=nongnu.org;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+ :message-id:reply-to;
+ bh=ppnKkUN8JiE6p4mrn2cEj4OVO4zzPndozd7TdPZPSf8=;
+ b=Ojp82pfGlK+tpOJva/++GZi3ZgxgFnm+3Hc7NQnHLVHDO7mUpQ2JnhC5c+ncbXiQnB
+ hf/NQHiLJdLgQc8d72XjlSb66QEg+MKO5gzbS9igqZgi1vo6RCRwFx5VT/EEOp/zdKbv
+ fl6DWaT24fbbNPMgdz3/reNFC8rcerPNhykQeAfSumea+O9DPVGmydzna1U5MrSCIU6p
+ PTYo0QlRrJAEZgS18AIKwVileYLWSPBw2g0PU3HA9iMCbjqvubQR755ESvirPIxj1j0U
+ GDbKdt3imBRlvdw81ddufb3SWYY9NCmIiGY7n67BYZbXHhfsqqBInwMCCHf06VzcfQ6E
+ 4jWw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=1e100.net; s=20230601; t=1700754982; x=1701359782;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+ :subject:date:message-id:reply-to;
+ bh=ppnKkUN8JiE6p4mrn2cEj4OVO4zzPndozd7TdPZPSf8=;
+ b=NnFQ3dtpxqoaGSRsXXfoJGlH+FlrjBZ9nk80ZBJWMl6m5zliUWlQ0sh2tB51y2/Xm/
+ Bt+p0esUv4T+GcHAeMkvc9sdupqVG+iOw5/0L92LALMApHr532pi9Jmp1N2SNASl/zYp
+ PIJwAQFSUJ21NIzYWAhoDY8CAhRt5grAGi7P0wWYJldGLQTLlCa4Soq0NjZfO/jo+G+n
+ HScnYiBhLKLEdMr9Ndm957/tzhPK1en+0/V0XBjyYHCSxkaoCwPpYRHzYx/vqMGpaD+9
+ fc9wEaKGn5pukqMxkzbBYMLYtg6hp6JlM0RTcTvB69fmww3sXBA8xxYBfZn++o7hWibp
+ JBIA==
+X-Gm-Message-State: AOJu0YzgTY/G/HASuSIuV1+dH0q8qTkb2Dh8j0dy5tgpf+FIxiAsXLtA
+ xhpJupKtMaGRVKcToGizjjkF7g==
+X-Google-Smtp-Source: 
+ AGHT+IEurQP9znzmZJQe6cbCowoYtTrO04xsdvevPnMzqZAhYXw+U0foPmE1SDRkFQR2MvtEkatzXA==
+X-Received: by 2002:a05:600c:a4c:b0:408:37aa:4766 with SMTP id
+ c12-20020a05600c0a4c00b0040837aa4766mr19793wmq.5.1700754981685;
+ Thu, 23 Nov 2023 07:56:21 -0800 (PST)
+Received: from draig.lan ([85.9.250.243]) by smtp.gmail.com with ESMTPSA id
+ az15-20020a05600c600f00b0040b2b9bf321sm3124982wmb.9.2023.11.23.07.56.21
+ (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+ Thu, 23 Nov 2023 07:56:21 -0800 (PST)
+Received: from draig.lan (localhost [IPv6:::1])
+ by draig.lan (Postfix) with ESMTP id D8261645F6;
+ Thu, 23 Nov 2023 15:56:20 +0000 (GMT)
+From: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+To: qemu-devel@nongnu.org
+Cc: =?utf-8?q?Daniel_P=2E_Berrang=C3=A9?= <berrange@redhat.com>, =?utf-8?q?P?=
+	=?utf-8?q?hilippe_Mathieu-Daud=C3=A9?= <philmd@linaro.org>, =?utf-8?q?Alex_?=
+	=?utf-8?q?Benn=C3=A9e?= <alex.bennee@linaro.org>,
+ Thomas Huth <thuth@redhat.com>,
+ Wainer dos Santos Moschetta <wainersm@redhat.com>,
+ Beraldo Leal <bleal@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>
+Subject: [PULL 01/14] tests/docker: replace fedora-i386 with debian-i686
+Date: Thu, 23 Nov 2023 15:56:07 +0000
+Message-Id: <20231123155620.3042891-2-alex.bennee@linaro.org>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20231123155620.3042891-1-alex.bennee@linaro.org>
+References: <20231123155620.3042891-1-alex.bennee@linaro.org>
+MIME-Version: 1.0
+Received-SPF: pass client-ip=2a00:1450:4864:20::32d;
+ envelope-from=alex.bennee@linaro.org; helo=mail-wm1-x32d.google.com
+X-Spam_score_int: -20
+X-Spam_score: -2.1
+X-Spam_bar: --
+X-Spam_report: (-2.1 / 5.0 requ) BAYES_00=-1.9, DKIM_SIGNED=0.1,
+ DKIM_VALID=-0.1, DKIM_VALID_AU=-0.1, DKIM_VALID_EF=-0.1,
+ RCVD_IN_DNSWL_NONE=-0.0001, SPF_HELO_NONE=0.001, SPF_PASS=-0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=ham autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+Sender: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+
+From: Daniel P. Berrangé <berrange@redhat.com>
+
+Fedora is gradually killing off i386 packages in its repos, via a
+death-by-1000-cuts process. Thus Debian looks like a better long
+term bet for i686 build testing. It has the added advantage that
+we can generate it via lcitool too.
+
+Signed-off-by: Daniel P. Berrangé <berrange@redhat.com>
+Reviewed-by: Philippe Mathieu-Daudé <philmd@linaro.org>
+Message-Id: <20231107164109.1449014-1-berrange@redhat.com>
+[AJB: tweak commit msg, set correct prefix]
+Signed-off-by: Alex Bennée <alex.bennee@linaro.org>
+Message-Id: <20231120150833.2552739-2-alex.bennee@linaro.org>
+
+diff --git a/configure b/configure
+index abcb199aa8..9ea0bf5698 100755
+--- a/configure
++++ b/configure
+@@ -1307,8 +1307,8 @@ probe_target_compiler() {
+         container_cross_cc=${container_cross_prefix}gcc
+         ;;
+       i386)
+-        container_image=fedora-i386-cross
+-        container_cross_prefix=
++        container_image=debian-i686-cross
++        container_cross_prefix=i686-linux-gnu-
+         ;;
+       loongarch64)
+         container_image=debian-loongarch-cross
+diff --git a/.gitlab-ci.d/container-cross.yml b/.gitlab-ci.d/container-cross.yml
+index 463ac493ad..8d235cbea0 100644
+--- a/.gitlab-ci.d/container-cross.yml
++++ b/.gitlab-ci.d/container-cross.yml
+@@ -46,6 +46,12 @@ loongarch-debian-cross-container:
+   variables:
+     NAME: debian-loongarch-cross
+ 
++i686-debian-cross-container:
++  extends: .container_job_template
++  stage: containers
++  variables:
++    NAME: debian-i686-cross
++
+ mips64el-debian-cross-container:
+   extends: .container_job_template
+   stage: containers
+@@ -95,11 +101,6 @@ cris-fedora-cross-container:
+   variables:
+     NAME: fedora-cris-cross
+ 
+-i386-fedora-cross-container:
+-  extends: .container_job_template
+-  variables:
+-    NAME: fedora-i386-cross
+-
+ win32-fedora-cross-container:
+   extends: .container_job_template
+   variables:
+diff --git a/.gitlab-ci.d/crossbuilds.yml b/.gitlab-ci.d/crossbuilds.yml
+index ac71a2abd3..c2af6c7f44 100644
+--- a/.gitlab-ci.d/crossbuilds.yml
++++ b/.gitlab-ci.d/crossbuilds.yml
+@@ -37,25 +37,25 @@ cross-arm64-kvm-only:
+     IMAGE: debian-arm64-cross
+     EXTRA_CONFIGURE_OPTS: --disable-tcg --without-default-features
+ 
+-cross-i386-user:
++cross-i686-user:
+   extends:
+     - .cross_user_build_job
+     - .cross_test_artifacts
+   needs:
+-    job: i386-fedora-cross-container
++    job: i686-debian-cross-container
+   variables:
+-    IMAGE: fedora-i386-cross
++    IMAGE: debian-i686-cross
+     MAKE_CHECK_ARGS: check
+ 
+-cross-i386-tci:
++cross-i686-tci:
+   extends:
+     - .cross_accel_build_job
+     - .cross_test_artifacts
+   timeout: 60m
+   needs:
+-    job: i386-fedora-cross-container
++    job: i686-debian-cross-container
+   variables:
+-    IMAGE: fedora-i386-cross
++    IMAGE: debian-i686-cross
+     ACCEL: tcg-interpreter
+     EXTRA_CONFIGURE_OPTS: --target-list=i386-softmmu,i386-linux-user,aarch64-softmmu,aarch64-linux-user,ppc-softmmu,ppc-linux-user --disable-plugins
+     MAKE_CHECK_ARGS: check check-tcg
+diff --git a/tests/docker/dockerfiles/debian-i686-cross.docker b/tests/docker/dockerfiles/debian-i686-cross.docker
+new file mode 100644
+index 0000000000..3fc4e15acd
+--- /dev/null
++++ b/tests/docker/dockerfiles/debian-i686-cross.docker
+@@ -0,0 +1,182 @@
++# THIS FILE WAS AUTO-GENERATED
++#
++#  $ lcitool dockerfile --layers all --cross-arch i686 debian-11 qemu
++#
++# https://gitlab.com/libvirt/libvirt-ci
++
++FROM docker.io/library/debian:11-slim
++
++RUN export DEBIAN_FRONTEND=noninteractive && \
++    apt-get update && \
++    apt-get install -y eatmydata && \
++    eatmydata apt-get dist-upgrade -y && \
++    eatmydata apt-get install --no-install-recommends -y \
++                      bash \
++                      bc \
++                      bison \
++                      bsdextrautils \
++                      bzip2 \
++                      ca-certificates \
++                      ccache \
++                      dbus \
++                      debianutils \
++                      diffutils \
++                      exuberant-ctags \
++                      findutils \
++                      flex \
++                      gcc \
++                      gcovr \
++                      gettext \
++                      git \
++                      hostname \
++                      libglib2.0-dev \
++                      libpcre2-dev \
++                      libsndio-dev \
++                      libspice-protocol-dev \
++                      llvm \
++                      locales \
++                      make \
++                      meson \
++                      mtools \
++                      ncat \
++                      ninja-build \
++                      openssh-client \
++                      pkgconf \
++                      python3 \
++                      python3-numpy \
++                      python3-opencv \
++                      python3-pillow \
++                      python3-pip \
++                      python3-setuptools \
++                      python3-sphinx \
++                      python3-sphinx-rtd-theme \
++                      python3-venv \
++                      python3-wheel \
++                      python3-yaml \
++                      rpm2cpio \
++                      sed \
++                      socat \
++                      sparse \
++                      tar \
++                      tesseract-ocr \
++                      tesseract-ocr-eng \
++                      xorriso \
++                      zstd && \
++    eatmydata apt-get autoremove -y && \
++    eatmydata apt-get autoclean -y && \
++    sed -Ei 's,^# (en_US\.UTF-8 .*)$,\1,' /etc/locale.gen && \
++    dpkg-reconfigure locales
++
++RUN /usr/bin/pip3 install tomli
++
++ENV CCACHE_WRAPPERSDIR "/usr/libexec/ccache-wrappers"
++ENV LANG "en_US.UTF-8"
++ENV MAKE "/usr/bin/make"
++ENV NINJA "/usr/bin/ninja"
++ENV PYTHON "/usr/bin/python3"
++
++RUN export DEBIAN_FRONTEND=noninteractive && \
++    dpkg --add-architecture i386 && \
++    eatmydata apt-get update && \
++    eatmydata apt-get dist-upgrade -y && \
++    eatmydata apt-get install --no-install-recommends -y dpkg-dev && \
++    eatmydata apt-get install --no-install-recommends -y \
++                      g++-i686-linux-gnu \
++                      gcc-i686-linux-gnu \
++                      libaio-dev:i386 \
++                      libasan6:i386 \
++                      libasound2-dev:i386 \
++                      libattr1-dev:i386 \
++                      libbpf-dev:i386 \
++                      libbrlapi-dev:i386 \
++                      libbz2-dev:i386 \
++                      libc6-dev:i386 \
++                      libcacard-dev:i386 \
++                      libcap-ng-dev:i386 \
++                      libcapstone-dev:i386 \
++                      libcmocka-dev:i386 \
++                      libcurl4-gnutls-dev:i386 \
++                      libdaxctl-dev:i386 \
++                      libdrm-dev:i386 \
++                      libepoxy-dev:i386 \
++                      libfdt-dev:i386 \
++                      libffi-dev:i386 \
++                      libfuse3-dev:i386 \
++                      libgbm-dev:i386 \
++                      libgcrypt20-dev:i386 \
++                      libglib2.0-dev:i386 \
++                      libglusterfs-dev:i386 \
++                      libgnutls28-dev:i386 \
++                      libgtk-3-dev:i386 \
++                      libibumad-dev:i386 \
++                      libibverbs-dev:i386 \
++                      libiscsi-dev:i386 \
++                      libjemalloc-dev:i386 \
++                      libjpeg62-turbo-dev:i386 \
++                      libjson-c-dev:i386 \
++                      liblttng-ust-dev:i386 \
++                      liblzo2-dev:i386 \
++                      libncursesw5-dev:i386 \
++                      libnfs-dev:i386 \
++                      libnuma-dev:i386 \
++                      libpam0g-dev:i386 \
++                      libpipewire-0.3-dev:i386 \
++                      libpixman-1-dev:i386 \
++                      libpng-dev:i386 \
++                      libpulse-dev:i386 \
++                      librbd-dev:i386 \
++                      librdmacm-dev:i386 \
++                      libsasl2-dev:i386 \
++                      libsdl2-dev:i386 \
++                      libsdl2-image-dev:i386 \
++                      libseccomp-dev:i386 \
++                      libselinux1-dev:i386 \
++                      libslirp-dev:i386 \
++                      libsnappy-dev:i386 \
++                      libspice-server-dev:i386 \
++                      libssh-gcrypt-dev:i386 \
++                      libsystemd-dev:i386 \
++                      libtasn1-6-dev:i386 \
++                      libubsan1:i386 \
++                      libudev-dev:i386 \
++                      liburing-dev:i386 \
++                      libusb-1.0-0-dev:i386 \
++                      libusbredirhost-dev:i386 \
++                      libvdeplug-dev:i386 \
++                      libvirglrenderer-dev:i386 \
++                      libvte-2.91-dev:i386 \
++                      libzstd-dev:i386 \
++                      nettle-dev:i386 \
++                      systemtap-sdt-dev:i386 \
++                      xfslibs-dev:i386 \
++                      zlib1g-dev:i386 && \
++    eatmydata apt-get autoremove -y && \
++    eatmydata apt-get autoclean -y && \
++    mkdir -p /usr/local/share/meson/cross && \
++    printf "[binaries]\n\
++c = '/usr/bin/i686-linux-gnu-gcc'\n\
++ar = '/usr/bin/i686-linux-gnu-gcc-ar'\n\
++strip = '/usr/bin/i686-linux-gnu-strip'\n\
++pkgconfig = '/usr/bin/i686-linux-gnu-pkg-config'\n\
++\n\
++[host_machine]\n\
++system = 'linux'\n\
++cpu_family = 'x86'\n\
++cpu = 'i686'\n\
++endian = 'little'\n" > /usr/local/share/meson/cross/i686-linux-gnu && \
++    dpkg-query --showformat '${Package}_${Version}_${Architecture}\n' --show > /packages.txt && \
++    mkdir -p /usr/libexec/ccache-wrappers && \
++    ln -s /usr/bin/ccache /usr/libexec/ccache-wrappers/i686-linux-gnu-c++ && \
++    ln -s /usr/bin/ccache /usr/libexec/ccache-wrappers/i686-linux-gnu-cc && \
++    ln -s /usr/bin/ccache /usr/libexec/ccache-wrappers/i686-linux-gnu-g++ && \
++    ln -s /usr/bin/ccache /usr/libexec/ccache-wrappers/i686-linux-gnu-gcc
++
++ENV ABI "i686-linux-gnu"
++ENV MESON_OPTS "--cross-file=i686-linux-gnu"
++ENV QEMU_CONFIGURE_OPTS --cross-prefix=x86_64-linux-gnu-
++ENV DEF_TARGET_LIST x86_64-softmmu,x86_64-linux-user,i386-softmmu,i386-linux-user
++# As a final step configure the user (if env is defined)
++ARG USER
++ARG UID
++RUN if [ "${USER}" ]; then \
++  id ${USER} 2>/dev/null || useradd -u ${UID} -U ${USER}; fi
+diff --git a/tests/docker/dockerfiles/fedora-i386-cross.docker b/tests/docker/dockerfiles/fedora-i386-cross.docker
+deleted file mode 100644
+index b59a9115c4..0000000000
+--- a/tests/docker/dockerfiles/fedora-i386-cross.docker
++++ /dev/null
+@@ -1,40 +0,0 @@
+-FROM registry.fedoraproject.org/fedora:34
+-
+-ENV PACKAGES \
+-    bison \
+-    bzip2 \
+-    ccache \
+-    diffutils \
+-    flex \
+-    findutils \
+-    gcc \
+-    git \
+-    libfdt-devel.i686 \
+-    libffi-devel.i686 \
+-    libselinux-devel.i686 \
+-    libtasn1-devel.i686 \
+-    libzstd-devel.i686 \
+-    make \
+-    meson \
+-    ninja-build \
+-    glib2-devel.i686 \
+-    glibc-devel.i686 \
+-    glibc-static.i686 \
+-    gnutls-devel.i686 \
+-    nettle-devel.i686 \
+-    pcre-devel.i686 \
+-    pixman-devel.i686 \
+-    python3-tomli \
+-    sysprof-capture-devel.i686 \
+-    zlib-devel.i686
+-
+-ENV QEMU_CONFIGURE_OPTS --cpu=i386 --disable-vhost-user
+-ENV PKG_CONFIG_LIBDIR /usr/lib/pkgconfig
+-
+-RUN dnf update -y && dnf install -y $PACKAGES
+-RUN rpm -q $PACKAGES | sort > /packages.txt
+-# As a final step configure the user (if env is defined)
+-ARG USER
+-ARG UID
+-RUN if [ "${USER}" ]; then \
+-  id ${USER} 2>/dev/null || useradd -u ${UID} -U ${USER}; fi
+diff --git a/tests/lcitool/refresh b/tests/lcitool/refresh
+index 92e7d30982..10c54a377c 100755
+--- a/tests/lcitool/refresh
++++ b/tests/lcitool/refresh
+@@ -156,6 +156,13 @@ try:
+                         trailer=cross_build("arm-linux-gnueabihf-",
+                                             "arm-softmmu,arm-linux-user"))
+ 
++    generate_dockerfile("debian-i686-cross", "debian-11",
++                        cross="i686",
++                        trailer=cross_build("x86_64-linux-gnu-",
++                                            "x86_64-softmmu,"
++                                            "x86_64-linux-user,"
++                                            "i386-softmmu,i386-linux-user"))
++
+     generate_dockerfile("debian-mips64el-cross", "debian-11",
+                         cross="mips64el",
+                         trailer=cross_build("mips64el-linux-gnuabi64-",
+
+From patchwork Thu Nov 23 15:56:08 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Patchwork-Submitter: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+X-Patchwork-Id: 13466395
+Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 1A219C5AD4C
+	for <qemu-devel@archiver.kernel.org>; Thu, 23 Nov 2023 15:58:39 +0000 (UTC)
+Received: from localhost ([::1] helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces@nongnu.org>)
+	id 1r6C45-0005xp-Mu; Thu, 23 Nov 2023 10:56:29 -0500
+Received: from eggs.gnu.org ([2001:470:142:3::10])
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C44-0005wY-5E
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:28 -0500
+Received: from mail-wr1-x433.google.com ([2a00:1450:4864:20::433])
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_128_GCM_SHA256:128)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C42-0002KS-0S
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:27 -0500
+Received: by mail-wr1-x433.google.com with SMTP id
+ ffacd0b85a97d-3316c6e299eso664078f8f.1
+ for <qemu-devel@nongnu.org>; Thu, 23 Nov 2023 07:56:25 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=linaro.org; s=google; t=1700754984; x=1701359784; darn=nongnu.org;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+ :message-id:reply-to;
+ bh=dMbBVPJ7LZvKSOdEEVIAuSDiAeoOvkqePYwyW/x2dpE=;
+ b=MYwtyZEj32XuO26l4LCMKeeVIGTJlFEiLrpSsquQRs2YgIxyuqaxKQnWhhtGlSdjVd
+ x4xam9bqRQteKCPFNII9iYawNDc1nD281Cyfb23XB0tACJicKwyqTZGIghdqY4TkHtU7
+ rTXnN4gSfrLpWzF52QPjKI5D8iEZPWNcMmCeM8JjzOz6m7rwDClqoQRmj0LNefZA3KN0
+ UJZQO8O32JfJx1RooRpwq5jA+DUT6skEkmuuyuqhUrGktyQplE/7a4saYZI/80LWsOUw
+ MThinApVJc6KRod+jan3m0Wn9NvJqH2aGpqgUB++ptSVSVgxA31qLnXf4jWTsNUIC6gv
+ 8FYQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=1e100.net; s=20230601; t=1700754984; x=1701359784;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+ :subject:date:message-id:reply-to;
+ bh=dMbBVPJ7LZvKSOdEEVIAuSDiAeoOvkqePYwyW/x2dpE=;
+ b=D5Zl3xyAmmAfpClZ7kwwbUmZPBl3mkcym1BY8mBOXOiyYRdBxn4DbozU+NyRdWKjO5
+ RfanPQfDtSrEif3pB+x9SnqqJQSlj1N1N90Rl7hAsogY5OgLlXFyZxK9Zbso07l2XeK7
+ yw/lGFwzG19CqJi90xrizPJajU9KrUi39bVQTzLP1moVBUDFqHUim6bI9BhmnSyCn9ah
+ ozzxX3PEJlEjgSpIv+jOmtjISlkacarfxIWB848daFEqPAMLJT8c1UGjkkgLvBdQYSz7
+ u1Rff6swBbwcCNv+KDPIYEhjVG5WREZG7nbALrvE22Fit9QeowG09BayfMxh5RDUqtrR
+ /+oQ==
+X-Gm-Message-State: AOJu0YwRwr/Pmwj5RZMwiwToL8ex1XJ0kiLaEMnLr393RfsI0733SxTK
+ yW1S3vTDTqAsBntv65mFkR5ihw==
+X-Google-Smtp-Source: 
+ AGHT+IHkzIM6uwUhQ0q0R3KfX4nqVDqturXhco3/Xda2HXRwGfoooizoGwkyBv7K6gQoY+tnm22afA==
+X-Received: by 2002:a5d:5643:0:b0:32d:81b5:82d0 with SMTP id
+ j3-20020a5d5643000000b0032d81b582d0mr3622687wrw.33.1700754984567;
+ Thu, 23 Nov 2023 07:56:24 -0800 (PST)
+Received: from draig.lan ([85.9.250.243]) by smtp.gmail.com with ESMTPSA id
+ v10-20020adff68a000000b003316db2d48dsm1967498wrp.34.2023.11.23.07.56.21
+ (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+ Thu, 23 Nov 2023 07:56:21 -0800 (PST)
+Received: from draig.lan (localhost [IPv6:::1])
+ by draig.lan (Postfix) with ESMTP id EC3A4645F7;
+ Thu, 23 Nov 2023 15:56:20 +0000 (GMT)
+From: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+To: qemu-devel@nongnu.org
+Cc: =?utf-8?q?Philippe_Mathieu-Daud=C3=A9?= <philmd@linaro.org>, =?utf-8?q?D?=
+	=?utf-8?q?aniel_P_=2E_Berrang=C3=A9?= <berrange@redhat.com>, =?utf-8?q?Alex?=
+	=?utf-8?q?_Benn=C3=A9e?= <alex.bennee@linaro.org>,
+ Thomas Huth <thuth@redhat.com>,
+ Wainer dos Santos Moschetta <wainersm@redhat.com>,
+ Beraldo Leal <bleal@redhat.com>
+Subject: [PULL 02/14] .gitlab-ci.d/cirrus: Upgrade macOS to 13 (Ventura)
+Date: Thu, 23 Nov 2023 15:56:08 +0000
+Message-Id: <20231123155620.3042891-3-alex.bennee@linaro.org>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20231123155620.3042891-1-alex.bennee@linaro.org>
+References: <20231123155620.3042891-1-alex.bennee@linaro.org>
+MIME-Version: 1.0
+Received-SPF: pass client-ip=2a00:1450:4864:20::433;
+ envelope-from=alex.bennee@linaro.org; helo=mail-wr1-x433.google.com
+X-Spam_score_int: -20
+X-Spam_score: -2.1
+X-Spam_bar: --
+X-Spam_report: (-2.1 / 5.0 requ) BAYES_00=-1.9, DKIM_SIGNED=0.1,
+ DKIM_VALID=-0.1, DKIM_VALID_AU=-0.1, DKIM_VALID_EF=-0.1,
+ RCVD_IN_DNSWL_NONE=-0.0001, SPF_HELO_NONE=0.001, SPF_PASS=-0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=ham autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+Sender: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+
+From: Philippe Mathieu-Daudé <philmd@linaro.org>
+
+macOS 14 "Sonoma" was released on September 2023 [1].
+
+According to QEMU's support policy, we stop supporting the
+previous major release two years after the the new major
+release has been published. Replace the macOS 12 (Monterey)
+testing by macOS 13 (Ventura, released on October 2022, [2]).
+
+Refresh the generated files by running:
+
+  $ make lcitool-refresh
+
+[1] https://www.apple.com/newsroom/2023/09/macos-sonoma-is-available-today/
+[2] https://www.apple.com/newsroom/2022/10/macos-ventura-is-now-available/
+
+Signed-off-by: Philippe Mathieu-Daudé <philmd@linaro.org>
+Reviewed-by: Daniel P. Berrangé <berrange@redhat.com>
+Message-Id: <20231108162022.76189-1-philmd@linaro.org>
+Signed-off-by: Alex Bennée <alex.bennee@linaro.org>
+Message-Id: <20231120150833.2552739-3-alex.bennee@linaro.org>
+
+diff --git a/.gitlab-ci.d/cirrus.yml b/.gitlab-ci.d/cirrus.yml
+index e7f1f83c2c..07dc6edae1 100644
+--- a/.gitlab-ci.d/cirrus.yml
++++ b/.gitlab-ci.d/cirrus.yml
+@@ -59,13 +59,13 @@ x64-freebsd-13-build:
+     INSTALL_COMMAND: pkg install -y
+     TEST_TARGETS: check
+ 
+-aarch64-macos-12-base-build:
++aarch64-macos-13-base-build:
+   extends: .cirrus_build_job
+   variables:
+-    NAME: macos-12
++    NAME: macos-13
+     CIRRUS_VM_INSTANCE_TYPE: macos_instance
+     CIRRUS_VM_IMAGE_SELECTOR: image
+-    CIRRUS_VM_IMAGE_NAME: ghcr.io/cirruslabs/macos-monterey-base:latest
++    CIRRUS_VM_IMAGE_NAME: ghcr.io/cirruslabs/macos-ventura-base:latest
+     CIRRUS_VM_CPUS: 12
+     CIRRUS_VM_RAM: 24G
+     UPDATE_COMMAND: brew update
+diff --git a/.gitlab-ci.d/cirrus/macos-12.vars b/.gitlab-ci.d/cirrus/macos-13.vars
+similarity index 95%
+rename from .gitlab-ci.d/cirrus/macos-12.vars
+rename to .gitlab-ci.d/cirrus/macos-13.vars
+index 5f3fb346d1..534f029956 100644
+--- a/.gitlab-ci.d/cirrus/macos-12.vars
++++ b/.gitlab-ci.d/cirrus/macos-13.vars
+@@ -1,6 +1,6 @@
+ # THIS FILE WAS AUTO-GENERATED
+ #
+-#  $ lcitool variables macos-12 qemu
++#  $ lcitool variables macos-13 qemu
+ #
+ # https://gitlab.com/libvirt/libvirt-ci
+ 
+diff --git a/tests/lcitool/refresh b/tests/lcitool/refresh
+index 10c54a377c..7c211eba2e 100755
+--- a/tests/lcitool/refresh
++++ b/tests/lcitool/refresh
+@@ -203,7 +203,7 @@ try:
+     # Cirrus packages lists for GitLab
+     #
+     generate_cirrus("freebsd-13")
+-    generate_cirrus("macos-12")
++    generate_cirrus("macos-13")
+ 
+     #
+     # VM packages lists
+
+From patchwork Thu Nov 23 15:56:09 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Patchwork-Submitter: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+X-Patchwork-Id: 13466397
+Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 87BEEC5AD4C
+	for <qemu-devel@archiver.kernel.org>; Thu, 23 Nov 2023 15:58:56 +0000 (UTC)
+Received: from localhost ([::1] helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces@nongnu.org>)
+	id 1r6C48-0005z6-Mn; Thu, 23 Nov 2023 10:56:32 -0500
+Received: from eggs.gnu.org ([2001:470:142:3::10])
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C44-0005x1-T1
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:28 -0500
+Received: from mail-wr1-x430.google.com ([2a00:1450:4864:20::430])
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_128_GCM_SHA256:128)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C42-0002KY-C9
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:28 -0500
+Received: by mail-wr1-x430.google.com with SMTP id
+ ffacd0b85a97d-3316d3d11e1so613994f8f.0
+ for <qemu-devel@nongnu.org>; Thu, 23 Nov 2023 07:56:25 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=linaro.org; s=google; t=1700754985; x=1701359785; darn=nongnu.org;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+ :message-id:reply-to;
+ bh=n5Fe1dg8Henr/7Y0lJGTU7R1zcvZaXCxNNJ8QeBwhwE=;
+ b=uL10uzt8mIK471qbcQN1sU+ICTjcceVdb12Js0mEzsvho5nNdQ6QAYTahcw10fBKen
+ 7dz3OhlUVkVeqUpR52dtxrp+MjJ4xywIsM2Du+rzalo7aw9iWjxuKmQKQOjJSFm0Bic/
+ LV01loV05oUL1i2vTpuYaVSULBNN7YDndTWCPKUsSOV4RuQ5qmuvV5J9LJT8eeYCx4rw
+ EmtoQZmHSO17eIY4cHPcrGeo9wVjES8iaFRCjHZwvGiiAKl9GioNowmHaBnxI2fjLrf1
+ Rr54CMu0mS5vVJ9uOyd9L/BrjQcVZC9/HQ+VDdcQQ88mWVfsrY2nppPI3FNNvFY+JyC3
+ QPuw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=1e100.net; s=20230601; t=1700754985; x=1701359785;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+ :subject:date:message-id:reply-to;
+ bh=n5Fe1dg8Henr/7Y0lJGTU7R1zcvZaXCxNNJ8QeBwhwE=;
+ b=Q87GHcwsnrhMPsMFox+TcQqB+4sI68FlPUI2ZGQdXHkCmTJ4FZ6Cqcwu3sjnYh7TI1
+ RjNcPSw20n4otRRv3PV/BpMWCQ1JIq+Tf6qe2mkchNpkueEy9RgJ06y/KD26/rbhQv0y
+ LQzw89ssi88QTM9HLOBEKhZ2Myv5nDkeAdRWKbKMwVoUMSbsmoVoNlBn9RI1nUpzommj
+ XUK2fVLn95fhAPRhoB52vyLVgL+5eMeoL5csmOCJSIb1QHW9jRdyktDl119IzXZwLxbE
+ Bkk375qKTLb60HD9N2xP2rc6aMh9mUm6iZVD8WM4pJPwNHfv4kGyMIugeBlHAEbCJR/q
+ BSqA==
+X-Gm-Message-State: AOJu0Yy9bOz939JA5sqsbDlYLLuqF0CEUoVpu7zZmPaYJgoCzJZrR6ej
+ iOk0H5cyGUNsiZNPP+pjNVOwjQ==
+X-Google-Smtp-Source: 
+ AGHT+IHxEKkqVXd320BZIE/pSI4PSq1OJwIioEPANmH/6X1tsz+tDbNBcjRBO6FBSN3Pcm1RGdPNhQ==
+X-Received: by 2002:a5d:67c5:0:b0:331:34b0:d7b3 with SMTP id
+ n5-20020a5d67c5000000b0033134b0d7b3mr2702193wrw.15.1700754984808;
+ Thu, 23 Nov 2023 07:56:24 -0800 (PST)
+Received: from draig.lan ([85.9.250.243]) by smtp.gmail.com with ESMTPSA id
+ x1-20020adfec01000000b003313e4dddecsm2004270wrn.108.2023.11.23.07.56.21
+ (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+ Thu, 23 Nov 2023 07:56:21 -0800 (PST)
+Received: from draig.lan (localhost [IPv6:::1])
+ by draig.lan (Postfix) with ESMTP id 0F696645F8;
+ Thu, 23 Nov 2023 15:56:21 +0000 (GMT)
+From: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+To: qemu-devel@nongnu.org
+Cc: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>, =?utf-8?q?Philipp?=
+	=?utf-8?q?e_Mathieu-Daud=C3=A9?= <philmd@linaro.org>,
+ Anders Roxell <anders.roxell@linaro.org>, Thomas Huth <thuth@redhat.com>,
+ Wainer dos Santos Moschetta <wainersm@redhat.com>,
+ Beraldo Leal <bleal@redhat.com>
+Subject: [PULL 03/14] tests/docker: merge debian-native with debian-amd64
+Date: Thu, 23 Nov 2023 15:56:09 +0000
+Message-Id: <20231123155620.3042891-4-alex.bennee@linaro.org>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20231123155620.3042891-1-alex.bennee@linaro.org>
+References: <20231123155620.3042891-1-alex.bennee@linaro.org>
+MIME-Version: 1.0
+Received-SPF: pass client-ip=2a00:1450:4864:20::430;
+ envelope-from=alex.bennee@linaro.org; helo=mail-wr1-x430.google.com
+X-Spam_score_int: -20
+X-Spam_score: -2.1
+X-Spam_bar: --
+X-Spam_report: (-2.1 / 5.0 requ) BAYES_00=-1.9, DKIM_SIGNED=0.1,
+ DKIM_VALID=-0.1, DKIM_VALID_AU=-0.1, DKIM_VALID_EF=-0.1,
+ RCVD_IN_DNSWL_NONE=-0.0001, SPF_HELO_NONE=0.001, SPF_PASS=-0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=ham autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+Sender: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+
+debian-native isn't really needed and suffers from the problem of
+tracking a distros dependencies rather than the projects. With a
+little surgery we can make the debian-amd64 container architecture
+neutral and allow people to use it to build a native QEMU.
+
+Rename it so it follows the same non-arch pattern of the other distro
+containers.
+
+Reviewed-by: Philippe Mathieu-Daudé <philmd@linaro.org>
+Tested-by: Anders Roxell <anders.roxell@linaro.org>
+Signed-off-by: Alex Bennée <alex.bennee@linaro.org>
+Message-Id: <20231120150833.2552739-4-alex.bennee@linaro.org>
+
+diff --git a/.gitlab-ci.d/buildtest.yml b/.gitlab-ci.d/buildtest.yml
+index da72f7c690..7f9af83b10 100644
+--- a/.gitlab-ci.d/buildtest.yml
++++ b/.gitlab-ci.d/buildtest.yml
+@@ -70,7 +70,7 @@ build-system-debian:
+   needs:
+     job: amd64-debian-container
+   variables:
+-    IMAGE: debian-amd64
++    IMAGE: debian
+     CONFIGURE_ARGS: --with-coroutine=sigaltstack
+     TARGETS: arm-softmmu i386-softmmu riscv64-softmmu sh4eb-softmmu
+       sparc-softmmu xtensa-softmmu
+@@ -82,7 +82,7 @@ check-system-debian:
+     - job: build-system-debian
+       artifacts: true
+   variables:
+-    IMAGE: debian-amd64
++    IMAGE: debian
+     MAKE_CHECK_ARGS: check
+ 
+ avocado-system-debian:
+@@ -91,7 +91,7 @@ avocado-system-debian:
+     - job: build-system-debian
+       artifacts: true
+   variables:
+-    IMAGE: debian-amd64
++    IMAGE: debian
+     MAKE_CHECK_ARGS: check-avocado
+     AVOCADO_TAGS: arch:arm arch:i386 arch:riscv64 arch:sh4 arch:sparc arch:xtensa
+ 
+@@ -101,7 +101,7 @@ crash-test-debian:
+     - job: build-system-debian
+       artifacts: true
+   variables:
+-    IMAGE: debian-amd64
++    IMAGE: debian
+   script:
+     - cd build
+     - make NINJA=":" check-venv
+@@ -589,7 +589,7 @@ build-tools-and-docs-debian:
+     # when running on 'master' we use pre-existing container
+     optional: true
+   variables:
+-    IMAGE: debian-amd64
++    IMAGE: debian
+     MAKE_CHECK_ARGS: check-unit ctags TAGS cscope
+     CONFIGURE_ARGS: --disable-system --disable-user --enable-docs --enable-tools
+     QEMU_JOB_PUBLISH: 1
+@@ -609,7 +609,7 @@ build-tools-and-docs-debian:
+ # of what topic branch they're currently using
+ pages:
+   extends: .base_job_template
+-  image: $CI_REGISTRY_IMAGE/qemu/debian-amd64:$QEMU_CI_CONTAINER_TAG
++  image: $CI_REGISTRY_IMAGE/qemu/debian:$QEMU_CI_CONTAINER_TAG
+   stage: test
+   needs:
+     - job: build-tools-and-docs-debian
+diff --git a/.gitlab-ci.d/containers.yml b/.gitlab-ci.d/containers.yml
+index 8637a13d86..ae79d4c58b 100644
+--- a/.gitlab-ci.d/containers.yml
++++ b/.gitlab-ci.d/containers.yml
+@@ -11,7 +11,7 @@ amd64-debian-container:
+   extends: .container_job_template
+   stage: containers
+   variables:
+-    NAME: debian-amd64
++    NAME: debian
+ 
+ amd64-ubuntu2204-container:
+   extends: .container_job_template
+diff --git a/tests/docker/Makefile.include b/tests/docker/Makefile.include
+index cd4688bf07..5ba5b50ab9 100644
+--- a/tests/docker/Makefile.include
++++ b/tests/docker/Makefile.include
+@@ -88,9 +88,6 @@ DOCKER_PARTIAL_IMAGES += debian-s390x-cross
+ DOCKER_PARTIAL_IMAGES += fedora
+ endif
+ 
+-# The native build should never use the registry
+-docker-image-debian-native: DOCKER_REGISTRY=
+-
+ # alpine has no adduser
+ docker-image-alpine: NOUSER=1
+ 
+diff --git a/tests/docker/dockerfiles/debian-native.docker b/tests/docker/dockerfiles/debian-native.docker
+deleted file mode 100644
+index abac7d7cd7..0000000000
+--- a/tests/docker/dockerfiles/debian-native.docker
++++ /dev/null
+@@ -1,54 +0,0 @@
+-#
+-# Docker Debian Native
+-#
+-# This is intended to build QEMU on native host systems. Debian is
+-# chosen due to the broadest range on supported host systems for QEMU.
+-#
+-# This docker target is based on the docker.io Debian Bullseye base
+-# image rather than QEMU's base because we would otherwise confuse the
+-# build grabbing stuff from the registry built for other
+-# architectures.
+-#
+-FROM docker.io/library/debian:bullseye-slim
+-MAINTAINER Alex Bennée <alex.bennee@linaro.org>
+-
+-# Duplicate deb line as deb-src
+-RUN cat /etc/apt/sources.list | sed "s/^deb\ /deb-src /" >> /etc/apt/sources.list
+-
+-# Install common build utilities
+-RUN apt update && \
+-    DEBIAN_FRONTEND=noninteractive apt install -yy eatmydata
+-
+-RUN apt update && \
+-    DEBIAN_FRONTEND=noninteractive eatmydata \
+-    apt build-dep -yy --arch-only qemu
+-
+-RUN apt update && \
+-    DEBIAN_FRONTEND=noninteractive eatmydata \
+-    apt install -y --no-install-recommends \
+-        cscope \
+-        genisoimage \
+-        exuberant-ctags \
+-        global \
+-        libbz2-dev \
+-        liblzo2-dev \
+-        libgcrypt20-dev \
+-        libfdt-dev \
+-        librdmacm-dev \
+-        libsasl2-dev \
+-        libsnappy-dev \
+-        libvte-dev \
+-        netcat-openbsd \
+-        ninja-build \
+-        openssh-client \
+-        python3-numpy \
+-        python3-opencv \
+-        python3-venv
+-
+-ENV QEMU_CONFIGURE_OPTS $QEMU_CONFIGURE_OPTS
+-ENV DEF_TARGET_LIST "none"
+-# As a final step configure the user (if env is defined)
+-ARG USER
+-ARG UID
+-RUN if [ "${USER}" ]; then \
+-  id ${USER} 2>/dev/null || useradd -u ${UID} -U ${USER}; fi
+diff --git a/tests/docker/dockerfiles/debian-amd64.docker b/tests/docker/dockerfiles/debian.docker
+similarity index 96%
+rename from tests/docker/dockerfiles/debian-amd64.docker
+rename to tests/docker/dockerfiles/debian.docker
+index 9b50fb2f63..b5e642d5b6 100644
+--- a/tests/docker/dockerfiles/debian-amd64.docker
++++ b/tests/docker/dockerfiles/debian.docker
+@@ -155,10 +155,13 @@ RUN DEBIAN_FRONTEND=noninteractive eatmydata \
+   apt install -y --no-install-recommends \
+   cscope\
+   global\
+-  linux-headers-amd64
++  linux-headers-generic
+ RUN git clone https://github.com/luigirizzo/netmap.git /usr/src/netmap
+ RUN cd /usr/src/netmap && git checkout v11.3
+-RUN cd /usr/src/netmap/LINUX && ./configure --no-drivers --no-apps --kernel-dir=$(ls -d /usr/src/linux-headers-*-amd64) && make install
++RUN cd /usr/src/netmap/LINUX && \
++  ./configure --no-drivers --no-apps \
++  --kernel-dir=$(ls -d /usr/src/linux-headers-*-$(dpkg --print-architecture)) \
++  && make install
+ ENV QEMU_CONFIGURE_OPTS --enable-netmap
+ # As a final step configure the user (if env is defined)
+ ARG USER
+diff --git a/tests/lcitool/refresh b/tests/lcitool/refresh
+index 7c211eba2e..993683cf48 100755
+--- a/tests/lcitool/refresh
++++ b/tests/lcitool/refresh
+@@ -99,10 +99,13 @@ debian12_extras = [
+     "  apt install -y --no-install-recommends \\\n",
+     "  cscope\\\n",
+     "  global\\\n",
+-    "  linux-headers-amd64\n",
++    "  linux-headers-generic\n",
+     "RUN git clone https://github.com/luigirizzo/netmap.git /usr/src/netmap\n",
+     "RUN cd /usr/src/netmap && git checkout v11.3\n",
+-    "RUN cd /usr/src/netmap/LINUX && ./configure --no-drivers --no-apps --kernel-dir=$(ls -d /usr/src/linux-headers-*-amd64) && make install\n",
++    "RUN cd /usr/src/netmap/LINUX && \\\n",
++    "  ./configure --no-drivers --no-apps \\\n",
++    "  --kernel-dir=$(ls -d /usr/src/linux-headers-*-$(dpkg --print-architecture)) \\\n",
++    "  && make install\n",
+     "ENV QEMU_CONFIGURE_OPTS --enable-netmap\n"
+ ]
+ 
+@@ -123,7 +126,7 @@ try:
+     #
+     generate_dockerfile("alpine", "alpine-318")
+     generate_dockerfile("centos8", "centos-stream-8")
+-    generate_dockerfile("debian-amd64", "debian-12",
++    generate_dockerfile("debian", "debian-12",
+                         trailer="".join(debian12_extras))
+     generate_dockerfile("fedora", "fedora-38")
+     generate_dockerfile("opensuse-leap", "opensuse-leap-15")
+
+From patchwork Thu Nov 23 15:56:10 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Patchwork-Submitter: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+X-Patchwork-Id: 13466390
+Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 432A1C5AD4C
+	for <qemu-devel@archiver.kernel.org>; Thu, 23 Nov 2023 15:57:19 +0000 (UTC)
+Received: from localhost ([::1] helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces@nongnu.org>)
+	id 1r6C49-0005zQ-DR; Thu, 23 Nov 2023 10:56:33 -0500
+Received: from eggs.gnu.org ([2001:470:142:3::10])
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C45-0005xQ-Bs
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:29 -0500
+Received: from mail-wr1-x42a.google.com ([2a00:1450:4864:20::42a])
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_128_GCM_SHA256:128)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C3z-0002Jv-SF
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:29 -0500
+Received: by mail-wr1-x42a.google.com with SMTP id
+ ffacd0b85a97d-332ddd8e0bdso475993f8f.0
+ for <qemu-devel@nongnu.org>; Thu, 23 Nov 2023 07:56:23 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=linaro.org; s=google; t=1700754982; x=1701359782; darn=nongnu.org;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+ :message-id:reply-to;
+ bh=7M+oTcAeMXRnbjDiygDHIJbp/3rbPEBUV8gBwI47k78=;
+ b=McGWPbEbQ1CBYMNAxTKREq3viitX4CVeDHR/psDZoL6TP8RX6+llmW2h7eOQaAsw4S
+ Dg5HEO9ZTcYAPY2b5XfgyHWbTli1BO0XuDc5fTRuNJ6cH/tqCQ1XtqNzQfccR25SpI2n
+ b6faUqV8EFLrPWW8GVXVQv3RDb2SxGRKfMJHZqOJJMu3qQrb3ej9LY9Jm3zJqZkeSLFI
+ gzUhuzKu4AlhO7ppHmgtv2c95HZdpl7V7kAi2pY/3Kgx0SYDP3FA2A+3auXuNBNlxein
+ pxR6TcyJz9Xla1JLF2hsI391xvdvnbHw1dd8/DPgyn5xLkdGmGLlKGhkLEZ3YGrMJrau
+ RPuw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=1e100.net; s=20230601; t=1700754982; x=1701359782;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+ :subject:date:message-id:reply-to;
+ bh=7M+oTcAeMXRnbjDiygDHIJbp/3rbPEBUV8gBwI47k78=;
+ b=elkQl1uprl8w18E2eIbJeX894SggViY5BAgQJfj7sXCI6WS4dmaAouBLO2WWr7e3nX
+ NpZYM8Xd8JGXEygCpEifj/ibOeL+hacM28mQIDAgP7tICi3gwDO1ffZDlXF64h2j13/U
+ 7CoTcr5BpX4ZOgVDbvOaP0onTyIhcDkO7yyajTcpFpf5kzGVt+u51vlEyhwX/wjgKePP
+ wr5RTSpsW6dAgi7Prb69OunAki8qAUljSZNcyB729aPiRZ+fJH5It9uka2QJ7YIpUk6C
+ X6bN+2YwzuQJjN7/Ukv8DV2wJ6asSxLC5ATMi0nQhtzK2NiRiXJqUjtEzUuHzISs/68l
+ 2oGg==
+X-Gm-Message-State: AOJu0Yy7vHFDVqwztBVgYuwq/ki29AjtFbewCH6ERbBgP0s8AApY6g1x
+ 5FX0tdEv/KXUZ2RZGxQtuV0Z0A==
+X-Google-Smtp-Source: 
+ AGHT+IFnzVLwVIhv9Qyw7TI6rhHHjwCx/J7Q1R48oiEGdt94LKebRMhcv2iOO1wz8aNksGRjceA3Hw==
+X-Received: by 2002:a5d:67c5:0:b0:331:34b0:d7b3 with SMTP id
+ n5-20020a5d67c5000000b0033134b0d7b3mr2702062wrw.15.1700754981921;
+ Thu, 23 Nov 2023 07:56:21 -0800 (PST)
+Received: from draig.lan ([85.9.250.243]) by smtp.gmail.com with ESMTPSA id
+ x13-20020a5d60cd000000b00332d2a9541esm1955409wrt.71.2023.11.23.07.56.21
+ (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+ Thu, 23 Nov 2023 07:56:21 -0800 (PST)
+Received: from draig.lan (localhost [IPv6:::1])
+ by draig.lan (Postfix) with ESMTP id 24365645F9;
+ Thu, 23 Nov 2023 15:56:21 +0000 (GMT)
+From: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+To: qemu-devel@nongnu.org
+Cc: Greg Manning <gmanning@rapitasystems.com>, =?utf-8?q?Philippe_Mathieu-Da?=
+	=?utf-8?q?ud=C3=A9?= <philmd@linaro.org>,
+ =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>,
+ Thomas Huth <thuth@redhat.com>,
+ Wainer dos Santos Moschetta <wainersm@redhat.com>,
+ Beraldo Leal <bleal@redhat.com>, Alexandre Iooss <erdnaxe@crans.org>,
+ Mahmoud Mandour <ma.mandourr@gmail.com>
+Subject: [PULL 04/14] plugins: fix win plugin tests on cross compile
+Date: Thu, 23 Nov 2023 15:56:10 +0000
+Message-Id: <20231123155620.3042891-5-alex.bennee@linaro.org>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20231123155620.3042891-1-alex.bennee@linaro.org>
+References: <20231123155620.3042891-1-alex.bennee@linaro.org>
+MIME-Version: 1.0
+Received-SPF: pass client-ip=2a00:1450:4864:20::42a;
+ envelope-from=alex.bennee@linaro.org; helo=mail-wr1-x42a.google.com
+X-Spam_score_int: -20
+X-Spam_score: -2.1
+X-Spam_bar: --
+X-Spam_report: (-2.1 / 5.0 requ) BAYES_00=-1.9, DKIM_SIGNED=0.1,
+ DKIM_VALID=-0.1, DKIM_VALID_AU=-0.1, DKIM_VALID_EF=-0.1, SPF_HELO_NONE=0.001,
+ SPF_PASS=-0.001, T_SCC_BODY_TEXT_LINE=-0.01 autolearn=ham autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+Sender: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+
+From: Greg Manning <gmanning@rapitasystems.com>
+
+Resolves: https://gitlab.com/qemu-project/qemu/-/issues/1972
+
+Cross compile gcc is more picky about argument order than msys. Changed
+the meson command to take the (now renamed) libqemu_plugin_api.a as a
+lib, rather than an object. This puts it in the right place on both
+native and cross compile gcc commands
+
+Reenable plugins on crossbuilds
+
+Signed-off-by: Greg Manning <gmanning@rapitasystems.com>
+Reviewed-by: Philippe Mathieu-Daudé <philmd@linaro.org>
+Message-Id: <20231109124326.21106-2-gmanning@rapitasystems.com>
+Signed-off-by: Alex Bennée <alex.bennee@linaro.org>
+Message-Id: <20231120150833.2552739-5-alex.bennee@linaro.org>
+
+diff --git a/.gitlab-ci.d/crossbuilds.yml b/.gitlab-ci.d/crossbuilds.yml
+index c2af6c7f44..d19d98cde0 100644
+--- a/.gitlab-ci.d/crossbuilds.yml
++++ b/.gitlab-ci.d/crossbuilds.yml
+@@ -165,7 +165,7 @@ cross-win32-system:
+     job: win32-fedora-cross-container
+   variables:
+     IMAGE: fedora-win32-cross
+-    EXTRA_CONFIGURE_OPTS: --enable-fdt=internal --disable-plugins
++    EXTRA_CONFIGURE_OPTS: --enable-fdt=internal
+     CROSS_SKIP_TARGETS: alpha-softmmu avr-softmmu hppa-softmmu m68k-softmmu
+                         microblazeel-softmmu mips64el-softmmu nios2-softmmu
+   artifacts:
+diff --git a/contrib/plugins/Makefile b/contrib/plugins/Makefile
+index 1783750cf6..0b64d2c1e3 100644
+--- a/contrib/plugins/Makefile
++++ b/contrib/plugins/Makefile
+@@ -49,7 +49,7 @@ all: $(SONAMES)
+ 	$(CC) $(CFLAGS) $(PLUGIN_CFLAGS) -c -o $@ $<
+ 
+ ifeq ($(CONFIG_WIN32),y)
+-lib%$(SO_SUFFIX): %.o win32_linker.o ../../plugins/qemu_plugin_api.lib
++lib%$(SO_SUFFIX): %.o win32_linker.o ../../plugins/libqemu_plugin_api.a
+ 	$(CC) -shared -o $@ $^ $(LDLIBS)
+ else ifeq ($(CONFIG_DARWIN),y)
+ lib%$(SO_SUFFIX): %.o
+diff --git a/plugins/meson.build b/plugins/meson.build
+index 40d24529c0..6b2d7a9292 100644
+--- a/plugins/meson.build
++++ b/plugins/meson.build
+@@ -28,7 +28,7 @@ if get_option('plugins')
+     # then use dlltool to assemble a delaylib.
+     win32_qemu_plugin_api_lib = configure_file(
+       input: win32_plugin_def,
+-      output: 'qemu_plugin_api.lib',
++      output: 'libqemu_plugin_api.a',
+       command: [dlltool, '--input-def', '@INPUT@',
+                 '--output-delaylib', '@OUTPUT@', '--dllname', 'qemu.exe']
+     )
+diff --git a/tests/plugin/meson.build b/tests/plugin/meson.build
+index 528bb9d86c..28a929dbcc 100644
+--- a/tests/plugin/meson.build
++++ b/tests/plugin/meson.build
+@@ -4,7 +4,8 @@ if get_option('plugins')
+     if targetos == 'windows'
+       t += shared_module(i, files(i + '.c') + '../../contrib/plugins/win32_linker.c',
+                         include_directories: '../../include/qemu',
+-                        objects: [win32_qemu_plugin_api_lib],
++                        link_depends: [win32_qemu_plugin_api_lib],
++                        link_args: ['-Lplugins', '-lqemu_plugin_api'],
+                         dependencies: glib)
+ 
+     else
+
+From patchwork Thu Nov 23 15:56:11 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Patchwork-Submitter: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+X-Patchwork-Id: 13466403
+Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 4FDFFC636CC
+	for <qemu-devel@archiver.kernel.org>; Thu, 23 Nov 2023 15:59:51 +0000 (UTC)
+Received: from localhost ([::1] helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces@nongnu.org>)
+	id 1r6C4C-00060N-9U; Thu, 23 Nov 2023 10:56:36 -0500
+Received: from eggs.gnu.org ([2001:470:142:3::10])
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C47-0005yl-3R
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:31 -0500
+Received: from mail-wr1-x42b.google.com ([2a00:1450:4864:20::42b])
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_128_GCM_SHA256:128)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C45-0002LE-A1
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:30 -0500
+Received: by mail-wr1-x42b.google.com with SMTP id
+ ffacd0b85a97d-3316c6e299eso664119f8f.1
+ for <qemu-devel@nongnu.org>; Thu, 23 Nov 2023 07:56:28 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=linaro.org; s=google; t=1700754988; x=1701359788; darn=nongnu.org;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+ :message-id:reply-to;
+ bh=3cgs4AXu1OeQxqa1QuWOIvdMfSPeenS1HCaJ1Sdn6f0=;
+ b=GHYWovXhT36wUQqqD3pdPO9pVkqcMIx1eL8rz6lVxMjGSDtnhZn8HWIYg9AKFXAaSH
+ KUNQePLeTMqxhmNs9aF11ZZGSclDbPSa5hvm6H16JYfe1DzhNJJV/5M664UYpljq2Rx2
+ jYnBE96eWVmUfP8bcNrXG62+uGAqtxjuUOyaSU+c0K6FZ9KAi/fKfNNtcPSdatsQMI9b
+ iatM1EtuaTyCBOVXwcBoHN1OhL6c3kjBLyXwp+4YLj7gsP3NLmvTpwerr65rIk2yvKDn
+ wmLlgFf3WToVhGE85fE3tQKtSqmxR9lEHTcJGCRHFYJPObepf02W9jeYsv4eP6fk+V+F
+ R+8A==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=1e100.net; s=20230601; t=1700754988; x=1701359788;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+ :subject:date:message-id:reply-to;
+ bh=3cgs4AXu1OeQxqa1QuWOIvdMfSPeenS1HCaJ1Sdn6f0=;
+ b=nNfG3KSSxkeXwEGZNcFqameFmFlIJlBWqs8OV1Cy7U8Q4Lsz4nsyL0BS0vvMWSSXM/
+ mpt4/hgv7hgI/K4PIgM38xMPsCfX4W4lu95cq4j/t7hrMZsVzNP3mWc6ezXdvS8j+bQh
+ YlqpLrkSofso9bdfmX+eBLl+Qz8OZ2Xx+rf9MVWP+qiKxufqNIHqZa+IeeJVkwttPsiP
+ filxI2in9Vj+ffxsqEXRR+G9HDbt4UF7HhkEG+xgPeh16wZsbuykGWmhmQSAqQO4ou1H
+ iY7vkztwDgpM/e/ykgz8kR27SoTT8C6yoWeoem3ipdHgaPyHb+nwN+/SAFsfkgPTPzrw
+ SGNQ==
+X-Gm-Message-State: AOJu0YwsFfWQgPeDiXkYbqzFkehNxLlKWuAdlYMRUhkGO5oXqXVdPD/C
+ pPfQi51y1qD0ioCmZrLxsAbyyA==
+X-Google-Smtp-Source: 
+ AGHT+IEcQYTMTA6kVNK1/wgEf+2X4KdquRDS+utJj983ZeFALTpSO5a1g385Fg64PfMD5AMk1iHI/A==
+X-Received: by 2002:a05:6000:1842:b0:32d:9fc9:d14a with SMTP id
+ c2-20020a056000184200b0032d9fc9d14amr4383750wri.12.1700754987900;
+ Thu, 23 Nov 2023 07:56:27 -0800 (PST)
+Received: from draig.lan ([85.9.250.243]) by smtp.gmail.com with ESMTPSA id
+ s15-20020adf978f000000b00332c693c73csm2021371wrb.37.2023.11.23.07.56.21
+ (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+ Thu, 23 Nov 2023 07:56:24 -0800 (PST)
+Received: from draig.lan (localhost [IPv6:::1])
+ by draig.lan (Postfix) with ESMTP id 3867B645FA;
+ Thu, 23 Nov 2023 15:56:21 +0000 (GMT)
+From: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+To: qemu-devel@nongnu.org
+Cc: =?utf-8?q?Philippe_Mathieu-Daud=C3=A9?= <philmd@linaro.org>,
+ Richard Henderson <richard.henderson@linaro.org>,
+ Marek Vasut <marex@denx.de>, Thomas Huth <thuth@redhat.com>, =?utf-8?q?Alex?=
+	=?utf-8?q?_Benn=C3=A9e?= <alex.bennee@linaro.org>,
+ devel@lists.libvirt.org (reviewer:Incompatible changes),
+ Chris Wulff <crwulff@gmail.com>
+Subject: [PULL 05/14] target/nios2: Deprecate the Nios II architecture
+Date: Thu, 23 Nov 2023 15:56:11 +0000
+Message-Id: <20231123155620.3042891-6-alex.bennee@linaro.org>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20231123155620.3042891-1-alex.bennee@linaro.org>
+References: <20231123155620.3042891-1-alex.bennee@linaro.org>
+MIME-Version: 1.0
+Received-SPF: pass client-ip=2a00:1450:4864:20::42b;
+ envelope-from=alex.bennee@linaro.org; helo=mail-wr1-x42b.google.com
+X-Spam_score_int: -20
+X-Spam_score: -2.1
+X-Spam_bar: --
+X-Spam_report: (-2.1 / 5.0 requ) BAYES_00=-1.9, DKIM_SIGNED=0.1,
+ DKIM_VALID=-0.1, DKIM_VALID_AU=-0.1, DKIM_VALID_EF=-0.1,
+ RCVD_IN_DNSWL_NONE=-0.0001, SPF_HELO_NONE=0.001, SPF_PASS=-0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=ham autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+Sender: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+
+From: Philippe Mathieu-Daudé <philmd@linaro.org>
+
+See commit 9ba1caf510 ("MAINTAINERS: Mark the Nios II CPU as orphan"),
+last contribution from Chris was in 2012 [1] and Marek in 2018 [2].
+
+[1] https://lore.kernel.org/qemu-devel/1352607539-10455-2-git-send-email-crwulff@gmail.com/
+[2] https://lore.kernel.org/qemu-devel/805fc7b5-03f0-56d4-abfd-ed010d4fa769@denx.de/
+
+Signed-off-by: Philippe Mathieu-Daudé <philmd@linaro.org>
+Reviewed-by: Richard Henderson <richard.henderson@linaro.org>
+Acked-by: Marek Vasut <marex@denx.de>
+Reviewed-by: Thomas Huth <thuth@redhat.com>
+Message-Id: <20231117070250.32932-1-philmd@linaro.org>
+Signed-off-by: Alex Bennée <alex.bennee@linaro.org>
+Message-Id: <20231120150833.2552739-6-alex.bennee@linaro.org>
+
+diff --git a/docs/about/deprecated.rst b/docs/about/deprecated.rst
+index 6c84db90b5..2e15040246 100644
+--- a/docs/about/deprecated.rst
++++ b/docs/about/deprecated.rst
+@@ -236,6 +236,16 @@ it. Since all recent x86 hardware from the past >10 years is capable of the
+ 64-bit x86 extensions, a corresponding 64-bit OS should be used instead.
+ 
+ 
++System emulator CPUs
++--------------------
++
++Nios II CPU (since 8.2)
++'''''''''''''''''''''''
++
++The Nios II architecture is orphan. The ``nios2`` guest CPU support is
++deprecated and will be removed in a future version of QEMU.
++
++
+ System emulator machines
+ ------------------------
+ 
+@@ -254,6 +264,11 @@ These old machine types are quite neglected nowadays and thus might have
+ various pitfalls with regards to live migration. Use a newer machine type
+ instead.
+ 
++Nios II ``10m50-ghrd`` and ``nios2-generic-nommu`` machines (since 8.2)
++'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
++
++The Nios II architecture is orphan.
++
+ 
+ Backend options
+ ---------------
+diff --git a/hw/nios2/10m50_devboard.c b/hw/nios2/10m50_devboard.c
+index 952a0dc33e..6cb32f777b 100644
+--- a/hw/nios2/10m50_devboard.c
++++ b/hw/nios2/10m50_devboard.c
+@@ -160,6 +160,7 @@ static void nios2_10m50_ghrd_class_init(ObjectClass *oc, void *data)
+     mc->desc = "Altera 10M50 GHRD Nios II design";
+     mc->init = nios2_10m50_ghrd_init;
+     mc->is_default = true;
++    mc->deprecation_reason = "Nios II architecture is deprecated";
+ 
+     object_class_property_add_bool(oc, "vic", get_vic, set_vic);
+     object_class_property_set_description(oc, "vic",
+diff --git a/hw/nios2/generic_nommu.c b/hw/nios2/generic_nommu.c
+index 48edb3ae37..defa16953f 100644
+--- a/hw/nios2/generic_nommu.c
++++ b/hw/nios2/generic_nommu.c
+@@ -95,6 +95,7 @@ static void nios2_generic_nommu_machine_init(struct MachineClass *mc)
+ {
+     mc->desc = "Generic NOMMU Nios II design";
+     mc->init = nios2_generic_nommu_init;
++    mc->deprecation_reason = "Nios II architecture is deprecated";
+ }
+ 
+ DEFINE_MACHINE("nios2-generic-nommu", nios2_generic_nommu_machine_init);
+
+From patchwork Thu Nov 23 15:56:12 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Patchwork-Submitter: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+X-Patchwork-Id: 13466400
+Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 79DBAC61D97
+	for <qemu-devel@archiver.kernel.org>; Thu, 23 Nov 2023 15:59:50 +0000 (UTC)
+Received: from localhost ([::1] helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces@nongnu.org>)
+	id 1r6C47-0005yq-Ac; Thu, 23 Nov 2023 10:56:31 -0500
+Received: from eggs.gnu.org ([2001:470:142:3::10])
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C45-0005x9-3h
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:29 -0500
+Received: from mail-lf1-x134.google.com ([2a00:1450:4864:20::134])
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_128_GCM_SHA256:128)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C43-0002Kb-Ei
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:28 -0500
+Received: by mail-lf1-x134.google.com with SMTP id
+ 2adb3069b0e04-50aaaf6e58fso1444990e87.2
+ for <qemu-devel@nongnu.org>; Thu, 23 Nov 2023 07:56:26 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=linaro.org; s=google; t=1700754985; x=1701359785; darn=nongnu.org;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+ :message-id:reply-to;
+ bh=GYtTw4ASUySFW6kKmyEfvxpirNrDtpnKMB7Ug/FIcYA=;
+ b=nbXoOhpSXGi7Mcxgmwp2qqXwoMAm2JG66OmT61bX3Sj5z5BN9gsJJ2//aE19GMstCA
+ 71uMlTxFta/uzp0JZcsIXvhPt0inEFvQG1NaPOUNhrbZyhFDJK0DH4n1qo5CWfsIcZHV
+ iNHrvgTuzGplQwM917SQI4dFvDmddAbGvn2fcqNmmu3Awr1iPLl26+we9mYmtYvqsfjk
+ migWXoxX6ElKJB3qRSVqoYUmmuxWhKm7qUM74hU+WRd2GYeVKhU7rMH3cdee1FzwIk59
+ 6To+hn9P0i0q7fO9352gZWO+YO8wqe+IcSDhkverR5VTWsPaaTuhg/vlb/kOHSPmfx4Z
+ nz7A==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=1e100.net; s=20230601; t=1700754985; x=1701359785;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+ :subject:date:message-id:reply-to;
+ bh=GYtTw4ASUySFW6kKmyEfvxpirNrDtpnKMB7Ug/FIcYA=;
+ b=QjqWmJRGBHVThwLY33JYVFw1Ttkadom/frtfvM14cb9BUW+cQfB2kOJRfaDRHyqd0f
+ 39KJL2/EB44iEQXuS8O8fgiv5VvzpRVmFo1ntM3ibqBIX6kHq9n4CPq62v4jzDXi3CNP
+ Z5TtG7LxuZKSoBX9iJyUo2KJVhw6MRNa3IxT7X8zcETgAr5wB3KNxoqyrpn3CUoIxvmp
+ uP7IQDRbvgm4DJZybikxlzLCkwtQhTEKtMKHX6dFBL7L4RGFGOA7y5kf0ABSPdlt+Bkl
+ NsNDHfQp0b6SlcHSd/eJl+MPXW2rGYJwVmM07CWxuHqZjfdqqM8i9OGc7OmOEI3RbpHc
+ Ta0Q==
+X-Gm-Message-State: AOJu0YxGC+ChCecCIkSv/Dw1pffkdAs4JGABlBVeEexqZtHe47Pxcgf1
+ psfoQoWtVIMU2Bek3O1fsA7CmQ==
+X-Google-Smtp-Source: 
+ AGHT+IE33H8vXHdJEF+l+mivhuFz5EXUN+984b1JR03tMo1tCmdQcX8tF1qjs/ARMiJi9hm877EnOw==
+X-Received: by 2002:a2e:880c:0:b0:2c8:330b:7181 with SMTP id
+ x12-20020a2e880c000000b002c8330b7181mr2942704ljh.38.1700754985119;
+ Thu, 23 Nov 2023 07:56:25 -0800 (PST)
+Received: from draig.lan ([85.9.250.243]) by smtp.gmail.com with ESMTPSA id
+ o18-20020a05600c4fd200b0040b38082b99sm1009113wmq.1.2023.11.23.07.56.21
+ (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+ Thu, 23 Nov 2023 07:56:24 -0800 (PST)
+Received: from draig.lan (localhost [IPv6:::1])
+ by draig.lan (Postfix) with ESMTP id 49A55645FB;
+ Thu, 23 Nov 2023 15:56:21 +0000 (GMT)
+From: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+To: qemu-devel@nongnu.org
+Cc: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>,
+ Peter Maydell <peter.maydell@linaro.org>,
+ qemu-arm@nongnu.org (open list:ARM TCG CPUs)
+Subject: [PULL 06/14] tests/tcg: fixup Aarch64 semiconsole test
+Date: Thu, 23 Nov 2023 15:56:12 +0000
+Message-Id: <20231123155620.3042891-7-alex.bennee@linaro.org>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20231123155620.3042891-1-alex.bennee@linaro.org>
+References: <20231123155620.3042891-1-alex.bennee@linaro.org>
+MIME-Version: 1.0
+Received-SPF: pass client-ip=2a00:1450:4864:20::134;
+ envelope-from=alex.bennee@linaro.org; helo=mail-lf1-x134.google.com
+X-Spam_score_int: -20
+X-Spam_score: -2.1
+X-Spam_bar: --
+X-Spam_report: (-2.1 / 5.0 requ) BAYES_00=-1.9, DKIM_SIGNED=0.1,
+ DKIM_VALID=-0.1, DKIM_VALID_AU=-0.1, DKIM_VALID_EF=-0.1,
+ RCVD_IN_DNSWL_NONE=-0.0001, SPF_HELO_NONE=0.001, SPF_PASS=-0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=unavailable autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+Sender: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+
+We need to ensure we squash the serial port if we want to hand craft
+our muxed input. As a bonus emit the example with a V=1 build to make
+it easier for people to figure out.
+
+Signed-off-by: Alex Bennée <alex.bennee@linaro.org>
+Message-Id: <20231120150833.2552739-7-alex.bennee@linaro.org>
+
+diff --git a/tests/tcg/aarch64/Makefile.softmmu-target b/tests/tcg/aarch64/Makefile.softmmu-target
+index b74a2534e3..77c5018e02 100644
+--- a/tests/tcg/aarch64/Makefile.softmmu-target
++++ b/tests/tcg/aarch64/Makefile.softmmu-target
+@@ -48,10 +48,11 @@ QEMU_BASE_MACHINE=-M virt -cpu max -display none
+ QEMU_OPTS+=$(QEMU_BASE_MACHINE) -semihosting-config enable=on,target=native,chardev=output -kernel
+ 
+ # console test is manual only
+-QEMU_SEMIHOST=-chardev stdio,mux=on,id=stdio0 -semihosting-config enable=on,chardev=stdio0 -mon chardev=stdio0,mode=readline
+-run-semiconsole: QEMU_OPTS=$(QEMU_BASE_MACHINE) $(QEMU_SEMIHOST)  -kernel
++QEMU_SEMIHOST=-serial none -chardev stdio,mux=on,id=stdio0 -semihosting-config enable=on,chardev=stdio0 -mon chardev=stdio0,mode=readline
++run-semiconsole: QEMU_OPTS=$(QEMU_BASE_MACHINE) $(QEMU_SEMIHOST) -kernel
+ run-semiconsole: semiconsole
+ 	$(call skip-test, $<, "MANUAL ONLY")
++	$(if $(V),@printf "  %-7s %s %s\n" "TO RUN" $(notdir $(QEMU)) "$(QEMU_OPTS) $<")
+ run-plugin-semiconsole-with-%: semiconsole
+ 	$(call skip-test, $<, "MANUAL ONLY")
+ 
+
+From patchwork Thu Nov 23 15:56:13 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Patchwork-Submitter: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+X-Patchwork-Id: 13466392
+Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 9BF52C5AD4C
+	for <qemu-devel@archiver.kernel.org>; Thu, 23 Nov 2023 15:57:53 +0000 (UTC)
+Received: from localhost ([::1] helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces@nongnu.org>)
+	id 1r6C4F-00063I-Qy; Thu, 23 Nov 2023 10:56:39 -0500
+Received: from eggs.gnu.org ([2001:470:142:3::10])
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C4D-00061O-Dn
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:37 -0500
+Received: from mail-wm1-x332.google.com ([2a00:1450:4864:20::332])
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_128_GCM_SHA256:128)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C47-0002OO-9o
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:37 -0500
+Received: by mail-wm1-x332.google.com with SMTP id
+ 5b1f17b1804b1-40a4848c6e1so6828105e9.1
+ for <qemu-devel@nongnu.org>; Thu, 23 Nov 2023 07:56:30 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=linaro.org; s=google; t=1700754990; x=1701359790; darn=nongnu.org;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+ :message-id:reply-to;
+ bh=flBm42QK5sINs8BmnDZzSyUPyoNK1Ek7D1xSwYSnIUI=;
+ b=J/U23Oe6aHpu7qX2s4rJ8RFSazLLPj8+ipGoyqcs9PabrZSxHz/tiBh7knsFOaoiY8
+ lCV0Dja/OIbsAfGOh72XSjHeKMlqZhOPzupJhLkVwbiPWoVcZJC/JOrH2bOw8W9OyBJ3
+ IWFwlrWldMSUqEJsMhFfMPAHBzcrncGM3hzEYtEzwmKHGKwqkXCJRBJaZlfHc49peBKj
+ Ot7IquEvHgL4EUM/inrVIPILAfeiqQGvo9pDqElWZ0WWpuX+BA21cluznWsehskYDDgk
+ uMMqdWGd7VXFwHo/ZLZHzwN9BZ4zJR91YDNUtGvGloASEkDbP3FRhnH96gMmeEnWaZg9
+ Myjw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=1e100.net; s=20230601; t=1700754990; x=1701359790;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+ :subject:date:message-id:reply-to;
+ bh=flBm42QK5sINs8BmnDZzSyUPyoNK1Ek7D1xSwYSnIUI=;
+ b=oof3W/uUyvgCPN7DstkUIEhP57UG9b008opCP/eOPO1vie81HGzPnKj9izY+Zpk5t5
+ abzKnlp4xTz8G/8a3ewjRJJ+3JQsb50Hwj449ZuLHR9s7Wu1wjuhTkjjcvSt4slH8ehJ
+ MqoMK1pZ4Fw1DWlkafJHj+ji+DdTE8Zer0rYsZFXvPn0xew0SXisPV6XvfGkM/TnsZba
+ aQ6eI5ZEXLgkG5w3nbBexU37pt5iPnV91vIhHg6q1DT8aCKR1lrKUiowZDTdDkihkJde
+ 1e7AH6PymHGt0XFWW2TI1mtLr/kQIlnOG8SlnNtBg16eAJJOvTIMmQCPl7WvCNLJVzgq
+ FCtg==
+X-Gm-Message-State: AOJu0YwJiXdOlIVi8ao3iQKnu28wNABdxPGZpZCJPe/qA5euTQgmzzaR
+ WbNmnViEV9yAyJcuiE4WXnpvrw==
+X-Google-Smtp-Source: 
+ AGHT+IFWHQT75/QrC+b4zTP0rr8LQ8kTmf24VTwSsw9/z4ERhRICm4KQPB6tUA1TWAqtfVXXS/H7jQ==
+X-Received: by 2002:a05:600c:138e:b0:40b:3605:acda with SMTP id
+ u14-20020a05600c138e00b0040b3605acdamr7606wmf.25.1700754989788;
+ Thu, 23 Nov 2023 07:56:29 -0800 (PST)
+Received: from draig.lan ([85.9.250.243]) by smtp.gmail.com with ESMTPSA id
+ c4-20020a05600c0a4400b003fefaf299b6sm2423243wmq.38.2023.11.23.07.56.22
+ (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+ Thu, 23 Nov 2023 07:56:24 -0800 (PST)
+Received: from draig.lan (localhost [IPv6:::1])
+ by draig.lan (Postfix) with ESMTP id 5AF36645FC;
+ Thu, 23 Nov 2023 15:56:21 +0000 (GMT)
+From: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+To: qemu-devel@nongnu.org
+Cc: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>,
+ Richard Henderson <richard.henderson@linaro.org>
+Subject: [PULL 07/14] docs/emulation: expand warning about semihosting
+Date: Thu, 23 Nov 2023 15:56:13 +0000
+Message-Id: <20231123155620.3042891-8-alex.bennee@linaro.org>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20231123155620.3042891-1-alex.bennee@linaro.org>
+References: <20231123155620.3042891-1-alex.bennee@linaro.org>
+MIME-Version: 1.0
+Received-SPF: pass client-ip=2a00:1450:4864:20::332;
+ envelope-from=alex.bennee@linaro.org; helo=mail-wm1-x332.google.com
+X-Spam_score_int: -20
+X-Spam_score: -2.1
+X-Spam_bar: --
+X-Spam_report: (-2.1 / 5.0 requ) BAYES_00=-1.9, DKIM_SIGNED=0.1,
+ DKIM_VALID=-0.1, DKIM_VALID_AU=-0.1, DKIM_VALID_EF=-0.1, SPF_HELO_NONE=0.001,
+ SPF_PASS=-0.001, T_SCC_BODY_TEXT_LINE=-0.01 autolearn=ham autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+Sender: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+
+A surprising feature of calls like SYS_READC is this can cause QEMU to
+indefinitely block as there is no handling for EOF.
+
+Clarifies: https://gitlab.com/qemu-project/qemu/-/issues/1963
+Reviewed-by: Richard Henderson <richard.henderson@linaro.org>
+Signed-off-by: Alex Bennée <alex.bennee@linaro.org>
+Message-Id: <20231120150833.2552739-8-alex.bennee@linaro.org>
+
+diff --git a/docs/about/emulation.rst b/docs/about/emulation.rst
+index 0ad0b86f0d..a2eefe3f3f 100644
+--- a/docs/about/emulation.rst
++++ b/docs/about/emulation.rst
+@@ -129,8 +129,9 @@ causing most hypervisors to trap and fault on them.
+ .. warning::
+    Semihosting inherently bypasses any isolation there may be between
+    the guest and the host. As a result a program using semihosting can
+-   happily trash your host system. You should only ever run trusted
+-   code with semihosting enabled.
++   happily trash your host system. Some semihosting calls (e.g.
++   ``SYS_READC``) can block execution indefinitely. You should only
++   ever run trusted code with semihosting enabled.
+ 
+ Redirection
+ ~~~~~~~~~~~
+
+From patchwork Thu Nov 23 15:56:14 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Patchwork-Submitter: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+X-Patchwork-Id: 13466394
+Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id CCBABC61D97
+	for <qemu-devel@archiver.kernel.org>; Thu, 23 Nov 2023 15:58:33 +0000 (UTC)
+Received: from localhost ([::1] helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces@nongnu.org>)
+	id 1r6C4B-00060F-Nr; Thu, 23 Nov 2023 10:56:35 -0500
+Received: from eggs.gnu.org ([2001:470:142:3::10])
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C46-0005yS-Si
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:30 -0500
+Received: from mail-wr1-x429.google.com ([2a00:1450:4864:20::429])
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_128_GCM_SHA256:128)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C45-0002LA-2w
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:30 -0500
+Received: by mail-wr1-x429.google.com with SMTP id
+ ffacd0b85a97d-332e7630a9dso69253f8f.1
+ for <qemu-devel@nongnu.org>; Thu, 23 Nov 2023 07:56:28 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=linaro.org; s=google; t=1700754987; x=1701359787; darn=nongnu.org;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+ :message-id:reply-to;
+ bh=9kYdFlz/DbR9wiBLu9uW1n60WPr7r2xH09X5l3DXY1k=;
+ b=Ldc+IsudMHl7Che2NDxeeMoOhw8suxHnbRvO+JbCbYD+wjdMDTNoN1m/GmLXkGzTFF
+ I+RMBMVr4K0FNGOeevV2ZecRxsFNuiv+asKXO9arPxNoSkxQ0iL9vnFKMX5WQ9WGXcH9
+ +6VK3gX53q6s+GREj/ZP3ixd9Oj0dRsHgbz5Xsn4fwJZak+MjK4Ewr+LOnDOhyD2o+mD
+ +ukkDf42V54gJ2W7SXVKvRxzAaeKGisILz0oL107pnK1pvyI4HFVpUtXnfn9WtK4OSGg
+ 9fry3pB5a9nHQlvF3+bUAvFVaR2FFvi75Y6vM9qCdp/HahFj0NEUZsbl61fCTsBdfbRG
+ KKLQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=1e100.net; s=20230601; t=1700754987; x=1701359787;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+ :subject:date:message-id:reply-to;
+ bh=9kYdFlz/DbR9wiBLu9uW1n60WPr7r2xH09X5l3DXY1k=;
+ b=cvg4eiWsmBv2QKYOv+cv1+DzFG4iCrJKZh9IVm7qqR/TuBO7Dama4A4LDPE/EXchIZ
+ KoQG7G7qUrkvBOR2f98Qxfc6up6K87PyQCY4bIg2507hRyf1jUpfiqvPtmzHXWjzPSvq
+ P3cIwAJ+vUXqW7cnh+ThBY6xc2vNTIVVD/gz026iRTetSqxonoAXl5tARuXorxiUzZG1
+ 8+xiEP88tAs09R2BgnYd9bcmT/I+M38TxHzQGwTVBtD21bHGkr3c6/geGkxsyG7pKcnY
+ VFuTF893PqLFU+vS9dOE4f4CCdtGZTcPLsSt75an4K+Mrsh3TFdEF5qT6x7qDw6vXwzO
+ c6/g==
+X-Gm-Message-State: AOJu0Yw2TPcILlMxmO58sxFC3qYcLM2JWUaiJP7+9/lnLuSMMGrN3FLN
+ G4Xvb9pvN9QBqADTMkj34BrMrZOULDVF6/Dhkhdsog==
+X-Google-Smtp-Source: 
+ AGHT+IEr3Zrb9GSufM4eo8dtozeAy0JC1V93Po7AeDXqoxZJ3xHbf/Ovr5E/18fzZuZgZVH0O7EhUg==
+X-Received: by 2002:a5d:5644:0:b0:32d:81fe:7104 with SMTP id
+ j4-20020a5d5644000000b0032d81fe7104mr3782456wrw.63.1700754987681;
+ Thu, 23 Nov 2023 07:56:27 -0800 (PST)
+Received: from draig.lan ([85.9.250.243]) by smtp.gmail.com with ESMTPSA id
+ c11-20020a5d4f0b000000b00332e67d6564sm836043wru.67.2023.11.23.07.56.22
+ (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+ Thu, 23 Nov 2023 07:56:24 -0800 (PST)
+Received: from draig.lan (localhost [IPv6:::1])
+ by draig.lan (Postfix) with ESMTP id 6BBAB645FD;
+ Thu, 23 Nov 2023 15:56:21 +0000 (GMT)
+From: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+To: qemu-devel@nongnu.org
+Cc: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>, =?utf-8?q?Philipp?=
+	=?utf-8?q?e_Mathieu-Daud=C3=A9?= <philmd@linaro.org>,
+ Richard Henderson <richard.henderson@linaro.org>
+Subject: [PULL 08/14] docs/system: clarify limits of using gdbstub in system
+ emulation
+Date: Thu, 23 Nov 2023 15:56:14 +0000
+Message-Id: <20231123155620.3042891-9-alex.bennee@linaro.org>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20231123155620.3042891-1-alex.bennee@linaro.org>
+References: <20231123155620.3042891-1-alex.bennee@linaro.org>
+MIME-Version: 1.0
+Received-SPF: pass client-ip=2a00:1450:4864:20::429;
+ envelope-from=alex.bennee@linaro.org; helo=mail-wr1-x429.google.com
+X-Spam_score_int: -20
+X-Spam_score: -2.1
+X-Spam_bar: --
+X-Spam_report: (-2.1 / 5.0 requ) BAYES_00=-1.9, DKIM_SIGNED=0.1,
+ DKIM_VALID=-0.1, DKIM_VALID_AU=-0.1, DKIM_VALID_EF=-0.1,
+ RCVD_IN_DNSWL_NONE=-0.0001, SPF_HELO_NONE=0.001, SPF_PASS=-0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=ham autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+Sender: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+
+It seems some users will try and use the gdbstub to debug userspace
+inside a system emulation. While possible clarify the limitations of
+this approach and direct the users to a less head scratching way of
+debugging user-space.
+
+Clarifies: https://gitlab.com/qemu-project/qemu/-/issues/1274
+Reviewed-by: Philippe Mathieu-Daudé <philmd@linaro.org>
+Reviewed-by: Richard Henderson <richard.henderson@linaro.org>
+Signed-off-by: Alex Bennée <alex.bennee@linaro.org>
+Message-Id: <20231120150833.2552739-9-alex.bennee@linaro.org>
+
+diff --git a/docs/system/gdb.rst b/docs/system/gdb.rst
+index 9906991b84..4228cb56bb 100644
+--- a/docs/system/gdb.rst
++++ b/docs/system/gdb.rst
+@@ -60,7 +60,7 @@ As TCG cannot track all memory accesses in user-mode there is no
+ support for watchpoints.
+ 
+ Relocating code
+----------------
++===============
+ 
+ On modern kernels confusion can be caused by code being relocated by
+ features such as address space layout randomisation. To avoid
+@@ -68,6 +68,17 @@ confusion when debugging such things you either need to update gdb's
+ view of where things are in memory or perhaps more trivially disable
+ ASLR when booting the system.
+ 
++Debugging user-space in system emulation
++========================================
++
++While it is technically possible to debug a user-space program running
++inside a system image, it does present challenges. Kernel preemption
++and execution mode changes between kernel and user mode can make it
++hard to follow what's going on. Unless you are specifically trying to
++debug some interaction between kernel and user-space you are better
++off running your guest program with gdb either in the guest or using
++a gdbserver exposed via a port to the outside world.
++
+ Debugging multicore machines
+ ============================
+ 
+
+From patchwork Thu Nov 23 15:56:15 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Patchwork-Submitter: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+X-Patchwork-Id: 13466402
+Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id A2B70C5AD4C
+	for <qemu-devel@archiver.kernel.org>; Thu, 23 Nov 2023 15:59:50 +0000 (UTC)
+Received: from localhost ([::1] helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces@nongnu.org>)
+	id 1r6C4L-00064u-7d; Thu, 23 Nov 2023 10:56:45 -0500
+Received: from eggs.gnu.org ([2001:470:142:3::10])
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C4I-00064j-FL
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:43 -0500
+Received: from mail-wr1-x434.google.com ([2a00:1450:4864:20::434])
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_128_GCM_SHA256:128)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C47-0002OP-Ks
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:42 -0500
+Received: by mail-wr1-x434.google.com with SMTP id
+ ffacd0b85a97d-3316bb1303bso577755f8f.0
+ for <qemu-devel@nongnu.org>; Thu, 23 Nov 2023 07:56:30 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=linaro.org; s=google; t=1700754990; x=1701359790; darn=nongnu.org;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+ :message-id:reply-to;
+ bh=xEdSmkJwzInLFglPGcgp4iVv0Ps+y0cBfXLNR+PGsPc=;
+ b=Qg+GO6ldHmaOxcF86oq6wWezq8ULBbz4eafu3KqBwAoABm9Ty96A7n2zEuhw2shdQd
+ spu/Jly5rGl2PBjfxicdibNgqTKt7FOxQgNaDcCf7lndSWHavO/YKM5CXcFgJbgzYe9N
+ D4fdr2Mg92ZPplLFICyWjKd4rPYEZaruUXUfWXwDOW1REk3ZOH4H2C7abWaFnEP3isyT
+ UvEZhpbGFPLnVvx+sWOX7jo4/IJSro5JA+vXzPF3nS+97cF5z5z2pcU/OHvBqQ0eUCI/
+ 8VyJX8GO3QjYdKgj0Fu4d30ZSTdkeE1k+qWIkz66Ps9XXYEst9JFV0brX6QfJ+eBgu/X
+ LDvw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=1e100.net; s=20230601; t=1700754990; x=1701359790;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+ :subject:date:message-id:reply-to;
+ bh=xEdSmkJwzInLFglPGcgp4iVv0Ps+y0cBfXLNR+PGsPc=;
+ b=lw+4pEjIMHL6dTbJBp1537GFePghQa/15KQkMdFXwPU9bHILhZo3c1rj8EKR1NNMVh
+ XjsSGLih1cElw2iTn1WJhub+UxJt33xODqX57Z3oSPwi5ekNOm3VzfFIov1gKeLmO9kL
+ ynoVd405v7G4xAynrodfJD0utQqCKwBTuVBQ0sSMB1WrFxp0yooBW63gD90OB+34n4R7
+ IzXAF21UTOd0gfm5t86NvH+bhuA5kYkcLuWVmGS4ylRvP/VyIZoz1b13BoM5Kl/evTRu
+ FUPQmg0C8Gxeg87KgObZVoGXPHGeLx3nW2Cq8G/QA1BwJE1KeWAKmeYA8im5sehSOJdP
+ DnOg==
+X-Gm-Message-State: AOJu0Yw+JM11gCP72I1IdHBsvgkQ+zl1Y1EZ3JTAbC7yRjwkep6fpW8p
+ mpXOA9dFcTUYVqxe1tGh/MuoZQ==
+X-Google-Smtp-Source: 
+ AGHT+IEyfkYQ99ehd5Ih/8YLNuE0Wq0L0pjpZsnxn6XyEDLrCzBFnNQ4lb6maxg9j2HihIgwfxT5oQ==
+X-Received: by 2002:a5d:4576:0:b0:32d:a221:446 with SMTP id
+ a22-20020a5d4576000000b0032da2210446mr2570780wrc.59.1700754990006;
+ Thu, 23 Nov 2023 07:56:30 -0800 (PST)
+Received: from draig.lan ([85.9.250.243]) by smtp.gmail.com with ESMTPSA id
+ f6-20020adff586000000b00332e1c46dddsm2066268wro.98.2023.11.23.07.56.22
+ (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+ Thu, 23 Nov 2023 07:56:24 -0800 (PST)
+Received: from draig.lan (localhost [IPv6:::1])
+ by draig.lan (Postfix) with ESMTP id 7D275645FE;
+ Thu, 23 Nov 2023 15:56:21 +0000 (GMT)
+From: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+To: qemu-devel@nongnu.org
+Cc: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>,
+ Richard Henderson <richard.henderson@linaro.org>, =?utf-8?q?Philippe_Mathie?=
+	=?utf-8?q?u-Daud=C3=A9?= <philmd@linaro.org>
+Subject: [PULL 09/14] hw/core: skip loading debug on all failures
+Date: Thu, 23 Nov 2023 15:56:15 +0000
+Message-Id: <20231123155620.3042891-10-alex.bennee@linaro.org>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20231123155620.3042891-1-alex.bennee@linaro.org>
+References: <20231123155620.3042891-1-alex.bennee@linaro.org>
+MIME-Version: 1.0
+Received-SPF: pass client-ip=2a00:1450:4864:20::434;
+ envelope-from=alex.bennee@linaro.org; helo=mail-wr1-x434.google.com
+X-Spam_score_int: -20
+X-Spam_score: -2.1
+X-Spam_bar: --
+X-Spam_report: (-2.1 / 5.0 requ) BAYES_00=-1.9, DKIM_SIGNED=0.1,
+ DKIM_VALID=-0.1, DKIM_VALID_AU=-0.1, DKIM_VALID_EF=-0.1, SPF_HELO_NONE=0.001,
+ SPF_PASS=-0.001, T_SCC_BODY_TEXT_LINE=-0.01 autolearn=ham autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+Sender: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+
+ELF_LOAD_FAILED is one of many negative return codes we can have. Lets
+treat any positive size_t as a success for loading.
+
+Reviewed-by: Richard Henderson <richard.henderson@linaro.org>
+Reviewed-by: Philippe Mathieu-Daudé <philmd@linaro.org>
+Signed-off-by: Alex Bennée <alex.bennee@linaro.org>
+Message-Id: <20231120150833.2552739-10-alex.bennee@linaro.org>
+
+diff --git a/hw/core/loader.c b/hw/core/loader.c
+index 3c79283777..e7a9b3775b 100644
+--- a/hw/core/loader.c
++++ b/hw/core/loader.c
+@@ -505,7 +505,7 @@ ssize_t load_elf_ram_sym(const char *filename,
+                          clear_lsb, data_swab, as, load_rom, sym_cb);
+     }
+ 
+-    if (ret != ELF_LOAD_FAILED) {
++    if (ret > 0) {
+         debuginfo_report_elf(filename, fd, 0);
+     }
+ 
+
+From patchwork Thu Nov 23 15:56:16 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Patchwork-Submitter: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+X-Patchwork-Id: 13466393
+Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 8793CC5AD4C
+	for <qemu-devel@archiver.kernel.org>; Thu, 23 Nov 2023 15:58:03 +0000 (UTC)
+Received: from localhost ([::1] helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces@nongnu.org>)
+	id 1r6C4A-0005zi-I7; Thu, 23 Nov 2023 10:56:34 -0500
+Received: from eggs.gnu.org ([2001:470:142:3::10])
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C48-0005yz-Cr
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:32 -0500
+Received: from mail-wr1-x42a.google.com ([2a00:1450:4864:20::42a])
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_128_GCM_SHA256:128)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C45-0002LJ-D0
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:32 -0500
+Received: by mail-wr1-x42a.google.com with SMTP id
+ ffacd0b85a97d-332c7d4a6a7so655626f8f.2
+ for <qemu-devel@nongnu.org>; Thu, 23 Nov 2023 07:56:28 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=linaro.org; s=google; t=1700754988; x=1701359788; darn=nongnu.org;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+ :message-id:reply-to;
+ bh=ioJLqOy8nUkq4xnhqJ7W94QlEYcKcmr7v1NrXI/ICuk=;
+ b=Z5dYPDGCnixgV2JicqLnkrZ3NBFpp4Sfm4yaeETUi8jEihwn5KcacrfpZfwJHqLpeA
+ D8WysxySWZ5Ld8L+xpMrtBja4rXjk9RrPM05WaeAsO15loPIuALRUcRU1vxaRAdg/UeI
+ 15IMAzCxFwjKHn6C51O3pF57cALF57HIW++vzJ4dErhs9i5vmwfkXULtypAcAX2b7yYs
+ JoTx8MW8+uH6aU7lsQ85/YbWYtiGjhvLIzMK1QaXk6I8dsUwYPiOw9Nm9EOikkQz7Jxi
+ G/Uw43NuYI/Rvz2COLg+HQhwbiaCL0iSVQmfkCaQIkd6O4ZujbmqBC9Ct+GkkHz0LFYV
+ 6dPA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=1e100.net; s=20230601; t=1700754988; x=1701359788;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+ :subject:date:message-id:reply-to;
+ bh=ioJLqOy8nUkq4xnhqJ7W94QlEYcKcmr7v1NrXI/ICuk=;
+ b=G8NlfcGPPy+1uVoisxcFqr8J4O2jlCdJvfF6ADjyMufRGLfaZT7OmNIWnKnZIllTWy
+ /ypWqDxNylRC4f0WbAFGu8insCwCH1MG5tbM2etJE/bVU3yxYlbcb+IHDXzSXt1ClhoK
+ ylJ/a86FQeWDko823KgzLAOHecL5Ol0tM3B3g1jW/5Bmixnb6knT5v29AelTsE408JuC
+ DXNuLUARlqikA8/ix0J+4mTuxpvSzB8y7AQ9ZUevjJgioEmpr3GbIPpK8AAKOSI92Pte
+ trnUGSwes77ywgBlvkLDsrEVv7QNQjSdaovXNY7uOr40HZchaw5nogoNsZB3CuMPUry1
+ 4k+Q==
+X-Gm-Message-State: AOJu0YyXGgTzspB1hG/aH91+hCCUACVtVcKanO20zBwqyCJ+tIF4ykYA
+ EvGPMI0GGZuGrBPcisq36a+QxQ==
+X-Google-Smtp-Source: 
+ AGHT+IGsVkic60k/v14/kKBAE5V04tfbqw35DdspGylZ4BvDfnv7xPXRzPj2hK0x2QbilQmCec+3hQ==
+X-Received: by 2002:a5d:5749:0:b0:332:e6b9:c5fc with SMTP id
+ q9-20020a5d5749000000b00332e6b9c5fcmr501839wrw.11.1700754988089;
+ Thu, 23 Nov 2023 07:56:28 -0800 (PST)
+Received: from draig.lan ([85.9.250.243]) by smtp.gmail.com with ESMTPSA id
+ v5-20020adfe4c5000000b00332cb1bcd01sm1954173wrm.86.2023.11.23.07.56.22
+ (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+ Thu, 23 Nov 2023 07:56:24 -0800 (PST)
+Received: from draig.lan (localhost [IPv6:::1])
+ by draig.lan (Postfix) with ESMTP id 8EF7A645FF;
+ Thu, 23 Nov 2023 15:56:21 +0000 (GMT)
+From: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+To: qemu-devel@nongnu.org
+Cc: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>,
+ Richard Henderson <richard.henderson@linaro.org>, =?utf-8?q?Philippe_Mathie?=
+	=?utf-8?q?u-Daud=C3=A9?= <philmd@linaro.org>,
+ Peter Maydell <peter.maydell@linaro.org>,
+ qemu-arm@nongnu.org (open list:ARM TCG CPUs)
+Subject: [PULL 10/14] testing: move arm system tests into their own folder
+Date: Thu, 23 Nov 2023 15:56:16 +0000
+Message-Id: <20231123155620.3042891-11-alex.bennee@linaro.org>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20231123155620.3042891-1-alex.bennee@linaro.org>
+References: <20231123155620.3042891-1-alex.bennee@linaro.org>
+MIME-Version: 1.0
+Received-SPF: pass client-ip=2a00:1450:4864:20::42a;
+ envelope-from=alex.bennee@linaro.org; helo=mail-wr1-x42a.google.com
+X-Spam_score_int: -20
+X-Spam_score: -2.1
+X-Spam_bar: --
+X-Spam_report: (-2.1 / 5.0 requ) BAYES_00=-1.9, DKIM_SIGNED=0.1,
+ DKIM_VALID=-0.1, DKIM_VALID_AU=-0.1, DKIM_VALID_EF=-0.1,
+ RCVD_IN_DNSWL_NONE=-0.0001, SPF_HELO_NONE=0.001, SPF_PASS=-0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=ham autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+Sender: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+
+Prepare for expanding the arm system tests by cleaning up the test
+directory.
+
+Reviewed-by: Richard Henderson <richard.henderson@linaro.org>
+Reviewed-by: Philippe Mathieu-Daudé <philmd@linaro.org>
+Signed-off-by: Alex Bennée <alex.bennee@linaro.org>
+Message-Id: <20231120150833.2552739-11-alex.bennee@linaro.org>
+
+diff --git a/tests/tcg/arm/Makefile.softmmu-target b/tests/tcg/arm/Makefile.softmmu-target
+index 8b546e2aa3..7857ab9324 100644
+--- a/tests/tcg/arm/Makefile.softmmu-target
++++ b/tests/tcg/arm/Makefile.softmmu-target
+@@ -3,7 +3,7 @@
+ # ARM SoftMMU tests - included from tests/tcg/Makefile
+ #
+ 
+-ARM_SRC=$(SRC_PATH)/tests/tcg/arm
++ARM_SRC=$(SRC_PATH)/tests/tcg/arm/system
+ 
+ # Set search path for all sources
+ VPATH 		+= $(ARM_SRC)
+@@ -12,7 +12,6 @@ ARM_TESTS=test-armv6m-undef
+ 
+ TESTS += $(ARM_TESTS)
+ 
+-CFLAGS+=-Wl,--build-id=none -x assembler-with-cpp
+ LDFLAGS+=-nostdlib -N -static
+ 
+ %: %.S %.ld
+@@ -20,7 +19,7 @@ LDFLAGS+=-nostdlib -N -static
+ 
+ # Specific Test Rules
+ 
+-test-armv6m-undef: EXTRA_CFLAGS+=-mcpu=cortex-m0 -mfloat-abi=soft
++test-armv6m-undef: EXTRA_CFLAGS+=-mcpu=cortex-m0 -mfloat-abi=soft -Wl,--build-id=none -x assembler-with-cpp
+ 
+ run-test-armv6m-undef: QEMU_OPTS+=-semihosting -M microbit -kernel
+ 
+diff --git a/tests/tcg/arm/test-armv6m-undef.S b/tests/tcg/arm/system/test-armv6m-undef.S
+similarity index 100%
+rename from tests/tcg/arm/test-armv6m-undef.S
+rename to tests/tcg/arm/system/test-armv6m-undef.S
+diff --git a/tests/tcg/arm/test-armv6m-undef.ld b/tests/tcg/arm/system/test-armv6m-undef.ld
+similarity index 100%
+rename from tests/tcg/arm/test-armv6m-undef.ld
+rename to tests/tcg/arm/system/test-armv6m-undef.ld
+
+From patchwork Thu Nov 23 15:56:17 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Patchwork-Submitter: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+X-Patchwork-Id: 13466396
+Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 5BA0AC624B4
+	for <qemu-devel@archiver.kernel.org>; Thu, 23 Nov 2023 15:58:40 +0000 (UTC)
+Received: from localhost ([::1] helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces@nongnu.org>)
+	id 1r6C4F-00062t-7a; Thu, 23 Nov 2023 10:56:39 -0500
+Received: from eggs.gnu.org ([2001:470:142:3::10])
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C4C-00060O-JV
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:36 -0500
+Received: from mail-wm1-x333.google.com ([2a00:1450:4864:20::333])
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_128_GCM_SHA256:128)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C48-0002Ol-HQ
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:36 -0500
+Received: by mail-wm1-x333.google.com with SMTP id
+ 5b1f17b1804b1-4083f61312eso7839135e9.3
+ for <qemu-devel@nongnu.org>; Thu, 23 Nov 2023 07:56:32 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=linaro.org; s=google; t=1700754991; x=1701359791; darn=nongnu.org;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+ :message-id:reply-to;
+ bh=WCPjtZ0DJJC/wRfjLkOVCPnFDovU6IvRbH7aSwHOjh4=;
+ b=mMRLJe8xZsNIZyv2Jnfly+rU7HrJ2E1JeMg8YNWVP5YSufe3yQ3z4VG5LEwaKEIPne
+ rQR74y9OVhVF/jda7itarnb+LDBLVbFETkva8mY1zaNPJLYlP6Q8MYJf4iE7QngjYJK/
+ 8ZVLCrzLVa23nZKY2kkSJSu2lfv2Xw3kuecr1VsHpZfD4E3JUIuVnshIJ3W4fS+L8Hdq
+ PB4zxyeomI6nkC3Lrl2lW8bkgzPuMROlwbdR6STewn3BJs/4jXS0SF1Ggh0/GHnm1Rvh
+ buWi1IWr/VoH6FoLQm/4xk74kmf1vTGVRUe8AGwQKf0ZQIu7JLlNggDleQbtk1Moz9Qm
+ JDvA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=1e100.net; s=20230601; t=1700754991; x=1701359791;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+ :subject:date:message-id:reply-to;
+ bh=WCPjtZ0DJJC/wRfjLkOVCPnFDovU6IvRbH7aSwHOjh4=;
+ b=l7gKoCo+78d0t0pCzsk/mylOXSJAH0I5s8RfB/uuh/Ec4pbljZcX+lDoLm9Rq4wxxx
+ /fUM06CzRZo6b8QphmpjJceN9O5d5iURfjxtTRlsu6z54mXVs67LYxzMZ55Y9L8rjAeK
+ 3uRLzd8/aYtPvYj6Ec0B57l6lV2yCo2xQBlFUNgEXcSuqLfrI7KWSzggleEQJ7q6LRgw
+ r0/43ohiFOSVz4Gg36fEk8LqWJShMJhTXcibKkanKUkyfefqIQYKVubN8S2QQS77zzhD
+ BQnKJEC37pXysVdFvKOhdEwrqQmAA8UC4urOop+entCM13CoUq0lXA9ekDko1XqpEEhm
+ Q53Q==
+X-Gm-Message-State: AOJu0YxrWmqvV7ah3b3ambXp3tKdAZNurXkAOLIEoHXiOeEiMecdSa3F
+ WOIPotb1MgEN2tjHeRzB1vl/FQ==
+X-Google-Smtp-Source: 
+ AGHT+IGKW/LkYRxibid/h7nOXulQwTEefjUm0hN3ZCSoOli+Fp777652G7PKmcZJoCVP7o5j0AOmZA==
+X-Received: by 2002:a05:600c:1553:b0:40b:2b86:c88a with SMTP id
+ f19-20020a05600c155300b0040b2b86c88amr41927wmg.2.1700754990881;
+ Thu, 23 Nov 2023 07:56:30 -0800 (PST)
+Received: from draig.lan ([85.9.250.243]) by smtp.gmail.com with ESMTPSA id
+ f19-20020a05600c155300b0040a487758dcsm2454543wmg.6.2023.11.23.07.56.24
+ (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+ Thu, 23 Nov 2023 07:56:30 -0800 (PST)
+Received: from draig.lan (localhost [IPv6:::1])
+ by draig.lan (Postfix) with ESMTP id A40C05F756;
+ Thu, 23 Nov 2023 15:56:21 +0000 (GMT)
+From: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+To: qemu-devel@nongnu.org
+Cc: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>,
+ Richard Henderson <richard.henderson@linaro.org>,
+ Peter Maydell <peter.maydell@linaro.org>,
+ qemu-arm@nongnu.org (open list:ARM TCG CPUs)
+Subject: [PULL 11/14] tests/tcg: enable arm softmmu tests
+Date: Thu, 23 Nov 2023 15:56:17 +0000
+Message-Id: <20231123155620.3042891-12-alex.bennee@linaro.org>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20231123155620.3042891-1-alex.bennee@linaro.org>
+References: <20231123155620.3042891-1-alex.bennee@linaro.org>
+MIME-Version: 1.0
+Received-SPF: pass client-ip=2a00:1450:4864:20::333;
+ envelope-from=alex.bennee@linaro.org; helo=mail-wm1-x333.google.com
+X-Spam_score_int: -20
+X-Spam_score: -2.1
+X-Spam_bar: --
+X-Spam_report: (-2.1 / 5.0 requ) BAYES_00=-1.9, DKIM_SIGNED=0.1,
+ DKIM_VALID=-0.1, DKIM_VALID_AU=-0.1, DKIM_VALID_EF=-0.1,
+ RCVD_IN_DNSWL_NONE=-0.0001, SPF_HELO_NONE=0.001, SPF_PASS=-0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=unavailable autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+Sender: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+
+To make it easier to test 32 bit Arm softmmu issues implement a basic
+boot.S so we can build the multiarch tests. Currently CHECK_UNALIGNED
+is disabled as I haven't got the right magic set for it to work.
+
+Reviewed-by: Richard Henderson <richard.henderson@linaro.org>
+Signed-off-by: Alex Bennée <alex.bennee@linaro.org>
+Message-Id: <20231120150833.2552739-12-alex.bennee@linaro.org>
+
+diff --git a/tests/tcg/arm/Makefile.softmmu-target b/tests/tcg/arm/Makefile.softmmu-target
+index 7857ab9324..aadc12767e 100644
+--- a/tests/tcg/arm/Makefile.softmmu-target
++++ b/tests/tcg/arm/Makefile.softmmu-target
+@@ -8,20 +8,64 @@ ARM_SRC=$(SRC_PATH)/tests/tcg/arm/system
+ # Set search path for all sources
+ VPATH 		+= $(ARM_SRC)
+ 
+-ARM_TESTS=test-armv6m-undef
++# Specific Test Rules
+ 
+-TESTS += $(ARM_TESTS)
++test-armv6m-undef: test-armv6m-undef.S
++	$(CC) -mcpu=cortex-m0 -mfloat-abi=soft \
++		-Wl,--build-id=none -x assembler-with-cpp \
++		$< -o $@ -nostdlib -N -static \
++		-T $(ARM_SRC)/$@.ld
+ 
+-LDFLAGS+=-nostdlib -N -static
++run-test-armv6m-undef: QEMU_OPTS+=-semihosting -M microbit -kernel
+ 
+-%: %.S %.ld
+-	$(CC) $(CFLAGS) $(ASFLAGS) $(EXTRA_CFLAGS) $< -o $@ $(LDFLAGS) -T $(ARM_SRC)/$@.ld
++ARM_TESTS+=test-armv6m-undef
+ 
+-# Specific Test Rules
++# These objects provide the basic boot code and helper functions for all tests
++CRT_OBJS=boot.o
+ 
+-test-armv6m-undef: EXTRA_CFLAGS+=-mcpu=cortex-m0 -mfloat-abi=soft -Wl,--build-id=none -x assembler-with-cpp
++ARM_TEST_SRCS=$(wildcard $(ARM_SRC)/*.c)
++ARM_TESTS+=$(patsubst $(ARM_SRC)/%.c, %, $(ARM_TEST_SRCS))
+ 
+-run-test-armv6m-undef: QEMU_OPTS+=-semihosting -M microbit -kernel
++CRT_PATH=$(ARM_SRC)
++LINK_SCRIPT=$(ARM_SRC)/kernel.ld
++LDFLAGS=-Wl,-T$(LINK_SCRIPT)
++CFLAGS+=-nostdlib -ggdb -O0 $(MINILIB_INC)
++LDFLAGS+=-static -nostdlib -N $(CRT_OBJS) $(MINILIB_OBJS) -lgcc
++
++# building head blobs
++.PRECIOUS: $(CRT_OBJS)
++
++%.o: $(ARM_SRC)/%.S
++	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -x assembler-with-cpp -c $< -o $@
++
++# Build and link the tests
++%: %.c $(LINK_SCRIPT) $(CRT_OBJS) $(MINILIB_OBJS)
++	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $< -o $@ $(LDFLAGS)
++
++memory: CFLAGS+=-DCHECK_UNALIGNED=0
++
++# Running
++QEMU_BASE_MACHINE=-M virt -cpu max -display none
++QEMU_OPTS+=$(QEMU_BASE_MACHINE) -semihosting-config enable=on,target=native,chardev=output -kernel
++
++# Simple Record/Replay Test
++.PHONY: memory-record
++run-memory-record: memory-record memory
++	$(call run-test, $<, \
++	  $(QEMU) -monitor none -display none \
++		  -chardev file$(COMMA)path=$<.out$(COMMA)id=output \
++		  -icount shift=5$(COMMA)rr=record$(COMMA)rrfile=record.bin \
++		  $(QEMU_OPTS) memory)
++
++.PHONY: memory-replay
++run-memory-replay: memory-replay run-memory-record
++	$(call run-test, $<, \
++	  $(QEMU) -monitor none -display none \
++		  -chardev file$(COMMA)path=$<.out$(COMMA)id=output \
++		  -icount shift=5$(COMMA)rr=replay$(COMMA)rrfile=record.bin \
++		  $(QEMU_OPTS) memory)
++
++EXTRA_RUNS+=run-memory-replay
+ 
+-# We don't currently support the multiarch system tests
+-undefine MULTIARCH_TESTS
++TESTS += $(ARM_TESTS) $(MULTIARCH_TESTS)
++EXTRA_RUNS+=$(MULTIARCH_RUNS)
+diff --git a/tests/tcg/arm/system/boot.S b/tests/tcg/arm/system/boot.S
+new file mode 100644
+index 0000000000..7d43372c66
+--- /dev/null
++++ b/tests/tcg/arm/system/boot.S
+@@ -0,0 +1,319 @@
++/*
++ * Minimal ArmV7 system boot code.
++ *
++ * Using semihosting for serial output and exit functions.
++ */
++
++/*
++ * Semihosting interface on ARM AArch32
++ * R0 - semihosting call number
++ * R1 - semihosting parameter
++ */
++#define semihosting_call svc 0x123456
++#define SYS_WRITEC	0x03	/* character to debug channel */
++#define SYS_WRITE0	0x04	/* string to debug channel */
++#define SYS_EXIT	0x18
++
++#define ADP_Stopped_ApplicationExit	0x20026
++#define ADP_Stopped_InternalError	0x20024
++
++/*
++ * Helper macro for annotating functions with elf type and size.
++ */
++.macro endf name
++	.global	\name
++	.type		\name, %function
++	.size		\name, . - \name
++.endm
++
++	.section	.interrupt_vector, "ax"
++	.align	5
++
++vector_table:
++	b   reset		/* reset vector */
++	b   undef_instr        /* undefined instruction vector */
++	b   software_intr    	/* software interrupt vector */
++	b   prefetch_abort		/* prefetch abort vector */
++	b   data_abort	        /* data abort vector */
++	nop			            /* reserved */
++	b   IRQ_handler        	/* IRQ vector */
++	b   FIQ_handler        	/* FIQ vector */
++
++endf	vector_table
++
++	.text
++__start:
++	ldr  	r0, =vector_table
++	mcr  	p15, 0, r0, c12, c0, 0  /* Set up VBAR */
++
++	ldr	sp, =stack_end		/* Set up the stack */
++	bl	mmu_setup		/* Set up the MMU */
++	bl	main			/* Jump to main */
++
++endf	__start
++
++_exit:
++	cmp r0, #0
++	ite EQ  // if-then-else. "EQ" is for if equal, else otherwise
++	ldreq r1, =ADP_Stopped_ApplicationExit // if r0 == 0
++	ldrne r1, =ADP_Stopped_InternalError   // else
++	mov r0, #SYS_EXIT
++	semihosting_call
++
++endf	_exit
++
++/*
++ * Helper Functions
++ */
++
++mmu_setup:
++	/*
++	 * The MMU setup for this is very simple using two stage one
++	 * translations. The first 1Mb section points to the text
++	 * section and the second points to the data and rss.
++	 * Currently the fattest test only needs ~50k for that so we
++	 * have plenty of space.
++	 *
++	 * The short descriptor Section format is as follows:
++	 *
++	 *  PA[31:20] - Section Base Address
++	 *  NS[19] - Non-secure bit
++	 *  0[18] - Section (1 for Super Section)
++	 *  nG[17] - Not global bit
++	 *  S[16] - Shareable
++	 *  TEX[14:12] - Memory Region Attributes
++	 *  AP[15, 11:10] - Access Permission Bits
++	 *  IMPDEF[9]
++	 *  Domain[8:5]
++	 *  XN[4] - Execute never bit
++	 *  C[3] - Memory Region Attributes
++	 *  B[2] - Memory Region Attributes
++	 *  1[1]
++	 *  PXN[0] - Privileged Execute Never
++	 *
++	 * r0 - point at the table
++	 * r1 - address
++	 * r2 - entry
++	 * r3 - common section bits
++	 * r4 - scratch
++	 */
++
++	/*
++	 * Memory Region Bits
++	 *
++	 *   TEX[14:12] = 000
++	 *     C[3]     = 1
++	 *     B[2]     = 1
++	 *
++	 * Outer and Inner WB, no write allocate
++	 */
++	mov r3, #0
++	ldr r4, =(3 << 2)
++	orr r3, r4, r4
++
++	/* Section bit */
++	orr r3, r3, #2
++
++	/* Page table setup (identity mapping). */
++	ldr r0, =ttb
++
++	/* First block: .text/RO/execute enabled */
++	ldr r1, =.text
++	ldr r2, =0xFFF00000  			/* 1MB block alignment */
++	and r2, r1, r2
++	orr r2, r2, r3				/* common bits */
++	orr r2, r2, #(1 << 15)			/* AP[2] = 1 */
++	orr r2, r2, #(1 << 10)			/* AP[0] = 1 => RO @ PL1 */
++
++	lsr r4, r2, #(20 - 2)
++	str r2, [r0, r4, lsl #0]		/* write entry */
++
++	/* Second block: .data/RW/no execute */
++	ldr r1, =.data
++	ldr r2, =0xFFF00000  			/* 1MB block alignment */
++	and r2, r1, r2
++	orr r2, r2, r3				/* common bits */
++	orr r2, r2, #(1 << 10)			/* AP[0] = 1 => RW @ PL1 */
++	orr r2, r2, #(1 << 4)			/* XN[4] => no execute */
++
++	lsr r4, r2, #(20 - 2)
++	str r2, [r0, r4, lsl #0]		/* write entry */
++
++	/*
++	 * DACR - Domain Control
++	 *
++	 * Enable client mode for domain 0 (we don't use any others)
++	 */
++	ldr r0, =0x1
++	mcr p15, 0, r0, c3, c0, 0
++
++	/*
++	 * TTCBR - Translation Table Base Control Register
++	 *
++	 * EAE[31] = 0, 32-bit translation, short descriptor format
++	 * N[2:0] = 5 ( TTBRO uses 31:14-5 => 9 bit lookup stage )
++	 */
++	ldr r0, =0x5
++	mcr p15, 0, r0, c1, c0, 2
++
++	/*
++	 * TTBR0 -Translation Table Base Register 0
++	 *
++	 * [31:9] = Base address of table
++	 *
++	 * QEMU doesn't really care about the cache sharing
++	 * attributes so we don't need to either.
++	 */
++	ldr r0, =ttb
++	mcr p15, 0, r0, c2, c0, 0
++
++	/*
++	 * SCTLR- System Control Register
++	 *
++   	 * TE[30] = 0, exceptions to A32 state
++	 * AFE[29] = 0, AP[0] is the access permissions bit
++	 * EE[25] = 0, Little-endian
++	 * WXN[19] = 0 = no effect, Write does not imply XN (execute never)
++	 * I[12] = Instruction cachability control
++	 * C[2] = Data cachability control
++	 * M[0] = 1, enable stage 1 address translation for EL0/1
++         *
++	 * At this point virtual memory is enabled.
++	 */
++	ldr r0, =0x1005
++	mcr p15, 0, r0, c1, c0, 0
++
++	isb
++
++	mov  pc, lr  /* done, return to caller */
++
++endf	mmu_setup
++
++/* Output a single character to serial port */
++__sys_outc:
++	STMFD sp!, {r0-r1}  // push r0, r1 onto stack
++	mov r1, sp
++	mov r0, #SYS_WRITEC
++	semihosting_call
++	LDMFD sp!, {r0-r1}  // pop r0, r1 from stack
++	bx lr
++
++endf	__sys_outc
++
++reset:
++	ldr	r1, =reset_error
++	b exception_handler
++
++endf	reset
++
++undef_instr:
++	ldr	r1, =undef_intr_error
++	b exception_handler
++
++endf	undef_instr
++
++software_intr:
++	ldr	r1, =software_intr_error
++	b exception_handler
++
++endf	software_intr
++
++prefetch_abort:
++	ldr	r1, =prefetch_abort_error
++	b exception_handler
++
++endf	prefetch_abort
++
++data_abort:
++	ldr	r1, =data_abort_error
++	b exception_handler
++
++endf	data_abort
++
++IRQ_handler:
++	ldr	r1, =irq_error
++	b exception_handler
++
++endf	IRQ_handler
++
++FIQ_handler:
++	ldr	r1, =fiq_error
++	b exception_handler
++
++endf	FIQ_handler
++
++/*
++ * Initiate a exit semihosting call whenever there is any exception
++ * r1 already holds the string.
++ */
++exception_handler:
++	mov	r0, #SYS_WRITE0
++	semihosting_call
++	mov	r0, #SYS_EXIT
++	mov	r1, #1
++	semihosting_call
++
++endf	exception_handler
++
++/*
++ * We implement a stub raise() function which errors out as tests
++ * shouldn't trigger maths errors.
++ */
++	.global raise
++raise:
++	mov	r0, #SYS_WRITE0
++	ldr	r1, =maths_error
++	semihosting_call
++	mov	r0, #SYS_EXIT
++	ldr	r1, =ADP_Stopped_InternalError
++	semihosting_call
++
++endf	raise
++
++	.data
++
++.data
++
++reset_error:
++	.ascii "Reset exception occurred.\n\0"
++
++undef_intr_error:
++	.ascii "Undefined Instruction Exception Occurred.\n\0"
++
++software_intr_error:
++	.ascii "Software Interrupt Occurred.\n\0"
++
++prefetch_abort_error:
++	.ascii "Prefetch Abort Occurred.\n\0"
++
++data_abort_error:
++	.ascii "Data Abort Occurred.\n\0"
++
++irq_error:
++	.ascii "IRQ exception occurred.\n\0"
++
++fiq_error:
++	.ascii "FIQ exception occurred.\n\0"
++
++maths_error:
++	.ascii "Software maths exception.\n\0"
++
++
++	/*
++	 * 1st Stage Translation table
++	 * 4096 entries, indexed by [31:20]
++	 * each entry covers 1Mb of address space
++	 * aligned on 16kb
++	 */
++	.align	15
++ttb:
++	.space	(4096 * 4), 0
++
++	.align	12
++
++	/* Space for stack */
++	.align	5
++	.section .bss
++stack:
++	.space 65536, 0
++stack_end:
+diff --git a/tests/tcg/arm/system/kernel.ld b/tests/tcg/arm/system/kernel.ld
+new file mode 100644
+index 0000000000..7b3a76dcbf
+--- /dev/null
++++ b/tests/tcg/arm/system/kernel.ld
+@@ -0,0 +1,24 @@
++ENTRY(__start)
++
++SECTIONS
++{
++    /* virt machine, RAM starts at 1gb */
++    . = (1 << 30);
++    .text : {
++        *(.text)
++    }
++    .rodata : {
++        *(.rodata)
++    }
++    /* align r/w section to next 2mb */
++    . = ALIGN(1 << 21);
++    .data : {
++        *(.data)
++    }
++    .bss : {
++        *(.bss)
++    }
++    /DISCARD/ : {
++        *(.ARM.attributes)
++    }
++}
+
+From patchwork Thu Nov 23 15:56:18 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Patchwork-Submitter: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+X-Patchwork-Id: 13466401
+Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 835B9C624B4
+	for <qemu-devel@archiver.kernel.org>; Thu, 23 Nov 2023 15:59:50 +0000 (UTC)
+Received: from localhost ([::1] helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces@nongnu.org>)
+	id 1r6C4H-00063a-1Y; Thu, 23 Nov 2023 10:56:41 -0500
+Received: from eggs.gnu.org ([2001:470:142:3::10])
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C4D-00061q-Up
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:37 -0500
+Received: from mail-wm1-x333.google.com ([2a00:1450:4864:20::333])
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_128_GCM_SHA256:128)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C48-0002Ou-ND
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:37 -0500
+Received: by mail-wm1-x333.google.com with SMTP id
+ 5b1f17b1804b1-40b344101f2so6192745e9.0
+ for <qemu-devel@nongnu.org>; Thu, 23 Nov 2023 07:56:32 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=linaro.org; s=google; t=1700754991; x=1701359791; darn=nongnu.org;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+ :message-id:reply-to;
+ bh=s+yUzGXsIXja0tGFBOZ/gTUt4pii4b19n7jKgHDQET8=;
+ b=wDC4egp1xjruGDPXSzgg7g2NckO9uS3qf7WT4WdhG8MJr6LjZb6sje8/yncFfM8/eI
+ AAe4A2RdOYDNzJUu369orHQ/mTCyV4U+T4h3Bvi1EmYSPdwcE8eAhL43Cw7k7TCXbpV2
+ pMfu5cffAiDAeb2zMz8J3KsJN//7OoqdnONsSpXgFMOrqM6HP4s0ei2YK2mqKSOnm2Sv
+ 6zEW9Z8kGxL7/bcJzEraEyBCm/em00/JenkYoCOGc1nXt0N3ogtFjSzZjsTc527num3I
+ JM3LVUXWU/F652E2qQ3QgzMuw7bWyOna5R/okJCGHWiWzLpfTYwdstm75RhmJMijb/Ql
+ 5HTw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=1e100.net; s=20230601; t=1700754991; x=1701359791;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+ :subject:date:message-id:reply-to;
+ bh=s+yUzGXsIXja0tGFBOZ/gTUt4pii4b19n7jKgHDQET8=;
+ b=dGwcUX6RnxH2srwaR4aNFrpi6ijh1LvBZPINyx+gyi81LIw24b6j1voMSgPkWQXp76
+ 2nNgqpXSGCTZ3VVeDWwWeYwdm5hKsUXOhH5cAGEMvWz+F8UQ6boNLohHGdX0HdShAUIr
+ BpwojtdNRJIpvGbbaZDV9O2eQFmXd5NSilIPECGZ/cB9fRndjDW0jyo2++vRiUXa4GHe
+ RAw1ws+LW7aiPgp0gs9ZvLmpUz3q7abSegjwsmP98kqHCeF7ief7tZTwziqdjUpqDIlU
+ 6XowtOtSlh5ucCJYayala2Z3UuTJyj+ExaoBH7a86moYBDBwfdLed8zciS5rIlNsCaXl
+ asdA==
+X-Gm-Message-State: AOJu0YzVgOFT8OvQEqJwt1561kLkmqAeOgYbUaOn0a4l1uehozXhkgs+
+ r3nioFUnl1zbTLsBYX/wBBhVTA==
+X-Google-Smtp-Source: 
+ AGHT+IFdQckx2wfJFq/wfKH7G0VDTzqUZbRwWlKzYen9Fpa+9heeCD8HuKygE0lD5ruZ8/XPn8bakg==
+X-Received: by 2002:a05:600c:5124:b0:406:51a0:17ea with SMTP id
+ o36-20020a05600c512400b0040651a017eamr2711081wms.10.1700754991329;
+ Thu, 23 Nov 2023 07:56:31 -0800 (PST)
+Received: from draig.lan ([85.9.250.243]) by smtp.gmail.com with ESMTPSA id
+ o15-20020a05600c4fcf00b0040586360a36sm3112417wmq.17.2023.11.23.07.56.24
+ (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+ Thu, 23 Nov 2023 07:56:30 -0800 (PST)
+Received: from draig.lan (localhost [IPv6:::1])
+ by draig.lan (Postfix) with ESMTP id B739064600;
+ Thu, 23 Nov 2023 15:56:21 +0000 (GMT)
+From: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+To: qemu-devel@nongnu.org
+Cc: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>,
+ Peter Maydell <peter.maydell@linaro.org>,
+ qemu-arm@nongnu.org (open list:ARM TCG CPUs)
+Subject: [PULL 12/14] tests/tcg: enable semiconsole test for Arm
+Date: Thu, 23 Nov 2023 15:56:18 +0000
+Message-Id: <20231123155620.3042891-13-alex.bennee@linaro.org>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20231123155620.3042891-1-alex.bennee@linaro.org>
+References: <20231123155620.3042891-1-alex.bennee@linaro.org>
+MIME-Version: 1.0
+Received-SPF: pass client-ip=2a00:1450:4864:20::333;
+ envelope-from=alex.bennee@linaro.org; helo=mail-wm1-x333.google.com
+X-Spam_score_int: -20
+X-Spam_score: -2.1
+X-Spam_bar: --
+X-Spam_report: (-2.1 / 5.0 requ) BAYES_00=-1.9, DKIM_SIGNED=0.1,
+ DKIM_VALID=-0.1, DKIM_VALID_AU=-0.1, DKIM_VALID_EF=-0.1,
+ RCVD_IN_DNSWL_NONE=-0.0001, SPF_HELO_NONE=0.001, SPF_PASS=-0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=ham autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+Sender: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+
+This still remains a MANUAL test due to blocking issues.
+
+Signed-off-by: Alex Bennée <alex.bennee@linaro.org>
+Message-Id: <20231120150833.2552739-13-alex.bennee@linaro.org>
+
+diff --git a/tests/tcg/arm/system/semiconsole.c b/tests/tcg/arm/system/semiconsole.c
+new file mode 100644
+index 0000000000..206dd60eed
+--- /dev/null
++++ b/tests/tcg/arm/system/semiconsole.c
+@@ -0,0 +1,42 @@
++/*
++ * Semihosting Console Test
++ *
++ * Copyright (c) 2019 Linaro Ltd
++ *
++ * SPDX-License-Identifier: GPL-2.0-or-later
++ */
++
++#include <stdint.h>
++#include <minilib.h>
++
++#define SYS_READC 0x7
++
++uintptr_t __semi_call(uintptr_t type, uintptr_t arg0)
++{
++    register uintptr_t t asm("r0") = type;
++    register uintptr_t a0 asm("r1") = arg0;
++#ifdef __thumb__
++#  define SVC  "svc 0xab"
++#else
++#  define SVC  "svc 0x123456"
++#endif
++    asm(SVC : "=r" (t)
++        : "r" (t), "r" (a0));
++
++    return t;
++}
++
++int main(void)
++{
++    char c;
++
++    ml_printf("Semihosting Console Test\n");
++    ml_printf("hit X to exit:");
++
++    do {
++        c = __semi_call(SYS_READC, 0);
++        __sys_outc(c);
++    } while (c != 'X');
++
++    return 0;
++}
+diff --git a/tests/tcg/arm/Makefile.softmmu-target b/tests/tcg/arm/Makefile.softmmu-target
+index aadc12767e..4c9264057f 100644
+--- a/tests/tcg/arm/Makefile.softmmu-target
++++ b/tests/tcg/arm/Makefile.softmmu-target
+@@ -48,6 +48,15 @@ memory: CFLAGS+=-DCHECK_UNALIGNED=0
+ QEMU_BASE_MACHINE=-M virt -cpu max -display none
+ QEMU_OPTS+=$(QEMU_BASE_MACHINE) -semihosting-config enable=on,target=native,chardev=output -kernel
+ 
++# console test is manual only
++QEMU_SEMIHOST=-serial none -chardev stdio,mux=on,id=stdio0 -semihosting-config enable=on,chardev=stdio0 -mon chardev=stdio0,mode=readline
++run-semiconsole: QEMU_OPTS=$(QEMU_BASE_MACHINE) $(QEMU_SEMIHOST)  -kernel
++run-semiconsole: semiconsole
++	$(call skip-test, $<, "MANUAL ONLY")
++	$(if $(V),@printf "  %-7s %s %s\n" "TO RUN" $(notdir $(QEMU)) "$(QEMU_OPTS) $<")
++run-plugin-semiconsole-with-%: semiconsole
++	$(call skip-test, $<, "MANUAL ONLY")
++
+ # Simple Record/Replay Test
+ .PHONY: memory-record
+ run-memory-record: memory-record memory
+
+From patchwork Thu Nov 23 15:56:19 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Patchwork-Submitter: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+X-Patchwork-Id: 13466404
+Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 9D19DC5AD4C
+	for <qemu-devel@archiver.kernel.org>; Thu, 23 Nov 2023 15:59:56 +0000 (UTC)
+Received: from localhost ([::1] helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces@nongnu.org>)
+	id 1r6C4G-00063Y-Tc; Thu, 23 Nov 2023 10:56:40 -0500
+Received: from eggs.gnu.org ([2001:470:142:3::10])
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C4F-00062s-6u
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:39 -0500
+Received: from mail-wm1-x330.google.com ([2a00:1450:4864:20::330])
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_128_GCM_SHA256:128)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C4A-0002PQ-SJ
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:38 -0500
+Received: by mail-wm1-x330.google.com with SMTP id
+ 5b1f17b1804b1-40b36e31b57so5263105e9.3
+ for <qemu-devel@nongnu.org>; Thu, 23 Nov 2023 07:56:34 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=linaro.org; s=google; t=1700754993; x=1701359793; darn=nongnu.org;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+ :message-id:reply-to;
+ bh=zEYzF3Axx2JxZiA2yLlLoGItJkGh2l18cc/hJ925Ej0=;
+ b=OZvuBqWOyRjOI6EpUgbY0lbP+P3TtyvYF2kA5llNiiQuqE1k3hFBlmxKUcNGnPEciX
+ DdJ33zweWAFI9uK7Q8T3oTpg6Cu93oUNR0gFe5zyQ82D+lK+0seUckiuFmoGwRFp6iLo
+ H8ZWL23BEK1DrvCgFRirxubLW6E7CGa6uoGD3Fp3Knf24Vj4quKczOfXmMX+KXIsiZPG
+ FUI4tYNLlhTdtE4p8+94chp7UhgqCITaP9lxtO7m9yStjpZOrB3JxKc0lq+IuoiKfvmX
+ VGB3F45u/Y7CHPFtokuPxEIMlJApqWR83yoQU5sI91XtTCFHuW+arhiPtQOTvLC52JLS
+ 26dg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=1e100.net; s=20230601; t=1700754993; x=1701359793;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+ :subject:date:message-id:reply-to;
+ bh=zEYzF3Axx2JxZiA2yLlLoGItJkGh2l18cc/hJ925Ej0=;
+ b=kTevGZcurjNuPLZl92rCiZiRl2wnMCsTErqQiuMQNmUI9AZPHPejiVzSQW/lWnrfZ4
+ jMxpz05+r9VYZmrslaauquCwBZm8Mkz+QcIOLRGfMziUwvEAcOO7MUdJ5j84WAth+xW9
+ bV0HXKTXFXaDi1ssTGSlsxbrV2eki8DKXDkFreC/HDOG3NaddPafzCJRX4Xswp1mCPka
+ 1Xff52XgqZZlF1spSL9aWYEl8/gFM3xVpYWFRwBtVGOMLW31PyBYkAeUtPF6Nlm5mcs4
+ /dbJj2b0Kav0UcMRrpjgXhQovbLTFeqqHbskTREncazPo0HT+QZJfmuMHHM2grjKupTD
+ 318g==
+X-Gm-Message-State: AOJu0YzFzGde92fGljM7vT1cRgtmXJrGr82p+mgP0pK2PabvmW9wQs6h
+ 7n+OVIui8LKriQMlojLQRUXfqHc8zzWUqkLZZjmQIA==
+X-Google-Smtp-Source: 
+ AGHT+IGAQnZvR7C1IdaTaUAA1MhFe9Hx/MFAavmCkMOT0CiEZhwrFQnKRyLIHZs069sGdaGzPwebbg==
+X-Received: by 2002:a05:600c:3110:b0:404:7670:90b8 with SMTP id
+ g16-20020a05600c311000b00404767090b8mr24545wmo.27.1700754993526;
+ Thu, 23 Nov 2023 07:56:33 -0800 (PST)
+Received: from draig.lan ([85.9.250.243]) by smtp.gmail.com with ESMTPSA id
+ u12-20020a05600c138c00b004063c9f68f2sm2409162wmf.26.2023.11.23.07.56.25
+ (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+ Thu, 23 Nov 2023 07:56:30 -0800 (PST)
+Received: from draig.lan (localhost [IPv6:::1])
+ by draig.lan (Postfix) with ESMTP id C8C5F645F6;
+ Thu, 23 Nov 2023 15:56:21 +0000 (GMT)
+From: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+To: qemu-devel@nongnu.org
+Cc: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>,
+ Paolo Bonzini <pbonzini@redhat.com>, Thomas Huth <thuth@redhat.com>
+Subject: [PULL 13/14] configure: don't try a "native" cross for linux-user
+Date: Thu, 23 Nov 2023 15:56:19 +0000
+Message-Id: <20231123155620.3042891-14-alex.bennee@linaro.org>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20231123155620.3042891-1-alex.bennee@linaro.org>
+References: <20231123155620.3042891-1-alex.bennee@linaro.org>
+MIME-Version: 1.0
+Received-SPF: pass client-ip=2a00:1450:4864:20::330;
+ envelope-from=alex.bennee@linaro.org; helo=mail-wm1-x330.google.com
+X-Spam_score_int: -20
+X-Spam_score: -2.1
+X-Spam_bar: --
+X-Spam_report: (-2.1 / 5.0 requ) BAYES_00=-1.9, DKIM_SIGNED=0.1,
+ DKIM_VALID=-0.1, DKIM_VALID_AU=-0.1, DKIM_VALID_EF=-0.1,
+ RCVD_IN_DNSWL_NONE=-0.0001, SPF_HELO_NONE=0.001, SPF_PASS=-0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=ham autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+Sender: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+
+As 32 bit x86 become rarer we are starting to run into problems with
+search paths. Although we switched to a Debian container we still
+favour the native CC on a Bookworm host. As a result we have a broken
+cross compile setup which then fails to build with:
+
+    BUILD   i386-linux-user guest-tests
+  In file included from /usr/include/linux/stat.h:5,
+                   from /usr/include/bits/statx.h:31,
+                   from /usr/include/sys/stat.h:465,
+                   from /home/alex/lsrc/qemu.git/tests/tcg/multiarch/linux/linux-test.c:28:
+  /usr/include/linux/types.h:5:10: fatal error: asm/types.h: No such file or directory
+      5 | #include <asm/types.h>
+        |          ^~~~~~~~~~~~~
+  compilation terminated.
+  make[1]: *** [Makefile:119: linux-test] Error 1
+  make: *** [/home/alex/lsrc/qemu.git/tests/Makefile.include:50: build-tcg-tests-i386-linux-user] Error 2
+
+This is likely to affect more and more linux-user builds so wrap the
+whole check in a test for softmmu targets (aka bare metal) which don't
+worry about such header niceties. This allows us to keep using the
+host compiler for softmmu tests and the roms.
+
+Signed-off-by: Alex Bennée <alex.bennee@linaro.org>
+Message-Id: <20231120150833.2552739-14-alex.bennee@linaro.org>
+
+diff --git a/configure b/configure
+index 9ea0bf5698..42fe4d0510 100755
+--- a/configure
++++ b/configure
+@@ -1391,16 +1391,19 @@ probe_target_compiler() {
+   done
+ 
+   try=cross
+-  case "$target_arch:$cpu" in
+-    aarch64_be:aarch64 | \
+-    armeb:arm | \
+-    i386:x86_64 | \
+-    mips*:mips64 | \
+-    ppc*:ppc64 | \
+-    sparc:sparc64 | \
+-    "$cpu:$cpu")
+-      try='native cross' ;;
+-  esac
++  # For softmmu/roms we might be able to use the host compiler
++  if [ "${1%softmmu}" != "$1" ]; then
++      case "$target_arch:$cpu" in
++        aarch64_be:aarch64 | \
++        armeb:arm | \
++        i386:x86_64 | \
++        mips*:mips64 | \
++        ppc*:ppc64 | \
++        sparc:sparc64 | \
++        "$cpu:$cpu")
++        try='native cross' ;;
++      esac
++  fi
+   eval "target_cflags=\${cross_cc_cflags_$target_arch}"
+   for thistry in $try; do
+     case $thistry in
+
+From patchwork Thu Nov 23 15:56:20 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Patchwork-Submitter: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+X-Patchwork-Id: 13466399
+Return-Path: <qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 24CCAC61D97
+	for <qemu-devel@archiver.kernel.org>; Thu, 23 Nov 2023 15:59:29 +0000 (UTC)
+Received: from localhost ([::1] helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces@nongnu.org>)
+	id 1r6C4G-00063X-Pv; Thu, 23 Nov 2023 10:56:40 -0500
+Received: from eggs.gnu.org ([2001:470:142:3::10])
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C4E-000625-GV
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:38 -0500
+Received: from mail-wm1-x32e.google.com ([2a00:1450:4864:20::32e])
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_128_GCM_SHA256:128)
+ (Exim 4.90_1) (envelope-from <alex.bennee@linaro.org>)
+ id 1r6C48-0002Oo-Tj
+ for qemu-devel@nongnu.org; Thu, 23 Nov 2023 10:56:38 -0500
+Received: by mail-wm1-x32e.google.com with SMTP id
+ 5b1f17b1804b1-40b2979a74eso7702325e9.0
+ for <qemu-devel@nongnu.org>; Thu, 23 Nov 2023 07:56:32 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=linaro.org; s=google; t=1700754991; x=1701359791; darn=nongnu.org;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+ :message-id:reply-to;
+ bh=sSqXcWmwDT/V/xe8KrlKuVbtZuVfcDSyKh09xHPUjr4=;
+ b=cdZbXrNfSApLF+a+XyZtEV9AhVWwmlckHGegHApH1mosmZyAG0sTY8W8z0KuJMT/iG
+ kTpIyudU0JC80ioc0S5PsQ91B3EcKzRqpxXh2oQKQPLe8DMOB+Y9t8f1YZBoxIYUvj/d
+ OPVI/ZjbRAzV1Uc2G2yIjlLAB6jMhMAP5Sl90UXjtWikvaYfZJzG+Pa7oVDp9umMYGA7
+ bRILa4JMg+9n9gecANqulbXnLEqzUMGONppm7N56CpEZRsOXso5boq4+MN34W/PEeRBD
+ VvPeUO01WFxWEIL+BQSRpjcCENqyfyCHLpOXxJ6K+ZLDFHoCVAFJ3BpwRlKPEq6bFnL3
+ IWsw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=1e100.net; s=20230601; t=1700754991; x=1701359791;
+ h=content-transfer-encoding:mime-version:references:in-reply-to
+ :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+ :subject:date:message-id:reply-to;
+ bh=sSqXcWmwDT/V/xe8KrlKuVbtZuVfcDSyKh09xHPUjr4=;
+ b=e/8XpRkbwvm231cYVYRGdNJo5yivW4cZ1e1YmWOpY0PXVXPJensfV3eWXygzM6aX2b
+ 3qp440hyfJCOsUUVBqw0AQkK1XYP7D1TYEyKYItsd/Ohi70dracF/7aVwwXCzyz7+P3y
+ THSVgBxFrYf7+ACGwlAKMFglIbQ5Je1OY1W9sNELoxTzMcaIIqKlxSGBd4lNJdJJ4VbI
+ HpSYg5oOUJe96uDStKXhMjH+N5pXoYi6DPyL84+6CiirelhCF/RziNeZ7YIoGCXHZ+nW
+ bdaIPeJj6exd5kdE8ds7kcI/egp43H7XDbe893HuzBKhB3ehVOxBGGUGp4RrnNe5FAgc
+ p6vQ==
+X-Gm-Message-State: AOJu0YynaKqms4hrdprr9Jjx2Wm9HZsdvYnqBhLAAaR4bC53xjrt23lh
+ Y8ivftrqvfpqupEYe+qmaiKvzQ==
+X-Google-Smtp-Source: 
+ AGHT+IGjTjUteorPP/oIdoLlCMItsTVodCpxqISqaWRa5gwUGwZAu8Vyxn/SNQnij/P3uS2cX/Om7Q==
+X-Received: by 2002:adf:e881:0:b0:329:6b5b:57b8 with SMTP id
+ d1-20020adfe881000000b003296b5b57b8mr4304127wrm.25.1700754991114;
+ Thu, 23 Nov 2023 07:56:31 -0800 (PST)
+Received: from draig.lan ([85.9.250.243]) by smtp.gmail.com with ESMTPSA id
+ x1-20020adfec01000000b003313e4dddecsm2004428wrn.108.2023.11.23.07.56.25
+ (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+ Thu, 23 Nov 2023 07:56:30 -0800 (PST)
+Received: from draig.lan (localhost [IPv6:::1])
+ by draig.lan (Postfix) with ESMTP id DE55F64601;
+ Thu, 23 Nov 2023 15:56:21 +0000 (GMT)
+From: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>
+To: qemu-devel@nongnu.org
+Cc: =?utf-8?q?Alex_Benn=C3=A9e?= <alex.bennee@linaro.org>,
+ Ilya Leoshkevich <iii@linux.ibm.com>, qemu-s390x@nongnu.org,
+ Nicholas Piggin <npiggin@gmail.com>,
+ Daniel Henrique Barboza <danielhb413@gmail.com>, qemu-ppc@nongnu.org,
+ Luis Machado <luis.machado@arm.com>,
+ =?utf-8?q?Philippe_Mathieu-Daud=C3=A9?= <philmd@linaro.org>, =?utf-8?q?C?=
+	=?utf-8?q?=C3=A9dric_Le_Goater?= <clg@kaod.org>,
+ Richard Henderson <richard.henderson@linaro.org>,
+ David Hildenbrand <david@redhat.com>
+Subject: [PULL 14/14] tests/tcg: finesse the registers check for "hidden" regs
+Date: Thu, 23 Nov 2023 15:56:20 +0000
+Message-Id: <20231123155620.3042891-15-alex.bennee@linaro.org>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20231123155620.3042891-1-alex.bennee@linaro.org>
+References: <20231123155620.3042891-1-alex.bennee@linaro.org>
+MIME-Version: 1.0
+Received-SPF: pass client-ip=2a00:1450:4864:20::32e;
+ envelope-from=alex.bennee@linaro.org; helo=mail-wm1-x32e.google.com
+X-Spam_score_int: -20
+X-Spam_score: -2.1
+X-Spam_bar: --
+X-Spam_report: (-2.1 / 5.0 requ) BAYES_00=-1.9, DKIM_SIGNED=0.1,
+ DKIM_VALID=-0.1, DKIM_VALID_AU=-0.1, DKIM_VALID_EF=-0.1,
+ RCVD_IN_DNSWL_NONE=-0.0001, SPF_HELO_NONE=0.001, SPF_PASS=-0.001,
+ T_SCC_BODY_TEXT_LINE=-0.01 autolearn=unavailable autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+Sender: qemu-devel-bounces+qemu-devel=archiver.kernel.org@nongnu.org
+
+The reason the ppc64 and s390x test where failing was because gdb
+hides them although they are still accessible via regnum. We can
+re-arrange the test a little bit and include these two arches in our
+test.
+
+We also need to be a bit more careful handling remote-registers as the
+format isn't easily parsed with pure white space separation. Once we
+fold types like "long long" and "long double" into a single word we
+can now assert all registers are either listed or elided.
+
+Cc: Ilya Leoshkevich <iii@linux.ibm.com>
+Cc:  <qemu-s390x@nongnu.org>
+Cc: Nicholas Piggin <npiggin@gmail.com>
+Cc: Daniel Henrique Barboza <danielhb413@gmail.com>
+Cc:  <qemu-ppc@nongnu.org>
+Cc: Luis Machado <luis.machado@arm.com>
+Signed-off-by: Alex Bennée <alex.bennee@linaro.org>
+Message-Id: <20231121153606.542101-1-alex.bennee@linaro.org>
+
+diff --git a/tests/tcg/multiarch/gdbstub/registers.py b/tests/tcg/multiarch/gdbstub/registers.py
+index ff6076b09e..688c061107 100644
+--- a/tests/tcg/multiarch/gdbstub/registers.py
++++ b/tests/tcg/multiarch/gdbstub/registers.py
+@@ -44,7 +44,6 @@ def fetch_xml_regmap():
+ 
+     total_regs = 0
+     reg_map = {}
+-    frame = gdb.selected_frame()
+ 
+     tree = ET.fromstring(xml)
+     for f in tree.findall("feature"):
+@@ -61,12 +60,8 @@ def fetch_xml_regmap():
+         for r in regs:
+             name = r.attrib["name"]
+             regnum = int(r.attrib["regnum"])
+-            try:
+-                value = frame.read_register(name)
+-            except ValueError:
+-                report(False, f"failed to read reg: {name}")
+ 
+-            entry = { "name": name, "initial": value, "regnum": regnum }
++            entry = { "name": name, "regnum": regnum }
+ 
+             if name in reg_map:
+                 report(False, f"duplicate register {entry} vs {reg_map[name]}")
+@@ -80,6 +75,15 @@ def fetch_xml_regmap():
+ 
+     return reg_map
+ 
++def get_register_by_regnum(reg_map, regnum):
++    """
++    Helper to find a register from the map via its XML regnum
++    """
++    for regname, entry in reg_map.items():
++        if entry['regnum'] == regnum:
++            return entry
++    return None
++
+ def crosscheck_remote_xml(reg_map):
+     """
+     Cross-check the list of remote-registers with the XML info.
+@@ -90,8 +94,11 @@ def crosscheck_remote_xml(reg_map):
+ 
+     total_regs = len(reg_map.keys())
+     total_r_regs = 0
++    total_r_elided_regs = 0
+ 
+     for r in r_regs:
++        r = r.replace("long long", "long_long")
++        r = r.replace("long double", "long_double")
+         fields = r.split()
+         # Some of the registers reported here are "pseudo" registers that
+         # gdb invents based on actual registers so we need to filter them
+@@ -100,6 +107,15 @@ def crosscheck_remote_xml(reg_map):
+             r_name = fields[0]
+             r_regnum = int(fields[6])
+ 
++            # Some registers are "hidden" so don't have a name
++            # although they still should have a register number
++            if r_name == "''":
++                total_r_elided_regs += 1
++                x_reg = get_register_by_regnum(reg_map, r_regnum)
++                if x_reg is not None:
++                    x_reg["hidden"] = True
++                continue
++
+             # check in the XML
+             try:
+                 x_reg = reg_map[r_name]
+@@ -114,17 +130,42 @@ def crosscheck_remote_xml(reg_map):
+             else:
+                 total_r_regs += 1
+ 
+-    # Just print a mismatch in totals as gdb will filter out 64 bit
+-    # registers on a 32 bit machine. Also print what is missing to
+-    # help with debug.
+-    if total_regs != total_r_regs:
+-        print(f"xml-tdesc has ({total_regs}) registers")
+-        print(f"remote-registers has ({total_r_regs}) registers")
++    report(total_regs == total_r_regs + total_r_elided_regs,
++           "All XML Registers accounted for")
++
++    print(f"xml-tdesc has {total_regs} registers")
++    print(f"remote-registers has {total_r_regs} registers")
++    print(f"of which {total_r_elided_regs} are hidden")
++
++    for x_key in reg_map.keys():
++        x_reg = reg_map[x_key]
++        if "hidden" in x_reg:
++            print(f"{x_reg} elided by gdb")
++        elif "seen" not in x_reg:
++            print(f"{x_reg} wasn't seen in remote-registers")
++
++def initial_register_read(reg_map):
++    """
++    Do an initial read of all registers that we know gdb cares about
++    (so ignore the elided ones).
++    """
++    frame = gdb.selected_frame()
++
++    for e in reg_map.values():
++        name = e["name"]
++        regnum = e["regnum"]
++
++        try:
++            if "hidden" in e:
++                value = frame.read_register(regnum)
++                e["initial"] = value
++            elif "seen" in e:
++                value = frame.read_register(name)
++                e["initial"] = value
++
++        except ValueError:
++                report(False, f"failed to read reg: {name}")
+ 
+-        for x_key in reg_map.keys():
+-            x_reg = reg_map[x_key]
+-            if "seen" not in x_reg:
+-                print(f"{x_reg} wasn't seen in remote-registers")
+ 
+ def complete_and_diff(reg_map):
+     """
+@@ -144,18 +185,19 @@ def complete_and_diff(reg_map):
+     changed = 0
+ 
+     for e in reg_map.values():
+-        name = e["name"]
+-        old_val = e["initial"]
++        if "initial" in e and "hidden" not in e:
++            name = e["name"]
++            old_val = e["initial"]
+ 
+-        try:
+-            new_val = frame.read_register(name)
+-        except:
+-            report(False, f"failed to read {name} at end of run")
+-            continue
++            try:
++                new_val = frame.read_register(name)
++            except ValueError:
++                report(False, f"failed to read {name} at end of run")
++                continue
+ 
+-        if new_val != old_val:
+-            print(f"{name} changes from {old_val} to {new_val}")
+-            changed += 1
++            if new_val != old_val:
++                print(f"{name} changes from {old_val} to {new_val}")
++                changed += 1
+ 
+     # as long as something changed we can be confident its working
+     report(changed > 0, f"{changed} registers were changed")
+@@ -168,6 +210,7 @@ def run_test():
+ 
+     if reg_map is not None:
+         crosscheck_remote_xml(reg_map)
++        initial_register_read(reg_map)
+         complete_and_diff(reg_map)
+ 
+ 
+diff --git a/tests/tcg/ppc64/Makefile.target b/tests/tcg/ppc64/Makefile.target
+index ca8b929464..8c3e4e4038 100644
+--- a/tests/tcg/ppc64/Makefile.target
++++ b/tests/tcg/ppc64/Makefile.target
+@@ -43,11 +43,4 @@ PPC64_TESTS += signal_save_restore_xer
+ PPC64_TESTS += xxspltw
+ PPC64_TESTS += test-aes
+ 
+-ifneq ($(GDB),)
+-# Skip for now until vsx registers sorted out
+-run-gdbstub-registers:
+-	$(call skip-test, $<, "BROKEN reading VSX registers")
+-endif
+-
+-
+ TESTS += $(PPC64_TESTS)
+diff --git a/tests/tcg/s390x/Makefile.target b/tests/tcg/s390x/Makefile.target
+index 46544fecd4..0e670f3f8b 100644
+--- a/tests/tcg/s390x/Makefile.target
++++ b/tests/tcg/s390x/Makefile.target
+@@ -103,10 +103,6 @@ run-gdbstub-svc: hello-s390x-asm
+ 		--bin $< --test $(S390X_SRC)/gdbstub/test-svc.py, \
+ 	single-stepping svc)
+ 
+-# Skip for now until vx registers sorted out
+-run-gdbstub-registers:
+-	$(call skip-test, $<, "BROKEN reading VX registers")
+-
+ EXTRA_RUNS += run-gdbstub-signals-s390x run-gdbstub-svc
+ endif
+ 
