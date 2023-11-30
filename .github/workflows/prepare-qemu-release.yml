@@ -3,7 +3,7 @@ name: Prepare QCW QEMU (from TarBall sources)
 on: workflow_dispatch
 
 env:
-  QEMU_VERSION: 8.2.0-rc1
+  QEMU_VERSION: 8.2.0-rc2
   MSYS: 'winsymlinks:native'
 
 jobs:
@@ -96,7 +96,6 @@ jobs:
         patch --binary -l -p 1 < ../patches/qemu/0001-9pfs-Add-9pfs-support-for-Windows-host.patch
         patch --binary -l -p 1 < ../patches/qemu/0002-WHPX-Add-support-for-device-backed-memory-regions.patch
         patch --binary -l -p 1 < ../patches/qemu/0003-Windows-installer-keep-dependency-cache.patch
-        patch --binary -l -p 1 < ../patches/qemu/0004-PULL-01-14-tests-docker-replace-fedora-i386-with-debian-i686.patch
 
     - name: '🛠️ Build QEMU'
       working-directory: qemu-release
