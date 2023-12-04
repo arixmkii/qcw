@@ -48,8 +48,7 @@ Version bundled with Podman is used
 
 #### `Podman`
 
-Version `5.0.0-dev` with 3 patch sets from Podman PRs:
-* Change default QEMU CPU level to qemu64 on Windows amd64 https://github.com/containers/podman/pull/19518;
+Version `5.0.0-dev` with 2 patch sets from Podman PRs:
 * Implement Unix domain socket support for VLAN https://github.com/containers/podman/pull/17473;
 * Enable QEMU Podman machine on Windows https://github.com/containers/podman/pull/18488.
 
