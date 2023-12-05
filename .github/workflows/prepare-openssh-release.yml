@@ -1,0 +1,48 @@
+name: Prepare QCW OpenSSH (from revision)
+
+on: workflow_dispatch
+
+env:
+  OPENSSH_GITURL: https://github.com/PowerShell/openssh-portable.git
+  OPENSSH_SHA: f72324ffa1fbf076291cbe92d968dc0b6040a2fe
+  MSYS: 'winsymlinks:native'
+
+jobs:
+
+  build:
+    runs-on: windows-latest
+
+    steps:
+
+    - name: '🏗️ Install msys2'
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: UCRT64
+        update: true
+        install: >-
+          base-devel
+          diffutils
+          git
+          grep
+          make
+          sed
+          unzip
+
+    - name: '🏗️ Install tools'
+      uses: crazy-max/ghaction-chocolatey@v2
+      with:
+        args: install 7zip.install
+
+    - name: '📝 Configure checkout'
+      run: git config --global core.autocrlf input
+
+    - name: '📝 Checkout'
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 1
+
+    - name: '🔗 Link tools'
+      shell: msys2 {0}
+      run: |
+        mkdir -p /usr/local/bin
+        ln -sf "/c/Program Files/7-Zip/7z.exe" "/usr/local/bin/7z.exe"
