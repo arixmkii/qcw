@@ -7,81 +7,79 @@ env:
   PODMAN_SHA: cbb3e4d20f42079fb4b2cfd827f7c4dbf259d4f8
 
 jobs:
-
   build:
     runs-on: windows-latest
 
     steps:
+      - name: "🏗️ Install msys2"
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            make
+            git
+            unzip
+            base-devel
+            mingw-w64-ucrt-x86_64-toolchain
+            zip
+            mingw-w64-ucrt-x86_64-go
 
-    - name: '🏗️ Install msys2'
-      uses: msys2/setup-msys2@v2
-      with:
-        msystem: UCRT64
-        update: true
-        install: >-
-          make
-          git
-          unzip
-          base-devel
-          mingw-w64-ucrt-x86_64-toolchain
-          zip
-          mingw-w64-ucrt-x86_64-go
+      - name: "🏗️ Install tools"
+        uses: crazy-max/ghaction-chocolatey@v2
+        with:
+          args: install pandoc
 
-    - name: '🏗️ Install tools'
-      uses: crazy-max/ghaction-chocolatey@v2
-      with:
-        args: install pandoc
+      - name: "📝 Configure checkout"
+        run: git config --global core.autocrlf input
 
-    - name: '📝 Configure checkout'
-      run: git config --global core.autocrlf input
+      - name: "📝 Checkout"
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
 
-    - name: '📝 Checkout'
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 1
- 
-    - name: '🔗 Link tools'
-      shell: msys2 {0}
-      run: |
-        mkdir -p /usr/local/bin
-        ln -sf "/c/Program Files/Pandoc/pandoc.exe" "/usr/local/bin/pandoc.exe"
+      - name: "🔗 Link tools"
+        shell: msys2 {0}
+        run: |
+          mkdir -p /usr/local/bin
+          ln -sf "/c/Program Files/Pandoc/pandoc.exe" "/usr/local/bin/pandoc.exe"
 
-    - name: '📝 Fetch sources'
-      shell: msys2 {0}
-      run: |
-        mkdir podman-release
-        cd podman-release
-        git init
-        git remote add origin $PODMAN_GITURL
-        git fetch --depth 1 origin $PODMAN_SHA
-        git checkout FETCH_HEAD
-        patch --binary -l -p 1 < ../patches/podman/0001-Implement-Unix-domain-socket-support-for-VLAN.patch
-        patch --binary -l -p 1 < ../patches/podman/0002-Enable-QEMU-Podman-machine-on-Windows.patch
+      - name: "📝 Fetch sources"
+        shell: msys2 {0}
+        run: |
+          mkdir podman-release
+          cd podman-release
+          git init
+          git remote add origin $PODMAN_GITURL
+          git fetch --depth 1 origin $PODMAN_SHA
+          git checkout FETCH_HEAD
+          patch --binary -l -p 1 < ../patches/podman/0001-Implement-Unix-domain-socket-support-for-VLAN.patch
+          patch --binary -l -p 1 < ../patches/podman/0002-Enable-QEMU-Podman-machine-on-Windows.patch
 
-    - name: '🛠️ Build Podman'
-      working-directory: podman-release
-      shell: msys2 {0}
-      run: |
-        make podman-remote-release-windows_amd64.zip
-        export BUILD_PODMAN_VERSION=$(test/version/version | sed 's/-.*//')
-        mkdir -p contrib/win-installer/current
-        cp *.zip contrib/win-installer/current/
-        cd contrib/win-installer
-        powershell -ExecutionPolicy Bypass -File build.ps1 $BUILD_PODMAN_VERSION dev current
+      - name: "🛠️ Build Podman"
+        working-directory: podman-release
+        shell: msys2 {0}
+        run: |
+          make podman-remote-release-windows_amd64.zip
+          export BUILD_PODMAN_VERSION=$(test/version/version | sed 's/-.*//')
+          mkdir -p contrib/win-installer/current
+          cp *.zip contrib/win-installer/current/
+          cd contrib/win-installer
+          powershell -ExecutionPolicy Bypass -File build.ps1 $BUILD_PODMAN_VERSION dev current
 
-    - name: '📦 Pack Podman'
-      shell: msys2 {0}
-      run: |
-        mkdir -p qcw
-        export BUILD_PODMAN_VERSION=$(podman-release/test/version/version | sed 's/-.*//')
-        cp "podman-release/contrib/win-installer/podman-$BUILD_PODMAN_VERSION-dev-setup.exe" qcw/
-        cd qcw
-        find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
-        find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
-        cat sha.checksums
+      - name: "📦 Pack Podman"
+        shell: msys2 {0}
+        run: |
+          mkdir -p qcw
+          export BUILD_PODMAN_VERSION=$(podman-release/test/version/version | sed 's/-.*//')
+          cp "podman-release/contrib/win-installer/podman-$BUILD_PODMAN_VERSION-dev-setup.exe" qcw/
+          cd qcw
+          find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
+          find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
+          cat sha.checksums
 
-    - name: '🚀 Upload artifact'
-      uses: actions/upload-artifact@v3
-      with:
-        name: qcw-podman
-        path: qcw
+      - name: "🚀 Upload artifact"
+        uses: actions/upload-artifact@v3
+        with:
+          name: qcw-podman
+          path: qcw

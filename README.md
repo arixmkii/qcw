@@ -28,13 +28,15 @@ Ordered alphabetically
 * `gocat` - [Github](https://github.com/sumup-oss/gocat) multipurpose networking relay;
 * `gvisor-tap-vsock` - [Github](https://github.com/containers/gvisor-tap-vsock) the tool to provide networking for
 accessing containers from Windows;
+* `OpenSSH` - [home page](https://www.openssh.com/) SSH connectivity tool fork from [Powershell Github](https://github.com/PowerShell/openssh-portable);
 * `Podman` - [home page](https://podman.io/) and [Github](https://github.com/containers/podman) free and open source
 container runtime;
 * `Podman Desktop` - [home page](https://podman-desktop.io/) and [Github](https://github.com/containers/podman-desktop)
 GUI companion to Podman;
 * `QEMU` - [home page](https://www.qemu.org/) and [Github (mirror)](https://github.com/qemu/qemu) free and open source
 feature rich machine emulator;
-* `XZ Utils` - [home page](https://tukaani.org/xz/) compression utilities.
+* `XZ Utils` - [home page](https://tukaani.org/xz/) compression utilities;
+* `Zlib` - [home page](https://www.zlib.net/) compression library.
 
 ### Versions and patches
 
@@ -45,6 +47,11 @@ Built from HEAD of the development branch. Added patch with updated dependencies
 #### `gvisor-tap-vsock`
 
 Version bundled with Podman is used
+
+#### `OpenSSH`
+
+Version `v9.4.0.0` with 1 patch from Powershell OpenSSH fork PRs:
+* Add support for AF_UNIX https://github.com/PowerShell/openssh-portable/pull/674
 
 #### `Podman`
 
@@ -69,6 +76,12 @@ Version `8.2.0-rc2` with 3 patch sets from QEMU mailing list:
 #### `XZ Utils`
 
 Version `5.2.9` w/o any changes.
+
+#### `Zlib`
+
+Version `1.3` with 2 patches from main after release and from Powershell fork:
+* Add vc17 support
+* Set Multibyte character set and spectre mitigation
 
 ## How to use QEMU
 
