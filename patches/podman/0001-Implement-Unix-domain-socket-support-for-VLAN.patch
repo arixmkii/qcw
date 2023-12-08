@@ -1,7 +1,7 @@
-From 864f320eeb94ffd596888cddf5ebc25b0554e6dd Mon Sep 17 00:00:00 2001
+From 2869749c7c05ec5f1738c512790e9d4f883ac9ee Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 26 Sep 2023 14:52:38 +0300
-Subject: [PATCH 2/3] Implement Unix domain socket support for VLAN
+Subject: [PATCH] Implement Unix domain socket support for VLAN
 
 This change adds support for new QEMU stream netdev added in 7.2.0.
 It is implemented as an opt-in mode for previously supported
@@ -18,7 +18,7 @@ calculated inside Start method.
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
- pkg/machine/e2e/README.md             |  23 ++++
+ pkg/machine/e2e/README.md             |  15 +++
  pkg/machine/machine_windows.go        |  11 ++
  pkg/machine/qemu/command.go           |  23 +++-
  pkg/machine/qemu/config.go            |  11 +-
@@ -28,39 +28,31 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
  pkg/machine/qemu/qemu_command_test.go |   3 +-
  pkg/machine/wsl/machine.go            |   2 +-
  pkg/machine/wsl/util_windows.go       |   7 -
- 10 files changed, 275 insertions(+), 97 deletions(-)
+ 10 files changed, 267 insertions(+), 97 deletions(-)
 
 diff --git a/pkg/machine/e2e/README.md b/pkg/machine/e2e/README.md
-index 7b0637a1d..c33d44e07 100644
+index 5a1e324a2..aab722355 100644
 --- a/pkg/machine/e2e/README.md
 +++ b/pkg/machine/e2e/README.md
-@@ -40,3 +40,26 @@ Note: To run specific test files, add the test files to the end of the winmake c
- 1. `./test/tools/build/ginkgo -vv  --tags "remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp remote" -timeout=90m --trace --no-color  pkg/machine/e2e/.`
- 
- Note: Add `--focus-file "basic_test.go" ` to only run basic test
+@@ -36,3 +36,18 @@ Note: To run specific test files, add the test files to the end of the winmake c
+ 1. `export CONTAINERS_MACHINE_PROVIDER="applehv"`
+ 1. `export MACHINE_IMAGE="https://fedorapeople.org/groups/podman/testing/applehv/arm64/fedora-coreos-38.20230925.dev.0-applehv.aarch64.raw.gz"`
+ 1. `make localmachine` (Add `FOCUS_FILE=basic_test.go` to only run basic test)
 +
 +### QEMU (fd vlan)
 +
 +1. Install QEMU `brew install qemu`
 +1. Install Podman (needed to have gvproxy binary) `brew install podman`
 +1. `make podman-remote`
-+1. `make .install.ginkgo`
-+1. `export TMPDIR=/Users/<yourname>`
-+1. `./test/tools/build/ginkgo -vv  --tags "remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp remote" -timeout=90m --trace --no-color  pkg/machine/e2e/.`
-+
-+Note: Add `--focus-file "basic_test.go" ` to only run basic test
++1. `make localmachine` (Add `FOCUS_FILE=basic_test.go` to only run basic test)
 +
 +### QEMU (UNIX domain socket vlan)
 +
 +1. Install QEMU `brew install qemu`
 +1. Install Podman (needed to have gvproxy binary) `brew install podman`
 +1. `make podman-remote`
-+1. `make .install.ginkgo`
-+1. `export TMPDIR=/Users/<yourname>`
 +1. `export CONTAINERS_USE_SOCKET_VLAN=true`
-+1. `./test/tools/build/ginkgo -vv  --tags "remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp remote" -timeout=90m --trace --no-color  pkg/machine/e2e/.`
-+
-+Note: Add `--focus-file "basic_test.go" ` to only run basic test
++1. `make localmachine` (Add `FOCUS_FILE=basic_test.go` to only run basic test)
 diff --git a/pkg/machine/machine_windows.go b/pkg/machine/machine_windows.go
 index fe1d2fa5c..c4cf08d2c 100644
 --- a/pkg/machine/machine_windows.go
@@ -699,10 +691,10 @@ index 5041dcb15..0597035b9 100644
  	cmd.SetVirtfsMount("/tmp/path", "vol10", "none", true)
  	cmd.SetBootableImage(bootableImagePath)
 diff --git a/pkg/machine/wsl/machine.go b/pkg/machine/wsl/machine.go
-index bd6b391cf..b3eb69e8a 100644
+index e97baf51c..d860e6615 100644
 --- a/pkg/machine/wsl/machine.go
 +++ b/pkg/machine/wsl/machine.go
-@@ -1547,7 +1547,7 @@ func stopWinProxy(v *MachineVM) error {
+@@ -1544,7 +1544,7 @@ func stopWinProxy(v *MachineVM) error {
  	if err != nil {
  		return nil
  	}
