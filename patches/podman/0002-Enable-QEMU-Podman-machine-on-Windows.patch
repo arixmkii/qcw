@@ -1,11 +1,14 @@
-From 65ffce42089b1396726b693340955efe64958877 Mon Sep 17 00:00:00 2001
+From 8cdec2aec680405bcde16ccbacc695dce139cad1 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
-Date: Sat, 1 Apr 2023 23:49:13 +0300
-Subject: [PATCH 3/3] Enable QEMU Podman machine on Windows
+Date: Sat, 9 Dec 2023 14:03:44 +0200
+Subject: [PATCH 2/2] Enable QEMU Podman machine on Windows
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+
+# Conflicts:
+#	pkg/machine/e2e/README.md
 ---
- pkg/machine/e2e/README.md                      | 11 +++++++++++
+ pkg/machine/e2e/README.md                      | 13 +++++++++++++
  pkg/machine/e2e/config_test.go                 | 14 ++++++++++++++
  pkg/machine/e2e/config_unix_test.go            | 13 +------------
  pkg/machine/e2e/config_windows_test.go         |  7 ++++++-
@@ -13,26 +16,35 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
  pkg/machine/provider/platform_windows.go       |  2 ++
  pkg/machine/provider/platform_windows_amd64.go | 10 ++++++++++
  pkg/machine/provider/platform_windows_arm64.go | 11 +++++++++++
- 8 files changed, 58 insertions(+), 13 deletions(-)
+ 8 files changed, 60 insertions(+), 13 deletions(-)
  create mode 100644 pkg/machine/provider/platform_windows_amd64.go
  create mode 100644 pkg/machine/provider/platform_windows_arm64.go
 
 diff --git a/pkg/machine/e2e/README.md b/pkg/machine/e2e/README.md
-index c33d44e07..551a30420 100644
+index aab722355..200561fdc 100644
 --- a/pkg/machine/e2e/README.md
 +++ b/pkg/machine/e2e/README.md
-@@ -28,6 +28,17 @@ Note: To run specific test files, add the test files to the end of the winmake c
+@@ -20,6 +20,7 @@ Note: To run specific test files, add the test files to the end of the winmake c
+ `./winmake localmachine "basic_test.go start_test.go"`
+ 
+ ### WSL
++
+ 1. Open a powershell as a regular user
+ 1. Build and copy win-sshproxy into bin/
+ 1. `./winmake localmachine`
+@@ -28,6 +29,18 @@ Note: To run specific test files, add the test files to the end of the winmake c
  
  `./winmake localmachine "basic_test.go start_test.go"`
  
 +### QEMU
++
 +1. Install QEMU and add it to either user or sysmem PATH variable
 +1. Install Podman release (needed to have gvproxy binary)
 +1. Open a powershell as a regular user
 +1. $env:CONTAINERS_MACHINE_PROVIDER="qemu"
 +1. `./winmake localmachine`
 +
-+Note: To run specfic test files, add the test files to the end of the winmake command:
++Note: To run specific test files, add the test files to the end of the winmake command:
 +
 +`./winmake localmachine "basic_test.go start_test.go"`
 +
