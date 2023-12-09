@@ -1,22 +1,25 @@
-From 8cdec2aec680405bcde16ccbacc695dce139cad1 Mon Sep 17 00:00:00 2001
+From d26c87d179da92bb8771945aafba18107e89d056 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
-Date: Sat, 9 Dec 2023 14:03:44 +0200
+Date: Sat, 9 Dec 2023 14:19:50 +0200
 Subject: [PATCH 2/2] Enable QEMU Podman machine on Windows
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 
 # Conflicts:
 #	pkg/machine/e2e/README.md
+
+# Conflicts:
+#	pkg/machine/e2e/config_test.go
+#	pkg/machine/e2e/config_unix_test.go
+#	pkg/machine/e2e/config_windows_test.go
 ---
  pkg/machine/e2e/README.md                      | 13 +++++++++++++
- pkg/machine/e2e/config_test.go                 | 14 ++++++++++++++
- pkg/machine/e2e/config_unix_test.go            | 13 +------------
- pkg/machine/e2e/config_windows_test.go         |  7 ++++++-
+ pkg/machine/e2e/config_windows_test.go         |  4 +++-
  pkg/machine/e2e/init_test.go                   |  3 +++
  pkg/machine/provider/platform_windows.go       |  2 ++
  pkg/machine/provider/platform_windows_amd64.go | 10 ++++++++++
  pkg/machine/provider/platform_windows_arm64.go | 11 +++++++++++
- 8 files changed, 60 insertions(+), 13 deletions(-)
+ 6 files changed, 42 insertions(+), 1 deletion(-)
  create mode 100644 pkg/machine/provider/platform_windows_amd64.go
  create mode 100644 pkg/machine/provider/platform_windows_arm64.go
 
@@ -51,69 +54,19 @@ index aab722355..200561fdc 100644
  ## MacOS
  
  ### Apple Hypervisor
-diff --git a/pkg/machine/e2e/config_test.go b/pkg/machine/e2e/config_test.go
-index 60e9187a5..10ba3a21e 100644
---- a/pkg/machine/e2e/config_test.go
-+++ b/pkg/machine/e2e/config_test.go
-@@ -234,3 +234,17 @@ func isVmtype(vmType machine.VMType) bool {
- func isWSL() bool {
- 	return isVmtype(machine.WSLVirt)
- }
-+
-+func getQemuFcosDownloadLocation(p machine.VirtProvider) string {
-+	dd, err := p.NewDownload("")
-+	if err != nil {
-+		Fail("unable to create new download")
-+	}
-+
-+	fcd, err := dd.GetFCOSDownload(defaultStream)
-+	if err != nil {
-+		Fail("unable to get virtual machine image")
-+	}
-+
-+	return fcd.Location
-+}
-diff --git a/pkg/machine/e2e/config_unix_test.go b/pkg/machine/e2e/config_unix_test.go
-index 027021ca4..ed45475a2 100644
---- a/pkg/machine/e2e/config_unix_test.go
-+++ b/pkg/machine/e2e/config_unix_test.go
-@@ -6,21 +6,10 @@ import (
- 	"os/exec"
- 
- 	"github.com/containers/podman/v4/pkg/machine"
--	. "github.com/onsi/ginkgo/v2"
- )
- 
- func getDownloadLocation(p machine.VirtProvider) string {
--	dd, err := p.NewDownload("")
--	if err != nil {
--		Fail("unable to create new download")
--	}
--
--	fcd, err := dd.GetFCOSDownload(defaultStream)
--	if err != nil {
--		Fail("unable to get virtual machine image")
--	}
--
--	return fcd.Location
-+	return getQemuFcosDownloadLocation(p)
- }
- 
- func pgrep(n string) (string, error) {
 diff --git a/pkg/machine/e2e/config_windows_test.go b/pkg/machine/e2e/config_windows_test.go
-index 9fa63cd88..1f985eccf 100644
+index c47bda043..08d0681f7 100644
 --- a/pkg/machine/e2e/config_windows_test.go
 +++ b/pkg/machine/e2e/config_windows_test.go
-@@ -12,7 +12,12 @@ import (
- 
+@@ -13,9 +13,11 @@ import (
  const podmanBinary = "../../../bin/windows/podman.exe"
  
--func getDownloadLocation(_ machine.VirtProvider) string {
-+func getDownloadLocation(p machine.VirtProvider) string {
+ func getDownloadLocation(p machine.VirtProvider) string {
+-	if p.VMType() == machine.HyperVVirt {
 +	// QemuVirt provider
 +	if p.VMType() == machine.QemuVirt {
-+		return getQemuFcosDownloadLocation(p)
-+	}
+ 		return getFCOSDownloadLocation(p)
+ 	}
 +	// Fallback to default WSLVirt
  	fd, err := wsl.NewFedoraDownloader(machine.WSLVirt, "", defaultStream.String())
  	if err != nil {
