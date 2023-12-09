@@ -31,7 +31,7 @@ jobs:
           args: install pandoc
 
       - name: "📝 Configure checkout"
-        run: git config --global core.autocrlf input
+        run: git config --global core.autocrlf false
 
       - name: "📝 Checkout"
         uses: actions/checkout@v3

@@ -26,7 +26,7 @@ jobs:
             mingw-w64-ucrt-x86_64-go
 
       - name: "📝 Configure checkout"
-        run: git config --global core.autocrlf input
+        run: git config --global core.autocrlf false
 
       - name: "📝 Checkout"
         uses: actions/checkout@v3
