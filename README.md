@@ -50,7 +50,7 @@ Version bundled with Podman is used
 
 #### `OpenSSH`
 
-Version `v9.4.0.0` with 1 patch from Powershell OpenSSH fork PRs:
+Version `v9.5.0.0` with 1 patch from Powershell OpenSSH fork PRs:
 * Add support for AF_UNIX https://github.com/PowerShell/openssh-portable/pull/674
 
 #### `Podman`

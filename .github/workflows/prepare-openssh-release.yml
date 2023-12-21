@@ -4,7 +4,7 @@ on: workflow_dispatch
 
 env:
   OPENSSH_GITURL: https://github.com/PowerShell/openssh-portable.git
-  OPENSSH_SHA: f72324ffa1fbf076291cbe92d968dc0b6040a2fe
+  OPENSSH_SHA: 59aba65cf2e2f423c09d12ad825c3b32a11f408f
   ZLIB_VERSION: 1.3
   MSYS: "winsymlinks:native"
 
