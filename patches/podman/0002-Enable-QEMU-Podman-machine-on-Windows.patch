@@ -1,46 +1,29 @@
-From d26c87d179da92bb8771945aafba18107e89d056 Mon Sep 17 00:00:00 2001
+From 984461869f6304cbf69d92af6d7a805ddf14665e Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
-Date: Sat, 9 Dec 2023 14:19:50 +0200
-Subject: [PATCH 2/2] Enable QEMU Podman machine on Windows
+Date: Sat, 1 Apr 2023 23:49:13 +0300
+Subject: [PATCH] Enable QEMU Podman machine on Windows
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
-
-# Conflicts:
-#	pkg/machine/e2e/README.md
-
-# Conflicts:
-#	pkg/machine/e2e/config_test.go
-#	pkg/machine/e2e/config_unix_test.go
-#	pkg/machine/e2e/config_windows_test.go
 ---
- pkg/machine/e2e/README.md                      | 13 +++++++++++++
- pkg/machine/e2e/config_windows_test.go         |  4 +++-
+ pkg/machine/e2e/README.md                      | 11 +++++++++++
+ pkg/machine/e2e/config_test.go                 | 14 ++++++++++++++
  pkg/machine/e2e/init_test.go                   |  3 +++
  pkg/machine/provider/platform_windows.go       |  2 ++
  pkg/machine/provider/platform_windows_amd64.go | 10 ++++++++++
- pkg/machine/provider/platform_windows_arm64.go | 11 +++++++++++
- 6 files changed, 42 insertions(+), 1 deletion(-)
+ pkg/machine/provider/platform_windows_arm64.go | 12 ++++++++++++
+ 6 files changed, 52 insertions(+)
  create mode 100644 pkg/machine/provider/platform_windows_amd64.go
  create mode 100644 pkg/machine/provider/platform_windows_arm64.go
 
 diff --git a/pkg/machine/e2e/README.md b/pkg/machine/e2e/README.md
-index aab722355..200561fdc 100644
+index 5a1e324a2..30f62f5b2 100644
 --- a/pkg/machine/e2e/README.md
 +++ b/pkg/machine/e2e/README.md
-@@ -20,6 +20,7 @@ Note: To run specific test files, add the test files to the end of the winmake c
- `./winmake localmachine "basic_test.go start_test.go"`
- 
- ### WSL
-+
- 1. Open a powershell as a regular user
- 1. Build and copy win-sshproxy into bin/
- 1. `./winmake localmachine`
-@@ -28,6 +29,18 @@ Note: To run specific test files, add the test files to the end of the winmake c
+@@ -28,6 +28,17 @@ Note: To run specific test files, add the test files to the end of the winmake c
  
  `./winmake localmachine "basic_test.go start_test.go"`
  
 +### QEMU
-+
 +1. Install QEMU and add it to either user or sysmem PATH variable
 +1. Install Podman release (needed to have gvproxy binary)
 +1. Open a powershell as a regular user
@@ -54,25 +37,30 @@ index aab722355..200561fdc 100644
  ## MacOS
  
  ### Apple Hypervisor
-diff --git a/pkg/machine/e2e/config_windows_test.go b/pkg/machine/e2e/config_windows_test.go
-index c47bda043..08d0681f7 100644
---- a/pkg/machine/e2e/config_windows_test.go
-+++ b/pkg/machine/e2e/config_windows_test.go
-@@ -13,9 +13,11 @@ import (
- const podmanBinary = "../../../bin/windows/podman.exe"
+diff --git a/pkg/machine/e2e/config_test.go b/pkg/machine/e2e/config_test.go
+index 18b961a0d..997467076 100644
+--- a/pkg/machine/e2e/config_test.go
++++ b/pkg/machine/e2e/config_test.go
+@@ -249,3 +249,17 @@ func getFCOSDownloadLocation(p machine.VirtProvider) string {
  
- func getDownloadLocation(p machine.VirtProvider) string {
--	if p.VMType() == machine.HyperVVirt {
-+	// QemuVirt provider
-+	if p.VMType() == machine.QemuVirt {
- 		return getFCOSDownloadLocation(p)
- 	}
-+	// Fallback to default WSLVirt
- 	fd, err := wsl.NewFedoraDownloader(machine.WSLVirt, "", defaultStream.String())
- 	if err != nil {
- 		Fail("unable to get WSL virtual image")
+ 	return fcd.Location
+ }
++
++func getQemuFcosDownloadLocation(p machine.VirtProvider) string {
++	dd, err := p.NewDownload("")
++	if err != nil {
++		Fail("unable to create new download")
++	}
++
++	fcd, err := dd.GetFCOSDownload(defaultStream)
++	if err != nil {
++		Fail("unable to get virtual machine image")
++	}
++
++	return fcd.Location
++}
 diff --git a/pkg/machine/e2e/init_test.go b/pkg/machine/e2e/init_test.go
-index 7c1608157..7d147092a 100644
+index 27b0b3d06..1a2314bb3 100644
 --- a/pkg/machine/e2e/init_test.go
 +++ b/pkg/machine/e2e/init_test.go
 @@ -189,6 +189,9 @@ var _ = Describe("podman machine init", func() {
@@ -86,14 +74,14 @@ index 7c1608157..7d147092a 100644
  		tmpDir, err := os.MkdirTemp("", "")
  		Expect(err).ToNot(HaveOccurred())
 diff --git a/pkg/machine/provider/platform_windows.go b/pkg/machine/provider/platform_windows.go
-index ffa390aab..48223e92f 100644
+index a57f283e3..0a4e8773a 100644
 --- a/pkg/machine/provider/platform_windows.go
 +++ b/pkg/machine/provider/platform_windows.go
-@@ -31,6 +31,8 @@ func Get() (machine.VirtProvider, error) {
+@@ -32,6 +32,8 @@ func Get() (machine.VirtProvider, error) {
  		return wsl.VirtualizationProvider(), nil
- 	case machine.HyperVVirt:
+ 	case define.HyperVVirt:
  		return hyperv.VirtualizationProvider(), nil
-+	case machine.QemuVirt:
++	case define.QemuVirt:
 +		return getQemuProvider()
  	default:
  		return nil, fmt.Errorf("unsupported virtualization provider: `%s`", resolvedVMType.String())
@@ -116,20 +104,21 @@ index 000000000..113ab2442
 +}
 diff --git a/pkg/machine/provider/platform_windows_arm64.go b/pkg/machine/provider/platform_windows_arm64.go
 new file mode 100644
-index 000000000..b12051fb8
+index 000000000..8ec95785d
 --- /dev/null
 +++ b/pkg/machine/provider/platform_windows_arm64.go
-@@ -0,0 +1,11 @@
+@@ -0,0 +1,12 @@
 +package provider
 +
 +import (
 +	"fmt"
 +
 +	"github.com/containers/podman/v4/pkg/machine"
++	"github.com/containers/podman/v4/pkg/machine/define"
 +)
 +
 +func getQemuProvider() (machine.VirtProvider, error) {
-+	return nil, fmt.Errorf("unsupported virtualization provider: `%s`", machine.QemuVirt.String())
++	return nil, fmt.Errorf("unsupported virtualization provider: `%s`", define.QemuVirt.String())
 +}
 -- 
 2.43.0
