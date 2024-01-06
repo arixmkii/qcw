@@ -1,4 +1,4 @@
-From 984461869f6304cbf69d92af6d7a805ddf14665e Mon Sep 17 00:00:00 2001
+From eccb0da8c515ce6ba9678633d93ae521f8782bd4 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Sat, 1 Apr 2023 23:49:13 +0300
 Subject: [PATCH] Enable QEMU Podman machine on Windows
@@ -6,12 +6,12 @@ Subject: [PATCH] Enable QEMU Podman machine on Windows
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
  pkg/machine/e2e/README.md                      | 11 +++++++++++
- pkg/machine/e2e/config_test.go                 | 14 ++++++++++++++
+ pkg/machine/e2e/config_windows_test.go         |  2 +-
  pkg/machine/e2e/init_test.go                   |  3 +++
  pkg/machine/provider/platform_windows.go       |  2 ++
  pkg/machine/provider/platform_windows_amd64.go | 10 ++++++++++
  pkg/machine/provider/platform_windows_arm64.go | 12 ++++++++++++
- 6 files changed, 52 insertions(+)
+ 6 files changed, 39 insertions(+), 1 deletion(-)
  create mode 100644 pkg/machine/provider/platform_windows_amd64.go
  create mode 100644 pkg/machine/provider/platform_windows_arm64.go
 
@@ -37,37 +37,28 @@ index 5a1e324a2..30f62f5b2 100644
  ## MacOS
  
  ### Apple Hypervisor
-diff --git a/pkg/machine/e2e/config_test.go b/pkg/machine/e2e/config_test.go
-index 18b961a0d..997467076 100644
---- a/pkg/machine/e2e/config_test.go
-+++ b/pkg/machine/e2e/config_test.go
-@@ -249,3 +249,17 @@ func getFCOSDownloadLocation(p machine.VirtProvider) string {
+diff --git a/pkg/machine/e2e/config_windows_test.go b/pkg/machine/e2e/config_windows_test.go
+index d82a7f022..ce0c3187c 100644
+--- a/pkg/machine/e2e/config_windows_test.go
++++ b/pkg/machine/e2e/config_windows_test.go
+@@ -14,7 +14,7 @@ import (
+ const podmanBinary = "../../../bin/windows/podman.exe"
  
- 	return fcd.Location
- }
-+
-+func getQemuFcosDownloadLocation(p machine.VirtProvider) string {
-+	dd, err := p.NewDownload("")
-+	if err != nil {
-+		Fail("unable to create new download")
-+	}
-+
-+	fcd, err := dd.GetFCOSDownload(defaultStream)
-+	if err != nil {
-+		Fail("unable to get virtual machine image")
-+	}
-+
-+	return fcd.Location
-+}
+ func getDownloadLocation(p machine.VirtProvider) string {
+-	if p.VMType() == define.HyperVVirt {
++	if p.VMType() == define.HyperVVirt || p.VMType() == define.QemuVirt {
+ 		return getFCOSDownloadLocation(p)
+ 	}
+ 	fd, err := wsl.NewFedoraDownloader(define.WSLVirt, "", defaultStream.String())
 diff --git a/pkg/machine/e2e/init_test.go b/pkg/machine/e2e/init_test.go
-index 27b0b3d06..1a2314bb3 100644
+index 27b0b3d06..f1750536c 100644
 --- a/pkg/machine/e2e/init_test.go
 +++ b/pkg/machine/e2e/init_test.go
 @@ -189,6 +189,9 @@ var _ = Describe("podman machine init", func() {
  			Skip("volumes are not supported on hyperv yet")
  		}
  		skipIfWSL("WSL volumes are much different.  This test will not pass as is")
-+		if testProvider.VMType() == machine.QemuVirt && runtime.GOOS == "windows" {
++		if testProvider.VMType() == define.QemuVirt && runtime.GOOS == "windows" {
 +			Skip("volumes are not yet supported on official qemu builds running under Windows")
 +		}
  
