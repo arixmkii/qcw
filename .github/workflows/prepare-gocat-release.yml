@@ -29,7 +29,7 @@ jobs:
         run: git config --global core.autocrlf input
 
       - name: "📝 Checkout"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
@@ -65,7 +65,7 @@ jobs:
           cat sha.checksums
 
       - name: "🚀 Upload artifact"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: qcw-gocat
           path: qcw
