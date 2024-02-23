@@ -55,9 +55,8 @@ Version `v9.5.0.0` with 1 patch from Powershell OpenSSH fork PRs:
 
 #### `Podman`
 
-Version `5.0.0-dev` with 2 patch sets from Podman PRs:
-* Implement Unix domain socket support for VLAN https://github.com/containers/podman/pull/17473;
-* Enable QEMU Podman machine on Windows https://github.com/containers/podman/pull/18488.
+Version `5.0.0-dev` with TBD patch sets from Podman PRs:
+* TBD
 
 #### `Podman Desktop`
 
@@ -68,7 +67,7 @@ Latest version (or stable later than v0.0.12) is a requirement. Should be instal
 Starting from version `0.0.6` of qcw it is possible to use with official windows builds of QEMU (if host FS mounts
 are not needed).
 
-Version `8.2.0` with 3 patch sets from QEMU mailing list:
+Version `8.2.1` with 3 patch sets from QEMU mailing list:
 * hw/9pfs: Add 9pfs support for Windows https://lists.gnu.org/archive/html/qemu-devel/2023-02/msg05533.html;
 * WHPX: Add support for device backed memory regions https://lists.gnu.org/archive/html/qemu-devel/2022-07/msg04837.html;
 * Windows installer: keep dependency cache https://lists.gnu.org/archive/html/qemu-devel/2023-01/msg03125.html.
@@ -100,6 +99,19 @@ Download installation packages of the release. Install QEMU and Podman using the
 one wants more control over tools version). One will have preconfigured shell launchers under `.\qcw-utils\shells\`
 when installation completes. When using `podman-default.bat` one needs to configure machine provider in
 `%APPDATA%\containers\containers.conf` setting `provider = "qemu"` or `provider = "wsl"` inside `[machine]` section.
+
+**This is needed temporary until it is added to Podman installation itself**
+
+Add `C:\etc\containers\policy.json` with content
+```json
+{
+    "default": [
+        {
+            "type": "insecureAcceptAnything"
+        }
+    ]
+}
+```
 
 Then run the Podman machine init command as one would do with all other Podman installations. The catch is to give
 2 mandatory config overrides:

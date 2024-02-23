@@ -1,0 +1,172 @@
+From 39e44a802aebb350ffd9c9745b3f38f81588a4c9 Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Fri, 9 Feb 2024 20:30:24 +0200
+Subject: [PATCH 1/2] Change QEMU netdev to Unix domain socket
+
+This change migrates to new QEMU stream netdev added in 7.2.0.
+It also unifies how gvproxy is used in QEMU and AppleHV.
+
+Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+---
+ pkg/machine/qemu/command/command.go           | 13 ++++++-
+ pkg/machine/qemu/command/qemu_command_test.go |  9 ++++-
+ pkg/machine/qemu/stubber.go                   | 39 +++++++++----------
+ 3 files changed, 37 insertions(+), 24 deletions(-)
+
+diff --git a/pkg/machine/qemu/command/command.go b/pkg/machine/qemu/command/command.go
+index b795d73b4..55bba3050 100644
+--- a/pkg/machine/qemu/command/command.go
++++ b/pkg/machine/qemu/command/command.go
+@@ -52,10 +52,19 @@ func (q *QemuCmd) SetQmpMonitor(monitor Monitor) {
+ }
+ 
+ // SetNetwork adds a network device to the machine
+-func (q *QemuCmd) SetNetwork() {
++func (q *QemuCmd) SetNetwork(vlanSocket *define.VMFile) error {
+ 	// Right now the mac address is hardcoded so that the host networking gives it a specific IP address.  This is
+ 	// why we can only run one vm at a time right now
+-	*q = append(*q, "-netdev", "socket,id=vlan,fd=3", "-device", "virtio-net-pci,netdev=vlan,mac=5a:94:ef:e4:0c:ee")
++	if vlanSocket == nil {
++		return errors.New("vlanSocket is undefined")
++	}
++	*q = append(*q, "-netdev", socketVlanNetdev(vlanSocket.GetPath()))
++	*q = append(*q, "-device", "virtio-net-pci,netdev=vlan,mac=5a:94:ef:e4:0c:ee")
++	return nil
++}
++
++func socketVlanNetdev(path string) string {
++	return fmt.Sprintf("stream,id=vlan,server=off,addr.type=unix,addr.path=%s", path)
+ }
+ 
+ // SetNetwork adds a network device to the machine
+diff --git a/pkg/machine/qemu/command/qemu_command_test.go b/pkg/machine/qemu/command/qemu_command_test.go
+index eae29bd52..ee329db22 100644
+--- a/pkg/machine/qemu/command/qemu_command_test.go
++++ b/pkg/machine/qemu/command/qemu_command_test.go
+@@ -21,6 +21,9 @@ func TestQemuCmd(t *testing.T) {
+ 	readySocket, err := define.NewMachineFile(t.TempDir()+"readySocket.sock", nil)
+ 	assert.NoError(t, err)
+ 
++	vlanSocket, err := define.NewMachineFile(t.TempDir()+"vlanSocket.sock", nil)
++	assert.NoError(t, err)
++
+ 	vmPidFile, err := define.NewMachineFile(t.TempDir()+"vmpidfile.pid", nil)
+ 	assert.NoError(t, err)
+ 
+@@ -32,6 +35,7 @@ func TestQemuCmd(t *testing.T) {
+ 	ignPath := ignFile.GetPath()
+ 	addrFilePath := machineAddrFile.GetPath()
+ 	readySocketPath := readySocket.GetPath()
++	vlanSocketPath := vlanSocket.GetPath()
+ 	vmPidFilePath := vmPidFile.GetPath()
+ 	bootableImagePath := t.TempDir() + "test-machine_fedora-coreos-38.20230918.2.0-qemu.x86_64.qcow2"
+ 
+@@ -40,7 +44,8 @@ func TestQemuCmd(t *testing.T) {
+ 	cmd.SetCPUs(4)
+ 	cmd.SetIgnitionFile(*ignFile)
+ 	cmd.SetQmpMonitor(monitor)
+-	cmd.SetNetwork()
++	err = cmd.SetNetwork(vlanSocket)
++	assert.NoError(t, err)
+ 	cmd.SetSerialPort(*readySocket, *vmPidFile, "test-machine")
+ 	cmd.SetVirtfsMount("/tmp/path", "vol10", "none", true)
+ 	cmd.SetBootableImage(bootableImagePath)
+@@ -52,7 +57,7 @@ func TestQemuCmd(t *testing.T) {
+ 		"-smp", "4",
+ 		"-fw_cfg", fmt.Sprintf("name=opt/com.coreos/config,file=%s", ignPath),
+ 		"-qmp", fmt.Sprintf("unix:%s,server=on,wait=off", addrFilePath),
+-		"-netdev", "socket,id=vlan,fd=3",
++		"-netdev", socketVlanNetdev(vlanSocketPath),
+ 		"-device", "virtio-net-pci,netdev=vlan,mac=5a:94:ef:e4:0c:ee",
+ 		"-device", "virtio-serial",
+ 		"-chardev", fmt.Sprintf("socket,path=%s,server=on,wait=off,id=atest-machine_ready", readySocketPath),
+diff --git a/pkg/machine/qemu/stubber.go b/pkg/machine/qemu/stubber.go
+index bcb8803e5..d488402aa 100644
+--- a/pkg/machine/qemu/stubber.go
++++ b/pkg/machine/qemu/stubber.go
+@@ -7,7 +7,6 @@ import (
+ 	"bytes"
+ 	"errors"
+ 	"fmt"
+-	"net"
+ 	"os"
+ 	"os/exec"
+ 	"path/filepath"
+@@ -34,6 +33,11 @@ type QEMUStubber struct {
+ 	Command command.QemuCmd
+ }
+ 
++var (
++	gvProxyWaitBackoff        = 500 * time.Millisecond
++	gvProxyMaxBackoffAttempts = 6
++)
++
+ func (q QEMUStubber) UserModeNetworkEnabled(*vmconfigs.MachineConfig) bool {
+ 	return true
+ }
+@@ -70,7 +74,13 @@ func (q *QEMUStubber) setQEMUCommandLine(mc *vmconfigs.MachineConfig) error {
+ 	q.Command.SetCPUs(mc.Resources.CPUs)
+ 	q.Command.SetIgnitionFile(*ignitionFile)
+ 	q.Command.SetQmpMonitor(mc.QEMUHypervisor.QMPMonitor)
+-	q.Command.SetNetwork()
++	gvProxySock, err := mc.GVProxySocket()
++	if err != nil {
++		return err
++	}
++	if err := q.Command.SetNetwork(gvProxySock); err != nil {
++		return err
++	}
+ 	q.Command.SetSerialPort(*readySocket, *mc.QEMUHypervisor.QEMUPidPath, mc.Name)
+ 
+ 	// Add volumes to qemu command line
+@@ -136,9 +146,6 @@ func (q *QEMUStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func()
+ 		return nil, nil, fmt.Errorf("unable to generate qemu command line: %q", err)
+ 	}
+ 
+-	defaultBackoff := 500 * time.Millisecond
+-	maxBackoffs := 6
+-
+ 	readySocket, err := mc.ReadySocket()
+ 	if err != nil {
+ 		return nil, nil, err
+@@ -149,17 +156,10 @@ func (q *QEMUStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func()
+ 		return nil, nil, err
+ 	}
+ 
+-	qemuNetdevSockConn, err := sockets.DialSocketWithBackoffs(maxBackoffs, defaultBackoff, gvProxySock.GetPath())
+-	if err != nil {
+-		return nil, nil, fmt.Errorf("failed to connect to gvproxy socket: %w", err)
+-	}
+-	defer qemuNetdevSockConn.Close()
+-
+-	fd, err := qemuNetdevSockConn.(*net.UnixConn).File()
+-	if err != nil {
++	// Wait on gvproxy to be running and aware
++	if err := sockets.WaitForSocketWithBackoffs(gvProxyMaxBackoffAttempts, gvProxyWaitBackoff, gvProxySock.GetPath(), "gvproxy"); err != nil {
+ 		return nil, nil, err
+ 	}
+-	defer fd.Close()
+ 
+ 	dnr, dnw, err := machine.GetDevNullFiles()
+ 	if err != nil {
+@@ -184,12 +184,11 @@ func (q *QEMUStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func()
+ 
+ 	// actually run the command that starts the virtual machine
+ 	cmd := &exec.Cmd{
+-		Args:       cmdLine,
+-		Path:       cmdLine[0],
+-		Stdin:      dnr,
+-		Stdout:     dnw,
+-		Stderr:     stderrBuf,
+-		ExtraFiles: []*os.File{fd},
++		Args:   cmdLine,
++		Path:   cmdLine[0],
++		Stdin:  dnr,
++		Stdout: dnw,
++		Stderr: stderrBuf,
+ 	}
+ 
+ 	if err := runStartVMCommand(cmd); err != nil {
+-- 
+2.43.2
+
