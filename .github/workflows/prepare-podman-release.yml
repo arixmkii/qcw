@@ -4,7 +4,7 @@ on: workflow_dispatch
 
 env:
   PODMAN_GITURL: https://github.com/containers/podman.git
-  PODMAN_SHA: e4719cb7cdf3ef2b0edcaa4c608117f761322aae
+  PODMAN_SHA: 6dd8454a54da09250e95074dc47752b394877afc
 
 jobs:
   build:
@@ -53,8 +53,7 @@ jobs:
           git remote add origin $PODMAN_GITURL
           git fetch --depth 1 origin $PODMAN_SHA
           git checkout FETCH_HEAD
-          patch --binary -l -p 1 < ../patches/podman/0001-Change-QEMU-netdev-to-Unix-domain-socket.patch
-          patch --binary -l -p 1 < ../patches/podman/0002-Implement-QEMU-Podman-machine-on-Windows.patch
+          patch --binary -l -p 1 < ../patches/podman/0001-Implement-QEMU-Podman-machine-on-Windows.patch
 
       - name: "🛠️ Build Podman"
         working-directory: podman-release
