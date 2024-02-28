@@ -28,7 +28,7 @@ jobs:
       - name: "🏗️ Install tools"
         uses: crazy-max/ghaction-chocolatey@v3
         with:
-          args: install pandoc wixtoolset -y
+          args: install pandoc wixtoolset -y --force
 
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
