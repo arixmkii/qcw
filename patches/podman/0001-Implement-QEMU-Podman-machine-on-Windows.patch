@@ -1,7 +1,7 @@
-From 9bfba97e98cf7aa2305ff97d7e4c3276ae2d9bb3 Mon Sep 17 00:00:00 2001
+From f886b9ffee250e7709a1bc39c489c83e4e090f39 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 20 Feb 2024 21:52:34 +0200
-Subject: [PATCH 2/2] Implement QEMU Podman machine on Windows
+Subject: [PATCH] Implement QEMU Podman machine on Windows
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
@@ -10,8 +10,11 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
  pkg/machine/provider/platform_windows.go       |  2 ++
  pkg/machine/provider/platform_windows_amd64.go | 10 ++++++++++
  pkg/machine/provider/platform_windows_arm64.go | 12 ++++++++++++
+ pkg/machine/qemu/machine.go                    |  2 +-
+ pkg/machine/qemu/options_windows_amd64.go      |  2 +-
+ pkg/machine/qemu/stubber.go                    |  2 +-
  pkg/machine/vmconfigs/config_windows.go        | 10 +++++++++-
- 6 files changed, 47 insertions(+), 1 deletion(-)
+ 9 files changed, 50 insertions(+), 4 deletions(-)
  create mode 100644 pkg/machine/provider/platform_windows_amd64.go
  create mode 100644 pkg/machine/provider/platform_windows_arm64.go
 
@@ -38,7 +41,7 @@ index 4b737b686..2f47d739a 100644
  
  ### Apple Hypervisor
 diff --git a/pkg/machine/e2e/init_test.go b/pkg/machine/e2e/init_test.go
-index 83f0b5c9a..cbe774b25 100644
+index b0877e9c9..27d947943 100644
 --- a/pkg/machine/e2e/init_test.go
 +++ b/pkg/machine/e2e/init_test.go
 @@ -202,6 +202,9 @@ var _ = Describe("podman machine init", func() {
@@ -98,6 +101,36 @@ index 000000000..ded7ad7b1
 +func getQemuProvider() (vmconfigs.VMProvider, error) {
 +	return nil, fmt.Errorf("unsupported virtualization provider: `%s`", define.QemuVirt.String())
 +}
+diff --git a/pkg/machine/qemu/machine.go b/pkg/machine/qemu/machine.go
+index 2595eb54f..1373663c3 100644
+--- a/pkg/machine/qemu/machine.go
++++ b/pkg/machine/qemu/machine.go
+@@ -1,4 +1,4 @@
+-//go:build linux || freebsd
++//go:build linux || freebsd || windows
+ 
+ package qemu
+ 
+diff --git a/pkg/machine/qemu/options_windows_amd64.go b/pkg/machine/qemu/options_windows_amd64.go
+index 1a929a5f3..6e0ba0271 100644
+--- a/pkg/machine/qemu/options_windows_amd64.go
++++ b/pkg/machine/qemu/options_windows_amd64.go
+@@ -1,4 +1,4 @@
+-//go:build tempoff
++//go:build windows && amd64
+ 
+ package qemu
+ 
+diff --git a/pkg/machine/qemu/stubber.go b/pkg/machine/qemu/stubber.go
+index 9fd158063..fa5f25ff2 100644
+--- a/pkg/machine/qemu/stubber.go
++++ b/pkg/machine/qemu/stubber.go
+@@ -1,4 +1,4 @@
+-//go:build linux || freebsd
++//go:build linux || freebsd || windows
+ 
+ package qemu
+ 
 diff --git a/pkg/machine/vmconfigs/config_windows.go b/pkg/machine/vmconfigs/config_windows.go
 index 0562490c7..f732226f6 100644
 --- a/pkg/machine/vmconfigs/config_windows.go
@@ -129,5 +162,5 @@ index 0562490c7..f732226f6 100644
  
  func getHostUID() int {
 -- 
-2.43.2
+2.44.0
 
