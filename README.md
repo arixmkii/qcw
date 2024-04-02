@@ -35,7 +35,6 @@ container runtime;
 GUI companion to Podman;
 * `QEMU` - [home page](https://www.qemu.org/) and [Github (mirror)](https://github.com/qemu/qemu) free and open source
 feature rich machine emulator;
-* `XZ Utils` - [home page](https://tukaani.org/xz/) compression utilities;
 * `Zlib` - [home page](https://www.zlib.net/) compression library.
 
 ### Versions and patches
@@ -71,10 +70,6 @@ Version `9.0.0-rc0` with 3 patch sets from QEMU mailing list:
 * hw/9pfs: Add 9pfs support for Windows https://lists.gnu.org/archive/html/qemu-devel/2023-02/msg05533.html;
 * WHPX: Add support for device backed memory regions https://lists.gnu.org/archive/html/qemu-devel/2022-07/msg04837.html;
 * Windows installer: keep dependency cache https://lists.gnu.org/archive/html/qemu-devel/2023-01/msg03125.html.
-
-#### `XZ Utils`
-
-Version `5.2.9` w/o any changes.
 
 #### `Zlib`
 
