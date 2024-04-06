@@ -1,4 +1,4 @@
-From f886b9ffee250e7709a1bc39c489c83e4e090f39 Mon Sep 17 00:00:00 2001
+From 9982f732de5082193a2042cb95071d608ca16a80 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 20 Feb 2024 21:52:34 +0200
 Subject: [PATCH] Implement QEMU Podman machine on Windows
@@ -41,7 +41,7 @@ index 4b737b686..2f47d739a 100644
  
  ### Apple Hypervisor
 diff --git a/pkg/machine/e2e/init_test.go b/pkg/machine/e2e/init_test.go
-index b0877e9c9..27d947943 100644
+index daf4880ef..f478c4c57 100644
 --- a/pkg/machine/e2e/init_test.go
 +++ b/pkg/machine/e2e/init_test.go
 @@ -202,6 +202,9 @@ var _ = Describe("podman machine init", func() {
@@ -55,12 +55,12 @@ index b0877e9c9..27d947943 100644
  		tmpDir, err := os.MkdirTemp("", "")
  		Expect(err).ToNot(HaveOccurred())
 diff --git a/pkg/machine/provider/platform_windows.go b/pkg/machine/provider/platform_windows.go
-index 943a66926..3a19f3964 100644
+index 4287f1c5f..3d457d2d0 100644
 --- a/pkg/machine/provider/platform_windows.go
 +++ b/pkg/machine/provider/platform_windows.go
-@@ -33,6 +33,8 @@ func Get() (vmconfigs.VMProvider, error) {
- 		return new(wsl.WSLStubber), nil
- 	case define.HyperVVirt:
+@@ -36,6 +36,8 @@ func Get() (vmconfigs.VMProvider, error) {
+ 			return nil, fmt.Errorf("hyperv machines require admin authority")
+ 		}
  		return new(hyperv.HyperVStubber), nil
 +	case define.QemuVirt:
 +		return getQemuProvider()
@@ -122,7 +122,7 @@ index 1a929a5f3..6e0ba0271 100644
  package qemu
  
 diff --git a/pkg/machine/qemu/stubber.go b/pkg/machine/qemu/stubber.go
-index 9fd158063..fa5f25ff2 100644
+index dbd762a0d..21b3c7283 100644
 --- a/pkg/machine/qemu/stubber.go
 +++ b/pkg/machine/qemu/stubber.go
 @@ -1,4 +1,4 @@
