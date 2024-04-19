@@ -4,7 +4,7 @@ on: workflow_dispatch
 
 env:
   PODMAN_GITURL: https://github.com/containers/podman.git
-  PODMAN_SHA: f3276e77aea34a175b0fce108313aaff8614e5ad
+  PODMAN_SHA: db93e2cf2b8a6f9a8721cb7cfb8bc81ce29e0ac8
 
 jobs:
   build:
@@ -58,7 +58,8 @@ jobs:
           git remote add origin $PODMAN_GITURL
           git fetch --depth 1 origin $PODMAN_SHA
           git checkout FETCH_HEAD
-          patch --binary -l -p 1 < ../patches/podman/0001-Implement-QEMU-Podman-machine-on-Windows.patch
+          patch --binary -l -p 1 < ../patches/podman/0001-Enable-compilation-for-Windows-on-parts-of-QEMU-mach.patch
+          patch --binary -l -p 1 < ../patches/podman/0002-Implement-QEMU-Podman-machine-on-Windows.patch
 
       - name: "🛠️ Build Podman"
         working-directory: podman-release

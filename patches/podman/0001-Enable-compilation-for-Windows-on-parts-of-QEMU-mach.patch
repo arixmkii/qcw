@@ -1,0 +1,77 @@
+From e7b676dfafa1704ad00317e23db93b79614660f1 Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Fri, 19 Apr 2024 16:38:38 +0300
+Subject: [PATCH] Enable compilation for Windows on parts of QEMU machine
+ provider
+
+Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+---
+ pkg/machine/qemu/machine.go               |  2 +-
+ pkg/machine/qemu/options_windows_amd64.go |  2 +-
+ pkg/machine/qemu/stubber.go               |  2 +-
+ pkg/machine/vmconfigs/config_windows.go   | 10 +++++++++-
+ 4 files changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/pkg/machine/qemu/machine.go b/pkg/machine/qemu/machine.go
+index 2595eb54f..1373663c3 100644
+--- a/pkg/machine/qemu/machine.go
++++ b/pkg/machine/qemu/machine.go
+@@ -1,4 +1,4 @@
+-//go:build linux || freebsd
++//go:build linux || freebsd || windows
+ 
+ package qemu
+ 
+diff --git a/pkg/machine/qemu/options_windows_amd64.go b/pkg/machine/qemu/options_windows_amd64.go
+index 1a929a5f3..6e0ba0271 100644
+--- a/pkg/machine/qemu/options_windows_amd64.go
++++ b/pkg/machine/qemu/options_windows_amd64.go
+@@ -1,4 +1,4 @@
+-//go:build tempoff
++//go:build windows && amd64
+ 
+ package qemu
+ 
+diff --git a/pkg/machine/qemu/stubber.go b/pkg/machine/qemu/stubber.go
+index dbd762a0d..21b3c7283 100644
+--- a/pkg/machine/qemu/stubber.go
++++ b/pkg/machine/qemu/stubber.go
+@@ -1,4 +1,4 @@
+-//go:build linux || freebsd
++//go:build linux || freebsd || windows
+ 
+ package qemu
+ 
+diff --git a/pkg/machine/vmconfigs/config_windows.go b/pkg/machine/vmconfigs/config_windows.go
+index 0562490c7..f732226f6 100644
+--- a/pkg/machine/vmconfigs/config_windows.go
++++ b/pkg/machine/vmconfigs/config_windows.go
+@@ -1,7 +1,9 @@
+ package vmconfigs
+ 
+ import (
++	"github.com/containers/podman/v5/pkg/machine/define"
+ 	"github.com/containers/podman/v5/pkg/machine/hyperv/vsock"
++	"github.com/containers/podman/v5/pkg/machine/qemu/command"
+ )
+ 
+ type HyperVConfig struct {
+@@ -17,8 +19,14 @@ type WSLConfig struct {
+ 	UserModeNetworking bool
+ }
+ 
++type QEMUConfig struct {
++	// QMPMonitor is the qemu monitor object for sending commands
++	QMPMonitor command.Monitor
++	// QEMUPidPath is where to write the PID for QEMU when running
++	QEMUPidPath *define.VMFile
++}
++
+ // Stubs
+-type QEMUConfig struct{}
+ type AppleHVConfig struct{}
+ 
+ func getHostUID() int {
+-- 
+2.44.0
+
