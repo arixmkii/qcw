@@ -66,7 +66,7 @@ Latest version (or stable later than v0.0.12) is a requirement. Should be instal
 Starting from version `0.0.6` of qcw it is possible to use with official windows builds of QEMU (if host FS mounts
 are not needed).
 
-Version `9.0.0-rc4` with 3 patch sets from QEMU mailing list:
+Version `9.0.0` with 3 patch sets from QEMU mailing list:
 * hw/9pfs: Add 9pfs support for Windows https://lists.gnu.org/archive/html/qemu-devel/2023-02/msg05533.html;
 * WHPX: Add support for device backed memory regions https://lists.gnu.org/archive/html/qemu-devel/2022-07/msg04837.html;
 * Windows installer: keep dependency cache https://lists.gnu.org/archive/html/qemu-devel/2023-01/msg03125.html.
