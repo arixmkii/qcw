@@ -54,7 +54,7 @@ Version `v9.5.0.0` with 1 patch from Powershell OpenSSH fork PRs:
 
 #### `Podman`
 
-Version `5.1.0-dev` with TBD patch sets from Podman PRs:
+Version `5.2.0-dev` with TBD patch sets from Podman PRs:
 * TBD
 
 #### `Podman Desktop`
