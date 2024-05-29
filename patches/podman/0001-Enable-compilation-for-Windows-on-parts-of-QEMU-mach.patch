@@ -1,7 +1,7 @@
-From e7b676dfafa1704ad00317e23db93b79614660f1 Mon Sep 17 00:00:00 2001
+From e1929a4e0fa3c142f1dea5414fe4deedfbfcfe47 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Fri, 19 Apr 2024 16:38:38 +0300
-Subject: [PATCH] Enable compilation for Windows on parts of QEMU machine
+Subject: [PATCH 1/2] Enable compilation for Windows on parts of QEMU machine
  provider
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
@@ -13,7 +13,7 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
  4 files changed, 12 insertions(+), 4 deletions(-)
 
 diff --git a/pkg/machine/qemu/machine.go b/pkg/machine/qemu/machine.go
-index 2595eb54f..1373663c3 100644
+index 5cb0878a3..edce9fadb 100644
 --- a/pkg/machine/qemu/machine.go
 +++ b/pkg/machine/qemu/machine.go
 @@ -1,4 +1,4 @@
@@ -33,7 +33,7 @@ index 1a929a5f3..6e0ba0271 100644
  package qemu
  
 diff --git a/pkg/machine/qemu/stubber.go b/pkg/machine/qemu/stubber.go
-index dbd762a0d..21b3c7283 100644
+index 26da28692..0b2440598 100644
 --- a/pkg/machine/qemu/stubber.go
 +++ b/pkg/machine/qemu/stubber.go
 @@ -1,4 +1,4 @@
@@ -43,7 +43,7 @@ index dbd762a0d..21b3c7283 100644
  package qemu
  
 diff --git a/pkg/machine/vmconfigs/config_windows.go b/pkg/machine/vmconfigs/config_windows.go
-index 0562490c7..f732226f6 100644
+index be39e2f95..bbb694412 100644
 --- a/pkg/machine/vmconfigs/config_windows.go
 +++ b/pkg/machine/vmconfigs/config_windows.go
 @@ -1,7 +1,9 @@
@@ -56,7 +56,7 @@ index 0562490c7..f732226f6 100644
  )
  
  type HyperVConfig struct {
-@@ -17,8 +19,14 @@ type WSLConfig struct {
+@@ -17,10 +19,16 @@ type WSLConfig struct {
  	UserModeNetworking bool
  }
  
@@ -68,10 +68,12 @@ index 0562490c7..f732226f6 100644
 +}
 +
  // Stubs
--type QEMUConfig struct{}
  type AppleHVConfig struct{}
+ type LibKrunConfig struct{}
+-type QEMUConfig struct{}
  
  func getHostUID() int {
+ 	return 1000
 -- 
-2.44.0
+2.45.1
 
