@@ -32,6 +32,8 @@ jobs:
 
       - name: "🏗️ Install tools"
         uses: actions/setup-dotnet@v4
+
+      - name: "🏗️ Install tools"
         run: dotnet tool install --global wix
 
       - name: "📝 Configure checkout"
