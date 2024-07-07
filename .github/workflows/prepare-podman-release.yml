@@ -28,10 +28,7 @@ jobs:
       - name: "🏗️ Install tools"
         uses: crazy-max/ghaction-chocolatey@v3
         with:
-          args: install pandoc -y --force
-
-      - name: "🏗️ Install tools"
-        uses: actions/setup-dotnet@v4
+          args: install pandoc -y --force\
 
       - name: "🏗️ Install tools"
         run: dotnet tool install --global wix
@@ -48,7 +45,9 @@ jobs:
         shell: msys2 {0}
         run: |
           mkdir -p /usr/local/bin
-          ln -sf "/c/Program Files/Pandoc/pandoc.exe" "/usr/local/bin/pandoc.exe"
+          ln -sf "$PROGRAMFILES\\Pandoc\\pandoc.exe" "/usr/local/bin/pandoc.exe"
+          ln -sf "$USERPROFILE\\.dotnet\\tools\\wix.exe" "/usr/local/bin/wix.exe"
+          ln -sf "$USERPROFILE\\.dotnet\\tools\\.store" "/usr/local/bin/.store"
 
       - name: "📝 Fetch sources"
         shell: msys2 {0}
