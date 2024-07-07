@@ -31,9 +31,8 @@ jobs:
           args: install pandoc -y --force
 
       - name: "🏗️ Install tools"
-        uses: crazy-max/ghaction-chocolatey@v3
-        with:
-          args: install wixtoolset --version 3.14.0 -y --force
+        uses: actions/setup-dotnet@v4
+        run: dotnet tool install --global wix
 
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
