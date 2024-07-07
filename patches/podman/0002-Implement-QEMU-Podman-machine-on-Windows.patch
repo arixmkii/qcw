@@ -1,4 +1,4 @@
-From 5c85b51a8e774c93fff78057ac40ffefffc50843 Mon Sep 17 00:00:00 2001
+From 52f00b1058aed7a7284db044cff6db4628aec136 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 20 Feb 2024 21:52:34 +0200
 Subject: [PATCH 2/2] Implement QEMU Podman machine on Windows
@@ -37,7 +37,7 @@ index 48e12612f..36728a861 100644
  
  ### Apple Hypervisor
 diff --git a/pkg/machine/e2e/init_test.go b/pkg/machine/e2e/init_test.go
-index 4b0d9df3c..ebd70daf3 100644
+index 63c0336e9..f64229195 100644
 --- a/pkg/machine/e2e/init_test.go
 +++ b/pkg/machine/e2e/init_test.go
 @@ -202,6 +202,9 @@ var _ = Describe("podman machine init", func() {
@@ -51,7 +51,7 @@ index 4b0d9df3c..ebd70daf3 100644
  		tmpDir, err := os.MkdirTemp("", "")
  		Expect(err).ToNot(HaveOccurred())
 diff --git a/pkg/machine/provider/platform_windows.go b/pkg/machine/provider/platform_windows.go
-index f6a4577b2..423683cc5 100644
+index 772693669..bfaed7c65 100644
 --- a/pkg/machine/provider/platform_windows.go
 +++ b/pkg/machine/provider/platform_windows.go
 @@ -38,6 +38,8 @@ func Get() (vmconfigs.VMProvider, error) {
@@ -98,5 +98,5 @@ index 000000000..ded7ad7b1
 +	return nil, fmt.Errorf("unsupported virtualization provider: `%s`", define.QemuVirt.String())
 +}
 -- 
-2.45.1
+2.45.2
 

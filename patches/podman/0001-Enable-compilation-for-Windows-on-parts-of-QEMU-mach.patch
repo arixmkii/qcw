@@ -1,4 +1,4 @@
-From e1929a4e0fa3c142f1dea5414fe4deedfbfcfe47 Mon Sep 17 00:00:00 2001
+From ea1b1a9872af003a377587bc4f9db4495016a957 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Fri, 19 Apr 2024 16:38:38 +0300
 Subject: [PATCH 1/2] Enable compilation for Windows on parts of QEMU machine
@@ -9,11 +9,12 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
  pkg/machine/qemu/machine.go               |  2 +-
  pkg/machine/qemu/options_windows_amd64.go |  2 +-
  pkg/machine/qemu/stubber.go               |  2 +-
+ pkg/machine/qemu/virtiofsd.go             |  2 +-
  pkg/machine/vmconfigs/config_windows.go   | 10 +++++++++-
- 4 files changed, 12 insertions(+), 4 deletions(-)
+ 5 files changed, 13 insertions(+), 5 deletions(-)
 
 diff --git a/pkg/machine/qemu/machine.go b/pkg/machine/qemu/machine.go
-index 5cb0878a3..edce9fadb 100644
+index 64fb04a73..1a33ba3b0 100644
 --- a/pkg/machine/qemu/machine.go
 +++ b/pkg/machine/qemu/machine.go
 @@ -1,4 +1,4 @@
@@ -33,9 +34,19 @@ index 1a929a5f3..6e0ba0271 100644
  package qemu
  
 diff --git a/pkg/machine/qemu/stubber.go b/pkg/machine/qemu/stubber.go
-index 26da28692..0b2440598 100644
+index 576d30bbc..af9a8dcbe 100644
 --- a/pkg/machine/qemu/stubber.go
 +++ b/pkg/machine/qemu/stubber.go
+@@ -1,4 +1,4 @@
+-//go:build linux || freebsd
++//go:build linux || freebsd || windows
+ 
+ package qemu
+ 
+diff --git a/pkg/machine/qemu/virtiofsd.go b/pkg/machine/qemu/virtiofsd.go
+index fe2c69700..29f6ba215 100644
+--- a/pkg/machine/qemu/virtiofsd.go
++++ b/pkg/machine/qemu/virtiofsd.go
 @@ -1,4 +1,4 @@
 -//go:build linux || freebsd
 +//go:build linux || freebsd || windows
@@ -75,5 +86,5 @@ index be39e2f95..bbb694412 100644
  func getHostUID() int {
  	return 1000
 -- 
-2.45.1
+2.45.2
 
