@@ -4,7 +4,7 @@ on: workflow_dispatch
 
 env:
   PODMAN_GITURL: https://github.com/containers/podman.git
-  PODMAN_SHA: c5841b000358fa1dff27c23e5839af404b20f395
+  PODMAN_SHA: 464a79921cd8507d53bfbefab4341bd6d2d3cdc1
 
 jobs:
   build:
@@ -60,6 +60,7 @@ jobs:
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/podman/0001-Enable-compilation-for-Windows-on-parts-of-QEMU-mach.patch
           patch --binary -l -p 1 < ../patches/podman/0002-Implement-QEMU-Podman-machine-on-Windows.patch
+          patch --binary -l -p 1 < ../patches/podman/0003-Implement-disable-default-mounts-via-command-line.patch
 
       - name: "🛠️ Build Podman"
         working-directory: podman-release

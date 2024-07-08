@@ -1,18 +1,24 @@
-From 52f00b1058aed7a7284db044cff6db4628aec136 Mon Sep 17 00:00:00 2001
+From d371bf5ca210a86cd79dc90f1d482818605a6c0a Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 20 Feb 2024 21:52:34 +0200
-Subject: [PATCH 2/2] Implement QEMU Podman machine on Windows
+Subject: [PATCH 2/3] Implement QEMU Podman machine on Windows
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
  pkg/machine/e2e/README.md                      | 11 +++++++++++
+ pkg/machine/e2e/basic_test.go                  | 10 ++++++++++
  pkg/machine/e2e/init_test.go                   |  3 +++
  pkg/machine/provider/platform_windows.go       |  2 ++
  pkg/machine/provider/platform_windows_amd64.go | 10 ++++++++++
  pkg/machine/provider/platform_windows_arm64.go | 12 ++++++++++++
- 5 files changed, 38 insertions(+)
+ pkg/machine/qemu/command/command.go            |  9 ---------
+ pkg/machine/qemu/command/command_unix.go       | 18 ++++++++++++++++++
+ pkg/machine/qemu/command/command_windows.go    | 15 +++++++++++++++
+ 9 files changed, 81 insertions(+), 9 deletions(-)
  create mode 100644 pkg/machine/provider/platform_windows_amd64.go
  create mode 100644 pkg/machine/provider/platform_windows_arm64.go
+ create mode 100644 pkg/machine/qemu/command/command_unix.go
+ create mode 100644 pkg/machine/qemu/command/command_windows.go
 
 diff --git a/pkg/machine/e2e/README.md b/pkg/machine/e2e/README.md
 index 48e12612f..36728a861 100644
@@ -36,6 +42,48 @@ index 48e12612f..36728a861 100644
  ## macOS
  
  ### Apple Hypervisor
+diff --git a/pkg/machine/e2e/basic_test.go b/pkg/machine/e2e/basic_test.go
+index 79d97eaa1..e9ce62c32 100644
+--- a/pkg/machine/e2e/basic_test.go
++++ b/pkg/machine/e2e/basic_test.go
+@@ -9,6 +9,7 @@ import (
+ 	"os"
+ 	"path"
+ 	"path/filepath"
++	"runtime"
+ 	"time"
+ 
+ 	"github.com/containers/podman/v5/pkg/machine/define"
+@@ -61,6 +62,9 @@ var _ = Describe("run basic podman commands", func() {
+ 
+ 	It("Volume ops", func() {
+ 		skipIfVmtype(define.HyperVVirt, "FIXME: #21036 - Hyper-V podman run -v fails due to path translation issues")
++		if testProvider.VMType() == define.QemuVirt && runtime.GOOS == "windows" {
++			Skip("volumes are not yet supported on official qemu builds running under Windows")
++		}
+ 
+ 		tDir, err := filepath.Abs(GinkgoT().TempDir())
+ 		Expect(err).ToNot(HaveOccurred())
+@@ -94,6 +98,9 @@ var _ = Describe("run basic podman commands", func() {
+ 		// In theory this could run on MacOS too, but we know virtiofs works for that now,
+ 		// this is just testing linux
+ 		skipIfNotVmtype(define.QemuVirt, "This is just adding coverage for virtiofs on linux")
++		if testProvider.VMType() == define.QemuVirt && runtime.GOOS == "windows" {
++			Skip("volumes are not yet supported on official qemu builds running under Windows")
++		}
+ 
+ 		tDir, err := filepath.Abs(GinkgoT().TempDir())
+ 		Expect(err).ToNot(HaveOccurred())
+@@ -157,6 +164,9 @@ var _ = Describe("run basic podman commands", func() {
+ 
+ 	It("podman volume on non-standard path", func() {
+ 		skipIfWSL("Requires standard volume handling")
++		if testProvider.VMType() == define.QemuVirt && runtime.GOOS == "windows" {
++			Skip("volumes are not yet supported on official qemu builds running under Windows")
++		}
+ 		dir, err := os.MkdirTemp("", "machine-volume")
+ 		Expect(err).ToNot(HaveOccurred())
+ 		defer os.RemoveAll(dir)
 diff --git a/pkg/machine/e2e/init_test.go b/pkg/machine/e2e/init_test.go
 index 63c0336e9..f64229195 100644
 --- a/pkg/machine/e2e/init_test.go
@@ -96,6 +144,78 @@ index 000000000..ded7ad7b1
 +
 +func getQemuProvider() (vmconfigs.VMProvider, error) {
 +	return nil, fmt.Errorf("unsupported virtualization provider: `%s`", define.QemuVirt.String())
++}
+diff --git a/pkg/machine/qemu/command/command.go b/pkg/machine/qemu/command/command.go
+index 11994f85f..de94ab396 100644
+--- a/pkg/machine/qemu/command/command.go
++++ b/pkg/machine/qemu/command/command.go
+@@ -10,7 +10,6 @@ import (
+ 	"strconv"
+ 	"time"
+ 
+-	"github.com/containers/common/pkg/strongunits"
+ 	"github.com/containers/podman/v5/pkg/machine/define"
+ 	"github.com/containers/storage/pkg/fileutils"
+ )
+@@ -33,14 +32,6 @@ func NewQemuBuilder(binary string, options []string) QemuCmd {
+ 	return append(q, options...)
+ }
+ 
+-// SetMemory adds the specified amount of memory for the machine
+-func (q *QemuCmd) SetMemory(m strongunits.MiB) {
+-	serializedMem := strconv.FormatUint(uint64(m), 10)
+-	// In order to use virtiofsd, we must enable shared memory
+-	*q = append(*q, "-object", fmt.Sprintf("memory-backend-memfd,id=mem,size=%sM,share=on", serializedMem))
+-	*q = append(*q, "-m", serializedMem)
+-}
+-
+ // SetCPUs adds the number of CPUs the machine will have
+ func (q *QemuCmd) SetCPUs(c uint64) {
+ 	*q = append(*q, "-smp", strconv.FormatUint(c, 10))
+diff --git a/pkg/machine/qemu/command/command_unix.go b/pkg/machine/qemu/command/command_unix.go
+new file mode 100644
+index 000000000..a9ecd4a7d
+--- /dev/null
++++ b/pkg/machine/qemu/command/command_unix.go
+@@ -0,0 +1,18 @@
++//go:build dragonfly || freebsd || linux || netbsd || openbsd
++
++package command
++
++import (
++	"fmt"
++	"strconv"
++
++	"github.com/containers/common/pkg/strongunits"
++)
++
++// SetMemory adds the specified amount of memory for the machine
++func (q *QemuCmd) SetMemory(m strongunits.MiB) {
++	serializedMem := strconv.FormatUint(uint64(m), 10)
++	// In order to use virtiofsd, we must enable shared memory
++	*q = append(*q, "-object", fmt.Sprintf("memory-backend-memfd,id=mem,size=%sM,share=on", serializedMem))
++	*q = append(*q, "-m", serializedMem)
++}
+diff --git a/pkg/machine/qemu/command/command_windows.go b/pkg/machine/qemu/command/command_windows.go
+new file mode 100644
+index 000000000..61a5ffa4a
+--- /dev/null
++++ b/pkg/machine/qemu/command/command_windows.go
+@@ -0,0 +1,15 @@
++//go:build windows
++
++package command
++
++import (
++	"strconv"
++
++	"github.com/containers/common/pkg/strongunits"
++)
++
++// SetMemory adds the specified amount of memory for the machine
++func (q *QemuCmd) SetMemory(m strongunits.MiB) {
++	serializedMem := strconv.FormatUint(uint64(m), 10)
++	*q = append(*q, "-m", serializedMem)
 +}
 -- 
 2.45.2
