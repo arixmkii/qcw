@@ -1,4 +1,4 @@
-From 4fdc9c5846188d3b7edd64c93571fa5e0e64aabf Mon Sep 17 00:00:00 2001
+From 1239530cd6e96fe0904f2cc4f67643afd3aadd2a Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Mon, 8 Jul 2024 18:52:50 +0300
 Subject: [PATCH 3/3] Implement disable default mounts via command line
