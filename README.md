@@ -54,8 +54,10 @@ Version `v9.5.0.0` with 1 patch from Powershell OpenSSH fork PRs:
 
 #### `Podman`
 
-Version `5.2.0-dev` with TBD patch sets from Podman PRs:
-* TBD
+Version `5.2.0-dev` with 3 patch sets from:
+* Enable compilation for Windows on parts of QEMU machine provider
+* Implement QEMU Podman machine on Windows
+* Implement disable default mounts via command line https://github.com/containers/podman/pull/23254
 
 #### `Podman Desktop`
 
@@ -95,39 +97,19 @@ one wants more control over tools version). One will have preconfigured shell la
 when installation completes. When using `podman-default.bat` one needs to configure machine provider in
 `%APPDATA%\containers\containers.conf` setting `provider = "qemu"` or `provider = "wsl"` inside `[machine]` section.
 
-**This is needed temporary until it is added to Podman installation itself**
-
-Add `C:\etc\containers\policy.json` with content
-```json
-{
-    "default": [
-        {
-            "type": "insecureAcceptAnything"
-        }
-    ]
-}
-```
-
 Then run the Podman machine init command as one would do with all other Podman installations. The catch is to give
 2 mandatory config overrides:
 ```bat
-podman machine init --image-path testing --username core
+podman machine init -v ""
 ```
-
-* `--image-path` is mandatory to allow Podman to donwload default (non WSL2) image for the machine (overriding the
-behavior of WSL2 option, which is dominant);
-* `--username` is needed as FCOS image is using different username than Fedora used in WSL2 (again overridind WSL2
-defaults).
 
 All other options (except virtfs volume mounts) from QEMU on MacOS/Linux should work the same way, so, one should be able to
 tweak the machine to the needed performance requirements.
 
-To use filemounts on Windows (works only with the patched version of QEMU). Need to use Windows path in the source position
-defining every volume, for example `-v C:\Temp\Storage:/home/core/storage`. There is automatic conversion in place, so,
-`-v C:\Temp\Storage` is equal to `-v C:\Temp\Storage:/C/Temp/Storage`. Then using mounting the shared FS into container
-one needs to reference it using mapped target path. Having this mount `-v C:\Temp\Storage:/home/core/storage`, to Mount
-`C:\Temp\Storage\static` into container `/var/static` one would need to add `-v /home/core/storage/static:/var/static` to
-`podman run` command arguments.
+File system mounts on Windows are unsupported since Podman QEMU had switched to `virtiofsd` for providing access to host file
+system. Virtiofs in general and `virtiofsd` server specifically are currently usupported on Windows. It should be possible to
+re-add older implementation with `9p` filesystem back for Windows, but it is not really viable before QEMU adds finalized
+`9p` support in their Windows builds.
 
 Then run the machine as normal
 ```bat
@@ -185,6 +167,11 @@ The patch used to enable 9pfs is a work in progress. Some of the functionality i
 
 There could be leftovers in `%TEMP%\podman`, which prevents `QEMU` or `gvproxy` startup. Solution is to shutdown machine
 and then clean up this location manually before starting again.
+
+
+### 2. File system mounts are unsupported
+
+There is no way to use file system mounts in Podman with QEMU on Windows hosts.
 
 ## Known issues Lima
 
