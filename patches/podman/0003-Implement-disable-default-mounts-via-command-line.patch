@@ -1,4 +1,4 @@
-From 1239530cd6e96fe0904f2cc4f67643afd3aadd2a Mon Sep 17 00:00:00 2001
+From cfd16bf9155f9fbe0f272ca4d24af662313245d5 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Mon, 8 Jul 2024 18:52:50 +0300
 Subject: [PATCH 3/3] Implement disable default mounts via command line
@@ -11,10 +11,10 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
  3 files changed, 14 insertions(+), 3 deletions(-)
 
 diff --git a/pkg/machine/e2e/config_test.go b/pkg/machine/e2e/config_test.go
-index 081cc8a06..f045f085e 100644
+index 3172601c5..b15c6926b 100644
 --- a/pkg/machine/e2e/config_test.go
 +++ b/pkg/machine/e2e/config_test.go
-@@ -195,6 +195,10 @@ func (m *machineTestBuilder) run() (*machineSession, error) {
+@@ -198,6 +198,10 @@ func (m *machineTestBuilder) run() (*machineSession, error) {
  }
  
  func runWrapper(podmanBinary string, cmdArgs []string, timeout time.Duration, wait bool) (*machineSession, error) {

@@ -1,42 +1,38 @@
-From 206ad6d5890a7ccd9fc4e47b188f4539d7548b81 Mon Sep 17 00:00:00 2001
+From cb6651b48340407022d5448e14d63d26482243de Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 20 Feb 2024 21:52:34 +0200
 Subject: [PATCH 2/3] Implement QEMU Podman machine on Windows
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
- pkg/machine/e2e/README.md                      | 11 +++++++++++
- pkg/machine/e2e/basic_test.go                  | 10 ++++++++++
- pkg/machine/e2e/init_test.go                   |  3 +++
- pkg/machine/provider/platform_windows.go       |  2 ++
- pkg/machine/provider/platform_windows_amd64.go | 10 ++++++++++
- pkg/machine/provider/platform_windows_arm64.go | 12 ++++++++++++
- 6 files changed, 48 insertions(+)
+ pkg/machine/e2e/README.md                     |  7 +++++++
+ pkg/machine/e2e/basic_test.go                 | 10 ++++++++++
+ pkg/machine/e2e/init_test.go                  |  3 +++
+ pkg/machine/provider/platform_windows.go      |  6 +++---
+ .../provider/platform_windows_amd64.go        | 18 ++++++++++++++++++
+ .../provider/platform_windows_arm64.go        | 19 +++++++++++++++++++
+ 6 files changed, 60 insertions(+), 3 deletions(-)
  create mode 100644 pkg/machine/provider/platform_windows_amd64.go
  create mode 100644 pkg/machine/provider/platform_windows_arm64.go
 
 diff --git a/pkg/machine/e2e/README.md b/pkg/machine/e2e/README.md
-index 48e12612f..36728a861 100644
+index 93fcdf9ea..1496e67e1 100644
 --- a/pkg/machine/e2e/README.md
 +++ b/pkg/machine/e2e/README.md
-@@ -28,6 +28,17 @@ Note: To run specific test files, add the test files to the end of the winmake c
- 
- `./winmake localmachine "basic_test.go start_test.go"`
+@@ -32,6 +32,13 @@ You can scope tests in the machine suite by adding various incantations of `FOCU
+ 1. Build and copy win-sshproxy into bin/
+ 1. `./winmake localmachine`
  
 +### QEMU
 +1. Install QEMU and add it to either user or sysmem PATH variable
 +1. Install Podman release (is needed to have gvproxy binary)
 +1. Open a powershell as a regular user
-+1. $env:CONTAINERS_MACHINE_PROVIDER="qemu"
++1. `$env:CONTAINERS_MACHINE_PROVIDER="qemu"`
 +1. `./winmake localmachine`
 +
-+Note: To run specific test files, add the test files to the end of the winmake command:
-+
-+`./winmake localmachine "basic_test.go start_test.go"`
-+
- ## macOS
+ ## MacOS
+ Macs now support two different machine providers: `applehv` and `libkrun`.  The `applehv` provider is the default.
  
- ### Apple Hypervisor
 diff --git a/pkg/machine/e2e/basic_test.go b/pkg/machine/e2e/basic_test.go
 index 79d97eaa1..e9ce62c32 100644
 --- a/pkg/machine/e2e/basic_test.go
@@ -94,10 +90,10 @@ index 63c0336e9..f64229195 100644
  		tmpDir, err := os.MkdirTemp("", "")
  		Expect(err).ToNot(HaveOccurred())
 diff --git a/pkg/machine/provider/platform_windows.go b/pkg/machine/provider/platform_windows.go
-index 772693669..bfaed7c65 100644
+index 772693669..ea7695f49 100644
 --- a/pkg/machine/provider/platform_windows.go
 +++ b/pkg/machine/provider/platform_windows.go
-@@ -38,6 +38,8 @@ func Get() (vmconfigs.VMProvider, error) {
+@@ -38,15 +38,15 @@ func Get() (vmconfigs.VMProvider, error) {
  			return nil, fmt.Errorf("hyperv machines require admin authority")
  		}
  		return new(hyperv.HyperVStubber), nil
@@ -106,28 +102,46 @@ index 772693669..bfaed7c65 100644
  	default:
  		return nil, fmt.Errorf("unsupported virtualization provider: `%s`", resolvedVMType.String())
  	}
+ }
+ 
+ func GetAll(force bool) ([]vmconfigs.VMProvider, error) {
+-	providers := []vmconfigs.VMProvider{
+-		new(wsl.WSLStubber),
+-	}
++	providers := getDefaultProviders()
+ 	if !wsl.HasAdminRights() && !force {
+ 		logrus.Warn("managing hyperv machines require admin authority.")
+ 	} else {
 diff --git a/pkg/machine/provider/platform_windows_amd64.go b/pkg/machine/provider/platform_windows_amd64.go
 new file mode 100644
-index 000000000..04bfc0734
+index 000000000..78b596619
 --- /dev/null
 +++ b/pkg/machine/provider/platform_windows_amd64.go
-@@ -0,0 +1,10 @@
+@@ -0,0 +1,18 @@
 +package provider
 +
 +import (
 +	"github.com/containers/podman/v5/pkg/machine/qemu"
 +	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
++	"github.com/containers/podman/v5/pkg/machine/wsl"
 +)
 +
 +func getQemuProvider() (vmconfigs.VMProvider, error) {
 +	return new(qemu.QEMUStubber), nil
 +}
++
++func getDefaultProviders() []vmconfigs.VMProvider {
++	return []vmconfigs.VMProvider{
++		new(wsl.WSLStubber),
++		new(qemu.QEMUStubber),
++	}
++}
 diff --git a/pkg/machine/provider/platform_windows_arm64.go b/pkg/machine/provider/platform_windows_arm64.go
 new file mode 100644
-index 000000000..ded7ad7b1
+index 000000000..e393d3308
 --- /dev/null
 +++ b/pkg/machine/provider/platform_windows_arm64.go
-@@ -0,0 +1,12 @@
+@@ -0,0 +1,19 @@
 +package provider
 +
 +import (
@@ -135,10 +149,17 @@ index 000000000..ded7ad7b1
 +
 +	"github.com/containers/podman/v5/pkg/machine/define"
 +	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
++	"github.com/containers/podman/v5/pkg/machine/wsl"
 +)
 +
 +func getQemuProvider() (vmconfigs.VMProvider, error) {
 +	return nil, fmt.Errorf("unsupported virtualization provider: `%s`", define.QemuVirt.String())
++}
++
++func getDefaultProviders() []vmconfigs.VMProvider {
++	return []vmconfigs.VMProvider{
++		new(wsl.WSLStubber),
++	}
 +}
 -- 
 2.45.2
