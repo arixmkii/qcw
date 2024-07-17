@@ -14,6 +14,10 @@ project would become an instruction on how to build that kind of setup using rel
 All thanks goes and attribution stays with the authours of the great pieces of software, which made this project
 possible in the first place.
 
+## License
+
+The build and setup scripts in this repository are licensed under Apache-2.0 license, but the patches and the original software being patched and rebuilt keeps its original license in effect. This project doesn't change how the rebuilt software is licensed.
+
 ## Specific requirements
 
 This is built for relatively fresh Windows systems, which has unix domain sockets support. The suport was announced
