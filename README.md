@@ -61,7 +61,7 @@ Version `v9.5.0.0` with 1 patch from Powershell OpenSSH fork PRs:
 Version `5.2.0-dev` with 3 patch sets from:
 * Enable compilation for Windows on parts of QEMU machine provider
 * Implement QEMU Podman machine on Windows
-* Implement disable default mounts via command line https://github.com/containers/podman/pull/23254
+* Disable FS mounts in e2e tests
 
 #### `Podman Desktop`
 
