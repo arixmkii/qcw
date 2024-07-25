@@ -50,7 +50,7 @@ index 79d97eaa1..e9ce62c32 100644
  	It("Volume ops", func() {
  		skipIfVmtype(define.HyperVVirt, "FIXME: #21036 - Hyper-V podman run -v fails due to path translation issues")
 +		if testProvider.VMType() == define.QemuVirt && runtime.GOOS == "windows" {
-+			Skip("volumes are not yet supported on official qemu builds running under Windows")
++			Skip("volumes are not yet supported on official QEMU builds running under Windows")
 +		}
  
  		tDir, err := filepath.Abs(GinkgoT().TempDir())
@@ -60,7 +60,7 @@ index 79d97eaa1..e9ce62c32 100644
  		// this is just testing linux
  		skipIfNotVmtype(define.QemuVirt, "This is just adding coverage for virtiofs on linux")
 +		if testProvider.VMType() == define.QemuVirt && runtime.GOOS == "windows" {
-+			Skip("volumes are not yet supported on official qemu builds running under Windows")
++			Skip("volumes are not yet supported on official QEMU builds running under Windows")
 +		}
  
  		tDir, err := filepath.Abs(GinkgoT().TempDir())
@@ -70,7 +70,7 @@ index 79d97eaa1..e9ce62c32 100644
  	It("podman volume on non-standard path", func() {
  		skipIfWSL("Requires standard volume handling")
 +		if testProvider.VMType() == define.QemuVirt && runtime.GOOS == "windows" {
-+			Skip("volumes are not yet supported on official qemu builds running under Windows")
++			Skip("volumes are not yet supported on official QEMU builds running under Windows")
 +		}
  		dir, err := os.MkdirTemp("", "machine-volume")
  		Expect(err).ToNot(HaveOccurred())
@@ -84,7 +84,7 @@ index 63c0336e9..f64229195 100644
  		}
  		skipIfWSL("WSL volumes are much different.  This test will not pass as is")
 +		if testProvider.VMType() == define.QemuVirt && runtime.GOOS == "windows" {
-+			Skip("volumes are not yet supported on official qemu builds running under Windows")
++			Skip("volumes are not yet supported on official QEMU builds running under Windows")
 +		}
  
  		tmpDir, err := os.MkdirTemp("", "")

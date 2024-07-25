@@ -24,6 +24,7 @@ jobs:
             mingw-w64-ucrt-x86_64-toolchain
             zip
             mingw-w64-ucrt-x86_64-go
+            mingw-w64-ucrt-x86_64-qemu
 
       - name: "🏗️ Install tools"
         uses: crazy-max/ghaction-chocolatey@v3
@@ -62,11 +63,26 @@ jobs:
           patch --binary -l -p 1 < ../patches/podman/0002-Implement-QEMU-Podman-machine-on-Windows.patch
           patch --binary -l -p 1 < ../patches/podman/0003-Disable-FS-mounts-by-default-in-tests-hack.patch
 
-      - name: "🛠️ Build Podman"
+      - name: "🧪 Prepare Test Podman"
         working-directory: podman-release
         shell: msys2 {0}
         run: |
           HELPER_BINARIES_DIR=`cygpath -w "$(pwd)/bin/windows"` make clean podman-remote win-gvproxy
+
+      - name: "🧪 Test Podman"
+        working-directory: podman-release
+        shell: pwsh
+        env:
+          CONTAINERS_MACHINE_PROVIDER: qemu
+          MACHINE_TEST_TIMEOUT: 360
+        run: |
+          $env:PATH="$env:PATH;D:\a\_temp\msys64\ucrt64\bin"
+          ./winmake localmachine
+
+      - name: "🛠️ Build Podman"
+        working-directory: podman-release
+        shell: msys2 {0}
+        run: |
           make clean podman-remote-release-windows_amd64.zip
           export BUILD_PODMAN_VERSION=$(test/version/version | sed 's/-.*//')
           mkdir -p contrib/win-installer/current
