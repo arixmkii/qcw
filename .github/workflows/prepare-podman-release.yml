@@ -26,12 +26,12 @@ jobs:
             mingw-w64-ucrt-x86_64-go
             mingw-w64-ucrt-x86_64-qemu
 
-      - name: "🏗️ Install tools"
+      - name: "🏗️ Install Pandoc"
         uses: crazy-max/ghaction-chocolatey@v3
         with:
           args: install pandoc -y --force\
 
-      - name: "🏗️ Install tools"
+      - name: "🏗️ Install WiX toolset"
         run: dotnet tool install --global wix
 
       - name: "📝 Configure checkout"
@@ -63,7 +63,7 @@ jobs:
           patch --binary -l -p 1 < ../patches/podman/0002-Implement-QEMU-Podman-machine-on-Windows.patch
           patch --binary -l -p 1 < ../patches/podman/0003-Disable-FS-mounts-by-default-in-tests-hack.patch
 
-      - name: "🧪 Prepare Test Podman"
+      - name: "⚗️ Prepare Test Podman"
         working-directory: podman-release
         shell: msys2 {0}
         run: |
