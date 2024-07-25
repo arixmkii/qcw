@@ -4,7 +4,7 @@ on: workflow_dispatch
 
 env:
   PODMAN_GITURL: https://github.com/containers/podman.git
-  PODMAN_SHA: 003527fedc4cf039c202626ec3db1347490f8091
+  PODMAN_SHA: 34d93d6502e007ab2bdaa5ae283b81b5d2314d2c
 
 jobs:
   build:
@@ -66,7 +66,8 @@ jobs:
         working-directory: podman-release
         shell: msys2 {0}
         run: |
-          make podman-remote-release-windows_amd64.zip
+          HELPER_BINARIES_DIR=`cygpath -w "$(pwd)/bin/windows"` make clean podman-remote win-gvproxy
+          make clean podman-remote-release-windows_amd64.zip
           export BUILD_PODMAN_VERSION=$(test/version/version | sed 's/-.*//')
           mkdir -p contrib/win-installer/current
           cp *.zip contrib/win-installer/current/

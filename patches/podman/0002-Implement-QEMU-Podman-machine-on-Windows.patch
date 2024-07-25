@@ -25,7 +25,7 @@ index 93fcdf9ea..1496e67e1 100644
  
 +### QEMU
 +1. Install QEMU and add it to either user or sysmem PATH variable
-+1. Install Podman release (is needed to have gvproxy binary)
++1. Build gvproxy and make it discoverable
 +1. Open a powershell as a regular user
 +1. `$env:CONTAINERS_MACHINE_PROVIDER="qemu"`
 +1. `./winmake localmachine`
