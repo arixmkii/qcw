@@ -97,7 +97,7 @@ index 9d33e2d3d..7a3ec1c31 100644
  		cmd = append(cmd, "--volume", v)
  	}
 +	// Suppress default mounts for QEMU on Widows
-+	if len(i.volumes) == 0 && testProvider.VMType() == define.QemuVirt && runtime.GOOS == "Windows" {
++	if len(i.volumes) == 0 && testProvider.VMType() == define.QemuVirt && runtime.GOOS == "windows" {
 +		cmd = append(cmd, "--volume", "")
 +	}
  	if i.now {
