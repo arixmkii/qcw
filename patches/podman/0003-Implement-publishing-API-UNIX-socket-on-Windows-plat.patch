@@ -1,7 +1,7 @@
-From 57c22a22a6fda6a90c9b6392bb25b3e6064af5fb Mon Sep 17 00:00:00 2001
+From 92cafaf59cba7d305df3723a7a1d59dbda14c603 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Thu, 25 Jul 2024 18:27:49 +0300
-Subject: [PATCH] Implement publishing API UNIX socket on Windows platforms
+Subject: [PATCH 3/3] Implement publishing API UNIX socket on Windows platforms
 
 gvproxy and win-sshproxy have capabilities to serve this type of enpoint.
 This change only adds one additional API enpoint publishing by appending

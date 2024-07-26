@@ -61,8 +61,7 @@ jobs:
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/podman/0001-Enable-compilation-for-Windows-on-parts-of-QEMU-mach.patch
           patch --binary -l -p 1 < ../patches/podman/0002-Implement-QEMU-Podman-machine-on-Windows.patch
-          patch --binary -l -p 1 < ../patches/podman/0003-Disable-FS-mounts-by-default-in-tests-hack.patch
-          patch --binary -l -p 1 < ../patches/podman/0004-Implement-publishing-API-UNIX-socket-on-Windows-plat.patch
+          patch --binary -l -p 1 < ../patches/podman/0003-Implement-publishing-API-UNIX-socket-on-Windows-plat.patch
 
       - name: "⚗️ Prepare Test Podman"
         working-directory: podman-release

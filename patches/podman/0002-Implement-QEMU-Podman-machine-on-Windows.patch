@@ -1,4 +1,4 @@
-From cb6651b48340407022d5448e14d63d26482243de Mon Sep 17 00:00:00 2001
+From d60bf454a5fbfa5385d2e48832d625d890abf1fc Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 20 Feb 2024 21:52:34 +0200
 Subject: [PATCH 2/3] Implement QEMU Podman machine on Windows
@@ -7,16 +7,17 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
  pkg/machine/e2e/README.md                     |  7 +++++++
  pkg/machine/e2e/basic_test.go                 | 10 ++++++++++
+ pkg/machine/e2e/config_init_test.go           |  6 ++++++
  pkg/machine/e2e/init_test.go                  |  3 +++
  pkg/machine/provider/platform_windows.go      |  6 +++---
  .../provider/platform_windows_amd64.go        | 18 ++++++++++++++++++
  .../provider/platform_windows_arm64.go        | 19 +++++++++++++++++++
- 6 files changed, 60 insertions(+), 3 deletions(-)
+ 7 files changed, 66 insertions(+), 3 deletions(-)
  create mode 100644 pkg/machine/provider/platform_windows_amd64.go
  create mode 100644 pkg/machine/provider/platform_windows_arm64.go
 
 diff --git a/pkg/machine/e2e/README.md b/pkg/machine/e2e/README.md
-index 93fcdf9ea..1496e67e1 100644
+index 93fcdf9ea..8d2b426c8 100644
 --- a/pkg/machine/e2e/README.md
 +++ b/pkg/machine/e2e/README.md
 @@ -32,6 +32,13 @@ You can scope tests in the machine suite by adding various incantations of `FOCU
@@ -34,7 +35,7 @@ index 93fcdf9ea..1496e67e1 100644
  Macs now support two different machine providers: `applehv` and `libkrun`.  The `applehv` provider is the default.
  
 diff --git a/pkg/machine/e2e/basic_test.go b/pkg/machine/e2e/basic_test.go
-index 79d97eaa1..e9ce62c32 100644
+index daed59828..84c470b01 100644
 --- a/pkg/machine/e2e/basic_test.go
 +++ b/pkg/machine/e2e/basic_test.go
 @@ -9,6 +9,7 @@ import (
@@ -65,7 +66,7 @@ index 79d97eaa1..e9ce62c32 100644
  
  		tDir, err := filepath.Abs(GinkgoT().TempDir())
  		Expect(err).ToNot(HaveOccurred())
-@@ -157,6 +164,9 @@ var _ = Describe("run basic podman commands", func() {
+@@ -184,6 +191,9 @@ var _ = Describe("run basic podman commands", func() {
  
  	It("podman volume on non-standard path", func() {
  		skipIfWSL("Requires standard volume handling")
@@ -75,8 +76,35 @@ index 79d97eaa1..e9ce62c32 100644
  		dir, err := os.MkdirTemp("", "machine-volume")
  		Expect(err).ToNot(HaveOccurred())
  		defer os.RemoveAll(dir)
+diff --git a/pkg/machine/e2e/config_init_test.go b/pkg/machine/e2e/config_init_test.go
+index 9d33e2d3d..7a3ec1c31 100644
+--- a/pkg/machine/e2e/config_init_test.go
++++ b/pkg/machine/e2e/config_init_test.go
+@@ -1,9 +1,11 @@
+ package e2e_test
+ 
+ import (
++	"runtime"
+ 	"strconv"
+ 	"strings"
+ 
++	"github.com/containers/podman/v5/pkg/machine/define"
+ 	. "github.com/onsi/ginkgo/v2"
+ 	. "github.com/onsi/gomega"
+ 	. "github.com/onsi/gomega/gexec"
+@@ -67,6 +69,10 @@ func (i *initMachine) buildCmd(m *machineTestBuilder) []string {
+ 	for _, v := range i.volumes {
+ 		cmd = append(cmd, "--volume", v)
+ 	}
++	// Suppress default mounts for QEMU on Widows
++	if len(i.volumes) == 0 && testProvider.VMType() == define.QemuVirt && runtime.GOOS == "Windows" {
++		cmd = append(cmd, "--volume", "")
++	}
+ 	if i.now {
+ 		cmd = append(cmd, "--now")
+ 	}
 diff --git a/pkg/machine/e2e/init_test.go b/pkg/machine/e2e/init_test.go
-index 63c0336e9..f64229195 100644
+index 63c0336e9..1bc94bd3b 100644
 --- a/pkg/machine/e2e/init_test.go
 +++ b/pkg/machine/e2e/init_test.go
 @@ -202,6 +202,9 @@ var _ = Describe("podman machine init", func() {
