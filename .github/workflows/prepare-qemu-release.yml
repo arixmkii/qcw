@@ -3,7 +3,7 @@ name: Prepare QCW QEMU (from TarBall sources)
 on: workflow_dispatch
 
 env:
-  QEMU_VERSION: 9.1.0-rc0
+  QEMU_VERSION: 9.1.0-rc2
   MSYS: "winsymlinks:native"
 
 jobs:
