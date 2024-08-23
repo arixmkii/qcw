@@ -1,41 +1,43 @@
-From d60bf454a5fbfa5385d2e48832d625d890abf1fc Mon Sep 17 00:00:00 2001
+From 507632b797d0531caee5490f9c47df937031f1e5 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 20 Feb 2024 21:52:34 +0200
 Subject: [PATCH 2/3] Implement QEMU Podman machine on Windows
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
- pkg/machine/e2e/README.md                     |  7 +++++++
+ pkg/machine/e2e/README.md                     |  9 +++++++++
  pkg/machine/e2e/basic_test.go                 | 10 ++++++++++
  pkg/machine/e2e/config_init_test.go           |  6 ++++++
  pkg/machine/e2e/init_test.go                  |  3 +++
  pkg/machine/provider/platform_windows.go      |  6 +++---
  .../provider/platform_windows_amd64.go        | 18 ++++++++++++++++++
  .../provider/platform_windows_arm64.go        | 19 +++++++++++++++++++
- 7 files changed, 66 insertions(+), 3 deletions(-)
+ 7 files changed, 68 insertions(+), 3 deletions(-)
  create mode 100644 pkg/machine/provider/platform_windows_amd64.go
  create mode 100644 pkg/machine/provider/platform_windows_arm64.go
 
 diff --git a/pkg/machine/e2e/README.md b/pkg/machine/e2e/README.md
-index 93fcdf9ea..8d2b426c8 100644
+index ae6873f42..55cdab839 100644
 --- a/pkg/machine/e2e/README.md
 +++ b/pkg/machine/e2e/README.md
-@@ -32,6 +32,13 @@ You can scope tests in the machine suite by adding various incantations of `FOCU
- 1. Build and copy win-sshproxy into bin/
- 1. `./winmake localmachine`
+@@ -64,6 +64,15 @@ above.
+ 1. `$env:CONTAINERS_MACHINE_PROVIDER="wsl"`
+ 1. `.\winmake localmachine`
  
 +### QEMU
++
 +1. Install QEMU and add it to either user or sysmem PATH variable
-+1. Build gvproxy and make it discoverable
 +1. Open a powershell as a regular user
++1. `.\winmake.ps1 podman-remote && .\winmake.ps1 win-gvproxy`
++1. `$env:CONTAINERS_HELPER_BINARY_DIR="$pwd\bin\windows"`
 +1. `$env:CONTAINERS_MACHINE_PROVIDER="qemu"`
-+1. `./winmake localmachine`
++1. `.\winmake localmachine`
 +
  ## MacOS
- Macs now support two different machine providers: `applehv` and `libkrun`.  The `applehv` provider is the default.
  
+ Macs now support two different machine providers: `applehv` and `libkrun`. The
 diff --git a/pkg/machine/e2e/basic_test.go b/pkg/machine/e2e/basic_test.go
-index daed59828..84c470b01 100644
+index 12d8bf9e3..502b45a60 100644
 --- a/pkg/machine/e2e/basic_test.go
 +++ b/pkg/machine/e2e/basic_test.go
 @@ -9,6 +9,7 @@ import (
@@ -46,7 +48,7 @@ index daed59828..84c470b01 100644
  	"time"
  
  	"github.com/containers/podman/v5/pkg/machine/define"
-@@ -61,6 +62,9 @@ var _ = Describe("run basic podman commands", func() {
+@@ -62,6 +63,9 @@ var _ = Describe("run basic podman commands", func() {
  	It("Volume ops", func() {
  		skipIfVmtype(define.HyperVVirt, "FIXME: #21036 - Hyper-V podman run -v fails due to path translation issues")
  		skipIfVmtype(define.LibKrun, "FIXME: #23296 - Fails on MacOS when libkrun in use.")
@@ -56,7 +58,7 @@ index daed59828..84c470b01 100644
  
  		tDir, err := filepath.Abs(GinkgoT().TempDir())
  		Expect(err).ToNot(HaveOccurred())
-@@ -94,6 +98,9 @@ var _ = Describe("run basic podman commands", func() {
+@@ -95,6 +99,9 @@ var _ = Describe("run basic podman commands", func() {
  		// In theory this could run on MacOS too, but we know virtiofs works for that now,
  		// this is just testing linux
  		skipIfNotVmtype(define.QemuVirt, "This is just adding coverage for virtiofs on linux")
@@ -66,7 +68,7 @@ index daed59828..84c470b01 100644
  
  		tDir, err := filepath.Abs(GinkgoT().TempDir())
  		Expect(err).ToNot(HaveOccurred())
-@@ -184,6 +191,9 @@ var _ = Describe("run basic podman commands", func() {
+@@ -185,6 +192,9 @@ var _ = Describe("run basic podman commands", func() {
  
  	It("podman volume on non-standard path", func() {
  		skipIfWSL("Requires standard volume handling")
@@ -77,7 +79,7 @@ index daed59828..84c470b01 100644
  		Expect(err).ToNot(HaveOccurred())
  		defer os.RemoveAll(dir)
 diff --git a/pkg/machine/e2e/config_init_test.go b/pkg/machine/e2e/config_init_test.go
-index 9d33e2d3d..7a3ec1c31 100644
+index 9d33e2d3d..0ae8f4fee 100644
 --- a/pkg/machine/e2e/config_init_test.go
 +++ b/pkg/machine/e2e/config_init_test.go
 @@ -1,9 +1,11 @@
@@ -190,5 +192,5 @@ index 000000000..e393d3308
 +	}
 +}
 -- 
-2.45.2
+2.46.0
 
