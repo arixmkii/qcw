@@ -65,12 +65,11 @@ Version `5.3.0-dev` with 3 patch sets:
 
 #### `Podman Desktop`
 
-Latest version (or stable later than v0.0.12) is a requirement. Should be installed via official setup mechanism.
+Should be installed via official setup mechanism.
 
 #### `QEMU`
 
-Starting from version `0.0.6` of qcw it is possible to use with official windows builds of QEMU (if host FS mounts
-are not needed).
+Starting from version `0.0.18` of qcw it is possible to use with official windows builds of QEMU (including msys2).
 
 Version `9.1.0-rc3` with 3 patch sets from QEMU mailing list:
 * hw/9pfs: Add 9pfs support for Windows https://lists.gnu.org/archive/html/qemu-devel/2023-02/msg05533.html;
