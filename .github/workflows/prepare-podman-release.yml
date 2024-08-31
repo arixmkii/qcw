@@ -4,7 +4,7 @@ on: workflow_dispatch
 
 env:
   PODMAN_GITURL: https://github.com/containers/podman.git
-  PODMAN_SHA: f3db6b19d7d311782a2a7716c69ebf995e89f14b
+  PODMAN_SHA: ef905ef8d0c2dd9468029c6575ce4ab74442b725
 
 jobs:
   build:
@@ -62,6 +62,7 @@ jobs:
           patch --binary -l -p 1 < ../patches/podman/0001-Enable-compilation-for-Windows-on-parts-of-QEMU-mach.patch
           patch --binary -l -p 1 < ../patches/podman/0002-Implement-QEMU-Podman-machine-on-Windows.patch
           patch --binary -l -p 1 < ../patches/podman/0003-Implement-publishing-API-UNIX-socket-on-Windows-plat.patch
+          patch --binary -l -p 1 < ../patches/podman/0004-Improve-platform-specific-URL-handling-in-podman-com.patch
 
       - name: "⚗️ Prepare Test Podman"
         working-directory: podman-release

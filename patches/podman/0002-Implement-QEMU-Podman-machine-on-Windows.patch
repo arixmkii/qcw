@@ -1,7 +1,7 @@
-From 507632b797d0531caee5490f9c47df937031f1e5 Mon Sep 17 00:00:00 2001
+From b53a69ec63623d350f7ff580f0d91cc6951888ca Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 20 Feb 2024 21:52:34 +0200
-Subject: [PATCH 2/3] Implement QEMU Podman machine on Windows
+Subject: [PATCH 2/4] Implement QEMU Podman machine on Windows
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
@@ -37,7 +37,7 @@ index ae6873f42..55cdab839 100644
  
  Macs now support two different machine providers: `applehv` and `libkrun`. The
 diff --git a/pkg/machine/e2e/basic_test.go b/pkg/machine/e2e/basic_test.go
-index 12d8bf9e3..502b45a60 100644
+index dffae8bac..f9af0a169 100644
 --- a/pkg/machine/e2e/basic_test.go
 +++ b/pkg/machine/e2e/basic_test.go
 @@ -9,6 +9,7 @@ import (
@@ -48,9 +48,9 @@ index 12d8bf9e3..502b45a60 100644
  	"time"
  
  	"github.com/containers/podman/v5/pkg/machine/define"
-@@ -62,6 +63,9 @@ var _ = Describe("run basic podman commands", func() {
+@@ -61,6 +62,9 @@ var _ = Describe("run basic podman commands", func() {
+ 
  	It("Volume ops", func() {
- 		skipIfVmtype(define.HyperVVirt, "FIXME: #21036 - Hyper-V podman run -v fails due to path translation issues")
  		skipIfVmtype(define.LibKrun, "FIXME: #23296 - Fails on MacOS when libkrun in use.")
 +		if testProvider.VMType() == define.QemuVirt && runtime.GOOS == "windows" {
 +			Skip("volumes are not yet supported on official QEMU builds running under Windows")
@@ -58,7 +58,7 @@ index 12d8bf9e3..502b45a60 100644
  
  		tDir, err := filepath.Abs(GinkgoT().TempDir())
  		Expect(err).ToNot(HaveOccurred())
-@@ -95,6 +99,9 @@ var _ = Describe("run basic podman commands", func() {
+@@ -94,6 +98,9 @@ var _ = Describe("run basic podman commands", func() {
  		// In theory this could run on MacOS too, but we know virtiofs works for that now,
  		// this is just testing linux
  		skipIfNotVmtype(define.QemuVirt, "This is just adding coverage for virtiofs on linux")
@@ -68,7 +68,7 @@ index 12d8bf9e3..502b45a60 100644
  
  		tDir, err := filepath.Abs(GinkgoT().TempDir())
  		Expect(err).ToNot(HaveOccurred())
-@@ -185,6 +192,9 @@ var _ = Describe("run basic podman commands", func() {
+@@ -184,6 +191,9 @@ var _ = Describe("run basic podman commands", func() {
  
  	It("podman volume on non-standard path", func() {
  		skipIfWSL("Requires standard volume handling")

@@ -1,7 +1,7 @@
-From 92cafaf59cba7d305df3723a7a1d59dbda14c603 Mon Sep 17 00:00:00 2001
+From 6e024e9ee67c9bbb42d09b721f3efb585a110137 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Thu, 25 Jul 2024 18:27:49 +0300
-Subject: [PATCH 3/3] Implement publishing API UNIX socket on Windows platforms
+Subject: [PATCH 3/4] Implement publishing API UNIX socket on Windows platforms
 
 gvproxy and win-sshproxy have capabilities to serve this type of enpoint.
 This change only adds one additional API enpoint publishing by appending
@@ -9,18 +9,137 @@ proxy command lines.
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
- pkg/machine/machine_windows.go           |  8 ++++++++
- pkg/machine/shim/networking_windows.go   | 14 +++++++++++++-
- pkg/machine/vmconfigs/machine.go         | 14 +-------------
- pkg/machine/vmconfigs/machine_unix.go    | 11 +++++++++++
- pkg/machine/vmconfigs/machine_windows.go | 11 +++++++++++
- pkg/machine/wsl/stubber.go               |  5 +++++
- 6 files changed, 49 insertions(+), 14 deletions(-)
+ pkg/machine/e2e/api_test.go              | 96 ++++++++++++++++++++++++
+ pkg/machine/e2e/inspect_test.go          |  3 -
+ pkg/machine/machine_windows.go           |  8 ++
+ pkg/machine/shim/networking_windows.go   | 14 +++-
+ pkg/machine/vmconfigs/machine.go         | 14 +---
+ pkg/machine/vmconfigs/machine_unix.go    | 11 +++
+ pkg/machine/vmconfigs/machine_windows.go | 11 +++
+ pkg/machine/wsl/stubber.go               |  5 ++
+ 8 files changed, 145 insertions(+), 17 deletions(-)
+ create mode 100644 pkg/machine/e2e/api_test.go
  create mode 100644 pkg/machine/vmconfigs/machine_unix.go
  create mode 100644 pkg/machine/vmconfigs/machine_windows.go
 
+diff --git a/pkg/machine/e2e/api_test.go b/pkg/machine/e2e/api_test.go
+new file mode 100644
+index 000000000..6e081d797
+--- /dev/null
++++ b/pkg/machine/e2e/api_test.go
+@@ -0,0 +1,96 @@
++package e2e_test
++
++import (
++	"context"
++	"os/exec"
++	"path/filepath"
++	"runtime"
++
++	"github.com/containers/podman/v5/pkg/machine"
++	"github.com/docker/docker/client"
++	jsoniter "github.com/json-iterator/go"
++	. "github.com/onsi/ginkgo/v2"
++	. "github.com/onsi/gomega"
++	. "github.com/onsi/gomega/gexec"
++)
++
++const (
++	NamedPipeProto = "npipe://"
++)
++
++var _ = Describe("run podman API test calls", func() {
++
++	It("client connect to machine socket", func() {
++		if runtime.GOOS == "windows" {
++			Skip("Go docker client doesn't support unix socket on Windows")
++		}
++		name := randomString()
++		i := new(initMachine)
++		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withNow()).run()
++		Expect(err).ToNot(HaveOccurred())
++		Expect(session).To(Exit(0))
++
++		inspectJSON := new(inspectMachine)
++		inspectSession, err := mb.setName(name).setCmd(inspectJSON).run()
++		Expect(err).ToNot(HaveOccurred())
++		Expect(inspectSession).To(Exit(0))
++
++		var inspectInfo []machine.InspectInfo
++		err = jsoniter.Unmarshal(inspectSession.Bytes(), &inspectInfo)
++		Expect(err).ToNot(HaveOccurred())
++		sockPath := inspectInfo[0].ConnectionInfo.PodmanSocket.GetPath()
++
++		cli, err := client.NewClientWithOpts(client.WithHost("unix://" + sockPath))
++		Expect(err).ToNot(HaveOccurred())
++		_, err = cli.Ping(context.Background())
++		Expect(err).ToNot(HaveOccurred())
++	})
++
++	It("client connect to machine named pipe", func() {
++		if runtime.GOOS != "windows" {
++			Skip("test is only supported on Windows")
++		}
++		name := randomString()
++		i := new(initMachine)
++		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withNow()).run()
++		Expect(err).ToNot(HaveOccurred())
++		Expect(session).To(Exit(0))
++
++		inspectJSON := new(inspectMachine)
++		inspectSession, err := mb.setName(name).setCmd(inspectJSON).run()
++		Expect(err).ToNot(HaveOccurred())
++		Expect(inspectSession).To(Exit(0))
++
++		var inspectInfo []machine.InspectInfo
++		err = jsoniter.Unmarshal(inspectSession.Bytes(), &inspectInfo)
++		Expect(err).ToNot(HaveOccurred())
++		pipePath := inspectInfo[0].ConnectionInfo.PodmanPipe.GetPath()
++
++		cli, err := client.NewClientWithOpts(client.WithHost(NamedPipeProto + filepath.ToSlash(pipePath)))
++		Expect(err).ToNot(HaveOccurred())
++		_, err = cli.Ping(context.Background())
++		Expect(err).ToNot(HaveOccurred())
++	})
++
++	It("curl connect to machine socket", func() {
++		name := randomString()
++		i := new(initMachine)
++		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withNow()).run()
++		Expect(err).ToNot(HaveOccurred())
++		Expect(session).To(Exit(0))
++
++		inspectJSON := new(inspectMachine)
++		inspectSession, err := mb.setName(name).setCmd(inspectJSON).run()
++		Expect(err).ToNot(HaveOccurred())
++		Expect(inspectSession).To(Exit(0))
++
++		var inspectInfo []machine.InspectInfo
++		err = jsoniter.Unmarshal(inspectSession.Bytes(), &inspectInfo)
++		Expect(err).ToNot(HaveOccurred())
++		sockPath := inspectInfo[0].ConnectionInfo.PodmanSocket.GetPath()
++
++		cmd := exec.Command("curl", "--unix-socket", sockPath, "http://d/v5.0.0/libpod/info")
++		err = cmd.Run()
++		Expect(err).ToNot(HaveOccurred())
++	})
++})
+diff --git a/pkg/machine/e2e/inspect_test.go b/pkg/machine/e2e/inspect_test.go
+index 1c6224d79..c23fd0ae0 100644
+--- a/pkg/machine/e2e/inspect_test.go
++++ b/pkg/machine/e2e/inspect_test.go
+@@ -80,9 +80,6 @@ var _ = Describe("podman inspect stop", func() {
+ 	})
+ 
+ 	It("inspect shows a unique socket name per machine", func() {
+-		skipIfVmtype(define.WSLVirt, "test is only relevant for Unix based providers")
+-		skipIfVmtype(define.HyperVVirt, "test is only relevant for Unix based machines")
+-
+ 		var socks []string
+ 		for c := 0; c < 2; c++ {
+ 			name := randomString()
 diff --git a/pkg/machine/machine_windows.go b/pkg/machine/machine_windows.go
-index 7d39795bc..0016c3679 100644
+index d6c23e64f..174980fc2 100644
 --- a/pkg/machine/machine_windows.go
 +++ b/pkg/machine/machine_windows.go
 @@ -18,6 +18,7 @@ import (
@@ -173,5 +292,5 @@ index 3a79f095c..29f82edb3 100644
  	machine.LaunchWinProxy(winProxyOpts, noInfo)
  
 -- 
-2.45.2
+2.46.0
 
