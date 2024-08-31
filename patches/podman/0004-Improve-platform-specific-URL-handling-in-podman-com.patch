@@ -1,4 +1,4 @@
-From e9fca5c3e0354323d91cbfc692c1a30a3e834e74 Mon Sep 17 00:00:00 2001
+From 852fde4c78b1929972664e3b6452e035d57570b9 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Sat, 31 Aug 2024 20:56:16 +0300
 Subject: [PATCH 4/4] Improve platform specific URL handling in `podman

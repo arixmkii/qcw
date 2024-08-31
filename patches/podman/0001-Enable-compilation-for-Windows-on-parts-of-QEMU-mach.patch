@@ -1,4 +1,4 @@
-From ff7265703425dce665ee48f9da4fae9aae427531 Mon Sep 17 00:00:00 2001
+From 46ee8cb8ba0dad810b1ccdad31c8295732748113 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Fri, 19 Apr 2024 16:38:38 +0300
 Subject: [PATCH 1/4] Enable compilation for Windows on parts of QEMU machine

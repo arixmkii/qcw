@@ -1,18 +1,18 @@
-From b53a69ec63623d350f7ff580f0d91cc6951888ca Mon Sep 17 00:00:00 2001
+From e7a521c23e3b7b585feceb024843bc13a8567ccf Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 20 Feb 2024 21:52:34 +0200
 Subject: [PATCH 2/4] Implement QEMU Podman machine on Windows
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
- pkg/machine/e2e/README.md                     |  9 +++++++++
- pkg/machine/e2e/basic_test.go                 | 10 ++++++++++
- pkg/machine/e2e/config_init_test.go           |  6 ++++++
- pkg/machine/e2e/init_test.go                  |  3 +++
- pkg/machine/provider/platform_windows.go      |  6 +++---
- .../provider/platform_windows_amd64.go        | 18 ++++++++++++++++++
- .../provider/platform_windows_arm64.go        | 19 +++++++++++++++++++
- 7 files changed, 68 insertions(+), 3 deletions(-)
+ pkg/machine/e2e/README.md                     |  9 ++++++
+ pkg/machine/e2e/basic_test.go                 | 10 +++++++
+ pkg/machine/e2e/config_init_test.go           |  6 ++++
+ pkg/machine/e2e/init_test.go                  |  3 ++
+ pkg/machine/provider/platform_windows.go      | 16 +++-------
+ .../provider/platform_windows_amd64.go        | 30 +++++++++++++++++++
+ .../provider/platform_windows_arm64.go        | 30 +++++++++++++++++++
+ 7 files changed, 92 insertions(+), 12 deletions(-)
  create mode 100644 pkg/machine/provider/platform_windows_amd64.go
  create mode 100644 pkg/machine/provider/platform_windows_arm64.go
 
@@ -120,37 +120,52 @@ index 63c0336e9..1bc94bd3b 100644
  		tmpDir, err := os.MkdirTemp("", "")
  		Expect(err).ToNot(HaveOccurred())
 diff --git a/pkg/machine/provider/platform_windows.go b/pkg/machine/provider/platform_windows.go
-index 772693669..ea7695f49 100644
+index eab7502af..056db09e5 100644
 --- a/pkg/machine/provider/platform_windows.go
 +++ b/pkg/machine/provider/platform_windows.go
-@@ -38,15 +38,15 @@ func Get() (vmconfigs.VMProvider, error) {
- 			return nil, fmt.Errorf("hyperv machines require admin authority")
- 		}
- 		return new(hyperv.HyperVStubber), nil
+@@ -31,6 +31,8 @@ func Get() (vmconfigs.VMProvider, error) {
+ 
+ 	logrus.Debugf("Using Podman machine with `%s` virtualization provider", resolvedVMType.String())
+ 	switch resolvedVMType {
 +	case define.QemuVirt:
 +		return getQemuProvider()
- 	default:
- 		return nil, fmt.Errorf("unsupported virtualization provider: `%s`", resolvedVMType.String())
+ 	case define.WSLVirt:
+ 		return new(wsl.WSLStubber), nil
+ 	case define.HyperVVirt:
+@@ -43,20 +45,10 @@ func Get() (vmconfigs.VMProvider, error) {
  	}
  }
  
- func GetAll(force bool) ([]vmconfigs.VMProvider, error) {
--	providers := []vmconfigs.VMProvider{
+-func GetAll() []vmconfigs.VMProvider {
+-	return []vmconfigs.VMProvider{
 -		new(wsl.WSLStubber),
+-		new(hyperv.HyperVStubber),
 -	}
-+	providers := getDefaultProviders()
- 	if !wsl.HasAdminRights() && !force {
- 		logrus.Warn("managing hyperv machines require admin authority.")
- 	} else {
+-}
+-
+-// SupportedProviders returns the providers that are supported on the host operating system
+-func SupportedProviders() []define.VMType {
+-	return []define.VMType{define.HyperVVirt, define.WSLVirt}
+-}
+-
+ func IsInstalled(provider define.VMType) (bool, error) {
+ 	switch provider {
++	case define.QemuVirt:
++		return isQemuInstalled(), nil
+ 	case define.WSLVirt:
+ 		return wutil.IsWSLInstalled(), nil
+ 	case define.HyperVVirt:
 diff --git a/pkg/machine/provider/platform_windows_amd64.go b/pkg/machine/provider/platform_windows_amd64.go
 new file mode 100644
-index 000000000..78b596619
+index 000000000..f76fe2a53
 --- /dev/null
 +++ b/pkg/machine/provider/platform_windows_amd64.go
-@@ -0,0 +1,18 @@
+@@ -0,0 +1,30 @@
 +package provider
 +
 +import (
++	"github.com/containers/podman/v5/pkg/machine/define"
++	"github.com/containers/podman/v5/pkg/machine/hyperv"
 +	"github.com/containers/podman/v5/pkg/machine/qemu"
 +	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 +	"github.com/containers/podman/v5/pkg/machine/wsl"
@@ -160,24 +175,35 @@ index 000000000..78b596619
 +	return new(qemu.QEMUStubber), nil
 +}
 +
-+func getDefaultProviders() []vmconfigs.VMProvider {
++func isQemuInstalled() bool {
++	return true
++}
++
++func GetAll() []vmconfigs.VMProvider {
 +	return []vmconfigs.VMProvider{
 +		new(wsl.WSLStubber),
++		new(hyperv.HyperVStubber),
 +		new(qemu.QEMUStubber),
 +	}
 +}
++
++// SupportedProviders returns the providers that are supported on the host operating system
++func SupportedProviders() []define.VMType {
++	return []define.VMType{define.HyperVVirt, define.WSLVirt, define.QemuVirt}
++}
 diff --git a/pkg/machine/provider/platform_windows_arm64.go b/pkg/machine/provider/platform_windows_arm64.go
 new file mode 100644
-index 000000000..e393d3308
+index 000000000..dda895b51
 --- /dev/null
 +++ b/pkg/machine/provider/platform_windows_arm64.go
-@@ -0,0 +1,19 @@
+@@ -0,0 +1,30 @@
 +package provider
 +
 +import (
 +	"fmt"
 +
 +	"github.com/containers/podman/v5/pkg/machine/define"
++	"github.com/containers/podman/v5/pkg/machine/hyperv"
 +	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 +	"github.com/containers/podman/v5/pkg/machine/wsl"
 +)
@@ -186,10 +212,20 @@ index 000000000..e393d3308
 +	return nil, fmt.Errorf("unsupported virtualization provider: `%s`", define.QemuVirt.String())
 +}
 +
-+func getDefaultProviders() []vmconfigs.VMProvider {
++func isQemuInstalled() bool {
++	return false
++}
++
++func GetAll() []vmconfigs.VMProvider {
 +	return []vmconfigs.VMProvider{
 +		new(wsl.WSLStubber),
++		new(hyperv.HyperVStubber),
 +	}
++}
++
++// SupportedProviders returns the providers that are supported on the host operating system
++func SupportedProviders() []define.VMType {
++	return []define.VMType{define.HyperVVirt, define.WSLVirt}
 +}
 -- 
 2.46.0
