@@ -103,9 +103,8 @@ buids are considered unstable and discouraged to be used on their own. This is w
 ### Basics
 
 Download installation packages of the release. Install QEMU and Podman using their installers. Then install
-`qcw-utils` in the desired directory using
-`powershell -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/arixmkii/qcw/main/qcw-utils.ps1'))"` or
-`pwsh -c "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/arixmkii/qcw/main/qcw-utils.ps1'))"`
+`qcw-utils` in the desired directory by opening powershell shell and executing
+`iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/arixmkii/qcw/main/qcw-utils.ps1'))`
 (each release will have tagged version of this utility as well if
 one wants more control over tools version). One will have preconfigured shell launchers under `.\qcw-utils\shells\`
 when installation completes. When using `podman-default.bat` one needs to configure machine provider in
@@ -117,7 +116,7 @@ Then run the Podman machine init command as one would do with all other Podman i
 podman machine init -v ""
 ```
 
-All other options (except virtfs volume mounts) from QEMU on MacOS/Linux should work the same way, so, one should be able to
+All other options (except virtfs volume mounts) from QEMU on Linux should work the same way, so, one should be able to
 tweak the machine to the needed performance requirements.
 
 File system mounts on Windows are unsupported since Podman QEMU had switched to `virtiofsd` for providing access to host file
