@@ -162,6 +162,28 @@ size. If VM is configured correctly and the HW requirements for nested vitrualiz
 Podman machine should be the same as on bare metal (the performance is expected to be worse to some extent, because
 it runs inside a VM).
 
+### With `docker-compose`
+
+If one has access to `Docker Desktop` it is possible to use binaries distributed by the software to connect them to
+Podman. Alternatively it is possible to download pre-built binaries of the CLI and compose plugin from releases page.
+
+After downloading and unpacking binaries one should make the tools discoverable inside `%PATH%`. To make `docker` 
+recognize the plugin it is recommended to put it into a well-known location like `%USERPROFILE%\.docker\cli-plugins`.
+This step is not needed if `Docker Desktop` is used as this configures everythign on your behalf.
+
+Using `podman compose`, when `docker-compose` is discoverable:
+```bat
+podman compose up --wait
+```
+
+Using `docker compose` one needs to provide DOCKER_HOST value with named pipe from
+`podman machine inspect --format {{.ConnectionInfo.PodmanPipe.Path}}` converted to URL compatible address: 
+`\\.\pipe\podman-machine-default` would become `npipe:////./pipe/podman-machine-default`
+```bat
+set DOCKER_HOST=npipe:////./pipe/podman-machine-default
+docker compose up --wait
+```
+
 ## How to use Lima
 
 TBD

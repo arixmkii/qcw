@@ -55,10 +55,8 @@ jobs:
       - name: "📦 Pack Docker"
         run: |
           mkdir -p qcw
-          ls docker-cli-release/build
-          ls docker-compose-release/bin/build
           cp docker-cli-release/build/docker-windows-amd64.exe qcw/docker.exe
-          cp bin/build/docker-compose.exe qcw/docker-compose.exe
+          cp docker-compose-release/bin/build/docker-compose.exe qcw/docker-compose.exe
           cd qcw
           find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
           find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
