@@ -29,6 +29,8 @@ default.
 
 Ordered alphabetically
 
+* `docker-cli` - [Github](https://github.com/docker/cli) `docker` command line interface;
+* `docker-compose` - [Github](https://github.com/docker/compose) orchestration tool for containers;
 * `gocat` - [Github](https://github.com/sumup-oss/gocat) multipurpose networking relay;
 * `gvisor-tap-vsock` - [Github](https://github.com/containers/gvisor-tap-vsock) the tool to provide networking for
 accessing containers from Windows;
@@ -42,6 +44,14 @@ feature rich machine emulator;
 * `Zlib` - [home page](https://www.zlib.net/) compression library.
 
 ### Versions and patches
+
+#### `docker-cli`
+
+Version `v27.2.0`. Rebuilt for Windows amd64 platform.
+
+#### `docker-compose`
+
+Version `v2.29.2`. Rebuilt for Windows amd64 platform.
 
 #### `gocat`
 
