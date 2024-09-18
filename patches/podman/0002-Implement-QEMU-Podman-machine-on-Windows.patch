@@ -37,7 +37,7 @@ index ae6873f42..55cdab839 100644
  
  Macs now support two different machine providers: `applehv` and `libkrun`. The
 diff --git a/pkg/machine/e2e/basic_test.go b/pkg/machine/e2e/basic_test.go
-index dffae8bac..f9af0a169 100644
+index c060479cd..aa3626a79 100644
 --- a/pkg/machine/e2e/basic_test.go
 +++ b/pkg/machine/e2e/basic_test.go
 @@ -9,6 +9,7 @@ import (
@@ -48,17 +48,17 @@ index dffae8bac..f9af0a169 100644
  	"time"
  
  	"github.com/containers/podman/v5/pkg/machine/define"
-@@ -61,6 +62,9 @@ var _ = Describe("run basic podman commands", func() {
+@@ -60,6 +61,9 @@ var _ = Describe("run basic podman commands", func() {
+ 	})
  
  	It("Volume ops", func() {
- 		skipIfVmtype(define.LibKrun, "FIXME: #23296 - Fails on MacOS when libkrun in use.")
 +		if testProvider.VMType() == define.QemuVirt && runtime.GOOS == "windows" {
 +			Skip("volumes are not yet supported on official QEMU builds running under Windows")
 +		}
- 
  		tDir, err := filepath.Abs(GinkgoT().TempDir())
  		Expect(err).ToNot(HaveOccurred())
-@@ -94,6 +98,9 @@ var _ = Describe("run basic podman commands", func() {
+ 		roFile := filepath.Join(tDir, "attr-test-file")
+@@ -100,6 +104,9 @@ var _ = Describe("run basic podman commands", func() {
  		// In theory this could run on MacOS too, but we know virtiofs works for that now,
  		// this is just testing linux
  		skipIfNotVmtype(define.QemuVirt, "This is just adding coverage for virtiofs on linux")
@@ -68,7 +68,7 @@ index dffae8bac..f9af0a169 100644
  
  		tDir, err := filepath.Abs(GinkgoT().TempDir())
  		Expect(err).ToNot(HaveOccurred())
-@@ -184,6 +191,9 @@ var _ = Describe("run basic podman commands", func() {
+@@ -190,6 +197,9 @@ var _ = Describe("run basic podman commands", func() {
  
  	It("podman volume on non-standard path", func() {
  		skipIfWSL("Requires standard volume handling")
