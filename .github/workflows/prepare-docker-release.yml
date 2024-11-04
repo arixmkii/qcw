@@ -6,7 +6,7 @@ env:
   CLI_GITURL: https://github.com/docker/cli.git
   CLI_SHA: ce1223035ac3ab8922717092e63a184cf67b493d # v27.3.1
   COMPOSE_GITURL: https://github.com/docker/compose.git
-  COMPOSE_SHA: f51bc4cd0077988ec4799bd49f78e21a4d28e8e1 # v20.30.1
+  COMPOSE_SHA: f51bc4cd0077988ec4799bd49f78e21a4d28e8e1 # v2.30.1
 
 jobs:
   build:

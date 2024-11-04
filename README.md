@@ -47,11 +47,11 @@ feature rich machine emulator;
 
 #### `docker-cli`
 
-Version `v27.2.0`. Rebuilt for Windows amd64 platform.
+Version `v27.3.1`. Rebuilt for Windows amd64 platform.
 
 #### `docker-compose`
 
-Version `v2.29.2`. Rebuilt for Windows amd64 platform.
+Version `v2.30.1`. Rebuilt for Windows amd64 platform.
 
 #### `gocat`
 
