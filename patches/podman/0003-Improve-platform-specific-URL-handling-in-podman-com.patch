@@ -1,7 +1,7 @@
-From 852fde4c78b1929972664e3b6452e035d57570b9 Mon Sep 17 00:00:00 2001
+From 793dc325e9e0c22c233a738914f93038836a5729 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Sat, 31 Aug 2024 20:56:16 +0300
-Subject: [PATCH 4/4] Improve platform specific URL handling in `podman
+Subject: [PATCH 3/3] Improve platform specific URL handling in `podman
  compose` for machines
 
 Use filepath utility instead of generic string replace to convert path
@@ -96,5 +96,5 @@ index 000000000..49b8be172
 +	return "npipe://" + filepath.ToSlash(podmanPipe.Path), nil
 +}
 -- 
-2.46.0
+2.47.0
 

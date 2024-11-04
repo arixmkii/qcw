@@ -1,10 +1,13 @@
-From e7a521c23e3b7b585feceb024843bc13a8567ccf Mon Sep 17 00:00:00 2001
+From 3fbc4e83656a1794880f8d152c0a38a4a637afe9 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 20 Feb 2024 21:52:34 +0200
-Subject: [PATCH 2/4] Implement QEMU Podman machine on Windows
+Subject: [PATCH 2/3] Implement QEMU Podman machine on Windows
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
+ contrib/win-installer/podman-theme.wxl        |  2 +-
+ contrib/win-installer/podman-theme.xml        |  5 ++--
+ contrib/win-installer/welcome-install-dlg.wxs |  1 +
  pkg/machine/e2e/README.md                     |  9 ++++++
  pkg/machine/e2e/basic_test.go                 | 10 +++++++
  pkg/machine/e2e/config_init_test.go           |  6 ++++
@@ -12,10 +15,54 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
  pkg/machine/provider/platform_windows.go      | 16 +++-------
  .../provider/platform_windows_amd64.go        | 30 +++++++++++++++++++
  .../provider/platform_windows_arm64.go        | 30 +++++++++++++++++++
- 7 files changed, 92 insertions(+), 12 deletions(-)
+ 10 files changed, 97 insertions(+), 15 deletions(-)
  create mode 100644 pkg/machine/provider/platform_windows_amd64.go
  create mode 100644 pkg/machine/provider/platform_windows_arm64.go
 
+diff --git a/contrib/win-installer/podman-theme.wxl b/contrib/win-installer/podman-theme.wxl
+index b5666fd67..3fe96ba7a 100644
+--- a/contrib/win-installer/podman-theme.wxl
++++ b/contrib/win-installer/podman-theme.wxl
+@@ -7,7 +7,7 @@
+   <String Id="Title" Value="[WixBundleName] [VERSION]" />
+   <String Id="InstallHeader" Value="Welcome to [WixBundleName] Setup" />
+   <String Id="InstallMessage" Value="Welcome to the [WixBundleName] [VERSION] setup wizard. This will install [WixBundleName] on your computer." />
+-  <String Id="ProvidersMessage" Value="Additionally, you have the option to select the virtualization provider required by Podman: WSLv2 or Hyper-V.
++  <String Id="ProvidersMessage" Value="Additionally, you have the option to select the virtualization provider required by Podman: WSLv2 or Hyper-V or QEMU.
+ 
+ You can choose to also install the virtualization provider if it is not already enabled. This operation requires a reboot during the installation process. Alternatively, you can deselect the checkbox, and install the virtualization provider manually.
+ 
+diff --git a/contrib/win-installer/podman-theme.xml b/contrib/win-installer/podman-theme.xml
+index fd681e67d..f256d0591 100644
+--- a/contrib/win-installer/podman-theme.xml
++++ b/contrib/win-installer/podman-theme.xml
+@@ -36,11 +36,12 @@
+             <RadioButtons Name="MachineProvider">
+                 <RadioButton Name="WSLRadioButton" Value="wsl" VisibleCondition="NOT PreviousInstallFolder" X="185" Y="260" Width="-11" Height="17" TabStop="yes" FontId="3" HideWhenDisabled="yes" EnableCondition="" >Windows Linux Subsystem (WSLv2)</RadioButton>
+                 <RadioButton Name="HyperVRadioButton"  Value="hyperv" VisibleCondition="NOT PreviousInstallFolder" X="185" Y="285" Width="-11" Height="17" TabStop="yes" FontId="3" HideWhenDisabled="yes">Windows Hyper-V</RadioButton>
++                <RadioButton Name="QemuRadioButton" Value="qemu" VisibleCondition="NOT PreviousInstallFolder" X="185" Y="310" Width="-11" Height="17" TabStop="yes" FontId="3" HideWhenDisabled="yes">QEMU (distribution of QEMU not bundled)</RadioButton>
+             </RadioButtons>
+             <Hypertext Name="EulaHyperlink" X="185" Y="-111" Width="-11" Height="17" TabStop="yes" FontId="3" HideWhenDisabled="yes">#(loc.InstallLicenseLinkText)</Hypertext>
+             <Label Name="InstallVersion" X="510" Y="-50" Width="-11" Height="17" FontId="3" DisablePrefix="yes" VisibleCondition="WixStdBAShowVersion">#(loc.InstallVersion)</Label>
+-            <Checkbox Name="WSLCheckbox" VisibleCondition="(MachineProvider = &quot;wsl&quot;) AND (NOT PreviousInstallFolder)" X="185" Y="320" Width="-11" Height="17" TabStop="yes" FontId="6" HideWhenDisabled="yes">#(loc.InstallWSLCheckbox)</Checkbox>
+-            <Checkbox Name="HyperVCheckbox" VisibleCondition="(MachineProvider = &quot;hyperv&quot;) AND (NOT PreviousInstallFolder)" X="185" Y="320" Width="-11" Height="17" TabStop="yes" FontId="6" HideWhenDisabled="yes">#(loc.InstallHypervCheckbox)</Checkbox>
++            <Checkbox Name="WSLCheckbox" VisibleCondition="(MachineProvider = &quot;wsl&quot;) AND (NOT PreviousInstallFolder)" X="185" Y="345" Width="-11" Height="17" TabStop="yes" FontId="6" HideWhenDisabled="yes">#(loc.InstallWSLCheckbox)</Checkbox>
++            <Checkbox Name="HyperVCheckbox" VisibleCondition="(MachineProvider = &quot;hyperv&quot;) AND (NOT PreviousInstallFolder)" X="185" Y="345" Width="-11" Height="17" TabStop="yes" FontId="6" HideWhenDisabled="yes">#(loc.InstallHypervCheckbox)</Checkbox>
+             <Button Name="OptionsButton" X="-171" Y="-11" Width="75" Height="23" TabStop="yes" FontId="0" VisibleCondition="NOT WixStdBASuppressOptionsUI">
+                 <Text>#(loc.InstallOptionsButton)</Text>
+                 <ChangePageAction Page="Options" />
+diff --git a/contrib/win-installer/welcome-install-dlg.wxs b/contrib/win-installer/welcome-install-dlg.wxs
+index c6dc65cbf..f27d420d6 100644
+--- a/contrib/win-installer/welcome-install-dlg.wxs
++++ b/contrib/win-installer/welcome-install-dlg.wxs
+@@ -11,6 +11,7 @@
+                     <RadioButtonGroup Property="MACHINE_PROVIDER">
+                         <RadioButton Text="Windows Linux Subsystem (WSLv2)" Height="15" Value="wsl" Width="226" X="10" Y="0" />
+                         <RadioButton Text="Windows Hyper-V" Height="15" Value="hyperv" Width="226" X="10" Y="15" />
++                        <RadioButton Text="QEMU (distribution of QEMU not bundled)" Height="15" Value="qemu" Width="226" X="10" Y="30" />
+                     </RadioButtonGroup>
+ 
+                 </Control>
 diff --git a/pkg/machine/e2e/README.md b/pkg/machine/e2e/README.md
 index ae6873f42..55cdab839 100644
 --- a/pkg/machine/e2e/README.md
@@ -106,7 +153,7 @@ index 9d33e2d3d..0ae8f4fee 100644
  		cmd = append(cmd, "--now")
  	}
 diff --git a/pkg/machine/e2e/init_test.go b/pkg/machine/e2e/init_test.go
-index 63c0336e9..1bc94bd3b 100644
+index 58fa3f84f..9bb85d559 100644
 --- a/pkg/machine/e2e/init_test.go
 +++ b/pkg/machine/e2e/init_test.go
 @@ -202,6 +202,9 @@ var _ = Describe("podman machine init", func() {
@@ -228,5 +275,5 @@ index 000000000..dda895b51
 +	return []define.VMType{define.HyperVVirt, define.WSLVirt}
 +}
 -- 
-2.46.0
+2.47.0
 
