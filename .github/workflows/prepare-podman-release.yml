@@ -4,7 +4,8 @@ on: workflow_dispatch
 
 env:
   PODMAN_GITURL: https://github.com/containers/podman.git
-  PODMAN_SHA: 874bf2c301ecf0ba645f1bb45f81966cc755b7da
+  PODMAN_SHA: 4cbdfde5d862dcdbe450c0f1d76ad75360f67a3c # v5.3.1
+  PODMAN_REVISION_KIND: prod
 
 jobs:
   build:
@@ -88,14 +89,14 @@ jobs:
           mkdir -p contrib/win-installer/current
           cp *.zip contrib/win-installer/current/
           cd contrib/win-installer
-          powershell -ExecutionPolicy Bypass -File build.ps1 $BUILD_PODMAN_VERSION dev current
+          powershell -ExecutionPolicy Bypass -File build.ps1 $BUILD_PODMAN_VERSION $PODMAN_REVISION_KIND current
 
       - name: "📦 Pack Podman"
         shell: msys2 {0}
         run: |
           mkdir -p qcw
           export BUILD_PODMAN_VERSION=$(podman-release/test/version/version | sed 's/-.*//')
-          cp "podman-release/contrib/win-installer/podman-$BUILD_PODMAN_VERSION-dev-setup.exe" qcw/
+          cp "podman-release/contrib/win-installer/podman-$BUILD_PODMAN_VERSION-"*"setup.exe" qcw/
           cd qcw
           find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
           find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
