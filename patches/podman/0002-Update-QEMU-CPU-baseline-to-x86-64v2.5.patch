@@ -1,0 +1,27 @@
+From b988fefaa25934de702d8fb9700d5734748c00dd Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Fri, 17 Jan 2025 19:10:55 +0200
+Subject: [PATCH 2/2] Update QEMU CPU baseline to x86-64v2.5
+
+Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+---
+ pkg/machine/qemu/options_windows_amd64.go | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/pkg/machine/qemu/options_windows_amd64.go b/pkg/machine/qemu/options_windows_amd64.go
+index 6e0ba0271..7775f2b2f 100644
+--- a/pkg/machine/qemu/options_windows_amd64.go
++++ b/pkg/machine/qemu/options_windows_amd64.go
+@@ -9,6 +9,8 @@ var (
+ func (q *QEMUStubber) addArchOptions(_ *setNewMachineCMDOpts) []string {
+ 	// "qemu64" level is used, because "host" is not supported with "whpx" acceleration.
+ 	// It is a stable choice for running on bare metal and inside Hyper-V machine with nested virtualization.
+-	opts := []string{"-machine", "q35,accel=whpx:tcg", "-cpu", "qemu64"}
++	// Additional parameters are used to bring the baseline to x86_64v2.5 (v2 + AES) level.
++	// More advanced hardware levels are not working in accelerated mode https://gitlab.com/qemu-project/qemu/-/issues/2782
++	opts := []string{"-machine", "q35,accel=whpx:tcg", "-cpu", "qemu64,+aes,+popcnt,+pni,+sse4.1,+sse4.2,+ssse3"}
+ 	return opts
+ }
+-- 
+2.48.1
+

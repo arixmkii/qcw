@@ -1,7 +1,7 @@
-From 3fbc4e83656a1794880f8d152c0a38a4a637afe9 Mon Sep 17 00:00:00 2001
+From 0f1e00204ba63bde718f97d3808ff7e97c741c44 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 20 Feb 2024 21:52:34 +0200
-Subject: [PATCH 2/3] Implement QEMU Podman machine on Windows
+Subject: [PATCH 1/2] Implement QEMU Podman machine on Windows
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
@@ -126,7 +126,7 @@ index c060479cd..aa3626a79 100644
  		Expect(err).ToNot(HaveOccurred())
  		defer os.RemoveAll(dir)
 diff --git a/pkg/machine/e2e/config_init_test.go b/pkg/machine/e2e/config_init_test.go
-index 9d33e2d3d..0ae8f4fee 100644
+index 042301047..9b4e3e129 100644
 --- a/pkg/machine/e2e/config_init_test.go
 +++ b/pkg/machine/e2e/config_init_test.go
 @@ -1,9 +1,11 @@
@@ -153,7 +153,7 @@ index 9d33e2d3d..0ae8f4fee 100644
  		cmd = append(cmd, "--now")
  	}
 diff --git a/pkg/machine/e2e/init_test.go b/pkg/machine/e2e/init_test.go
-index 58fa3f84f..9bb85d559 100644
+index bd5fe683c..c5d7bfaba 100644
 --- a/pkg/machine/e2e/init_test.go
 +++ b/pkg/machine/e2e/init_test.go
 @@ -202,6 +202,9 @@ var _ = Describe("podman machine init", func() {
@@ -275,5 +275,5 @@ index 000000000..dda895b51
 +	return []define.VMType{define.HyperVVirt, define.WSLVirt}
 +}
 -- 
-2.47.0
+2.48.1
 
