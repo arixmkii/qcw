@@ -4,9 +4,9 @@ on: workflow_dispatch
 
 env:
   CLI_GITURL: https://github.com/docker/cli.git
-  CLI_SHA: ce1223035ac3ab8922717092e63a184cf67b493d # v27.3.1
+  CLI_SHA: bde2b893136c1c7a2894386e4f8743089c89b041 # v27.4.0
   COMPOSE_GITURL: https://github.com/docker/compose.git
-  COMPOSE_SHA: a8bfbc147a8b77bb0c0f9553365babb643b0a4f7 # v2.30.3
+  COMPOSE_SHA: a8469db83f514a5abe4681c7fee773061f1941c6 # v2.31.0
 
 jobs:
   build:
