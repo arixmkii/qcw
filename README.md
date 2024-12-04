@@ -68,10 +68,8 @@ Version `v9.5.0.0` with 1 patch from Powershell OpenSSH fork PRs:
 
 #### `Podman`
 
-Version `5.3.1` with 3 patch sets:
-* Enable compilation for Windows on parts of QEMU machine provider
+Version `5.4.0-dev` with 1 patch set:
 * Implement QEMU Podman machine on Windows
-* Improve platform specific URL handling in podman compose for machines https://github.com/containers/podman/pull/23827
 
 #### `Podman Desktop`
 
