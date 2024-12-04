@@ -8,8 +8,8 @@ on:
         value: ${{ jobs.build.outputs.podman_version }}
 env:
   PODMAN_GITURL: https://github.com/containers/podman.git
-  PODMAN_SHA: 85043bb1a3818102194afa82845cb63841067c9c # v5.3.2
-  PODMAN_VERSION: 5.3.2
+  PODMAN_SHA: f9f7d48b24b1ca4403f189caaeab1cb8ff4a9aa2 # v5.4.0
+  PODMAN_VERSION: 5.4.0
   PODMAN_REVISION_KIND: prod # prod|dev
 jobs:
   build:
@@ -52,9 +52,8 @@ jobs:
           git remote add origin $PODMAN_GITURL
           git fetch --depth 1 origin $PODMAN_SHA
           git checkout FETCH_HEAD
-          patch --binary -l -p 1 < ../patches/podman/0001-Fix-compilation-issues-in-QEMU-machine-files-Windows.patch
-          patch --binary -l -p 1 < ../patches/podman/0002-Implement-QEMU-Podman-machine-on-Windows.patch
-          patch --binary -l -p 1 < ../patches/podman/0003-Improve-platform-specific-URL-handling-in-podman-com.patch
+          patch --binary -l -p 1 < ../patches/podman/0001-Implement-QEMU-Podman-machine-on-Windows.patch
+          patch --binary -l -p 1 < ../patches/podman/0002-Update-QEMU-CPU-baseline-to-x86-64v2.5.patch
       - name: "⚗️ Prepare Test Podman"
         working-directory: podman-release
         shell: msys2 {0}

@@ -96,10 +96,9 @@ Development main branch from revision `e911564e4a5f3151a3beef5ec2446914e016c745`
 
 #### `Podman`
 
-Version `5.3.2` with 3 patch sets:
-* Enable compilation for Windows on parts of QEMU machine provider
+Version `5.4.0` with 2 patch sets:
 * Implement QEMU Podman machine on Windows
-* Improve platform specific URL handling in podman compose for machines https://github.com/containers/podman/pull/23827
+* Change CPU HW baseline to x86_64v2 + AES (also known as v2.5)
 
 #### `Podman Desktop`
 
@@ -261,6 +260,11 @@ The patch used to enable 9pfs is a work in progress. Some of the functionality i
 * it is impossible to enumerate content of directories containing Windows symlinks;
 * it is impossible to enumerate content of directories containing Windows Unix domain socket records;
 * non determenistic access denied could be thrown on file overwrites because of some internal races.
+
+### 2. Limited hardware level support
+
+Currently WHPX acceleration doesn't support instructions beyond v2.5 https://gitlab.com/qemu-project/qemu/-/issues/2782
+Containers, which require v3 and more modern hardware will not run at all (it doesn't matter if host is capable or not).
 
 ## Known issues Podman
 
