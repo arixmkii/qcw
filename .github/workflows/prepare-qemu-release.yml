@@ -1,6 +1,12 @@
 name: Prepare QCW QEMU (from TarBall sources)
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  workflow_call:
+    outputs:
+      qemu_version:
+        description: QEMU version"
+        value: ${{ jobs.build.outputs.qemu_version }}
 
 env:
   QEMU_VERSION: 9.2.0
@@ -9,6 +15,8 @@ env:
 jobs:
   build:
     runs-on: windows-latest
+    outputs:
+      qemu_version: ${{ steps.make_versions.outputs.qemu }}
 
     steps:
       - name: "🏗️ Install msys2"
@@ -112,6 +120,12 @@ jobs:
           find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
           find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
           cat sha.checksums
+
+      - id: make_versions
+        name: "📌 Export versions"
+        shell: msys2 {0}
+        run: |
+          echo "qemu=$QEMU_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: "🚀 Upload artifact"
         uses: actions/upload-artifact@v4

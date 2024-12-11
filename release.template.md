@@ -1,5 +1,5 @@
 ### Highlights
-TBD.
+<<RELEASE_HIGHLIGHTS>>
 
 #### Included in this release
 * QEMU `<<QEMU_VERSION>>` (this one includes 9pfs on Windows hosts patches and UEFI pflash fixes, if this functionality is not needed, then consider using official installer) 
@@ -26,3 +26,6 @@ iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercon
 ```
 <<SHA512>>
 ```
+
+#### Build log
+Build log is available for 90 days at <<BUILD_LOG_URL>>

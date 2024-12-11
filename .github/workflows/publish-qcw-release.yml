@@ -2,21 +2,33 @@ name: Publish tagged QCW release
 
 on:
   workflow_dispatch:
-    release_name:
-      description: 'Release name'
-      required: true
-      type: string
-    release_tag:
-      description: 'Release tag'
-      required: true
-      type: string
+    inputs:
+      release_name:
+        description: 'Release name'
+        required: true
+        type: string
+      release_tag:
+        description: 'Release tag'
+        required: true
+        type: string
+      release_highlights:
+        description: 'Release highlights'
+        default: 'TBD.'
+        required: true
+        type: string
 
 jobs:
   call-prepare-docker:
     uses: ./.github/workflows/prepare-docker-release.yml
 
-  prepare:
-    needs: call-prepare-docker
+  call-prepare-podman:
+    uses: ./.github/workflows/prepare-podman-release.yml
+
+  call-prepare-qemu:
+    uses: ./.github/workflows/prepare-qemu-release.yml
+
+  publish:
+    needs: [call-prepare-docker, call-prepare-podman, call-prepare-qemu]
     runs-on: ubuntu-latest
 
     steps:
@@ -34,8 +46,26 @@ jobs:
           path: qcw
 
       - name: "🗒️ Prepare release notes"
+        env:
+          DOCKER_VERSION: ${{ needs.call-prepare-docker.outputs.cli_version }}
+          DOCKER_COMPOSE_VERSION: ${{ needs.call-prepare-docker.outputs.compose_version }}
+          PODMAN_VERSION: ${{ needs.call-prepare-podman.outputs.podman_version }}
+          QEMU_VERSION: ${{ needs.call-prepare-qemu.outputs.qemu_version }}
+          BUILD_LOG_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          sed 's/<<TAG_NAME>>/${{ inputs.release_tag }}/g' release.template.md
+          cat ./*/*/sha.checksums | awk '{ print length, $0 }' | sort -n | cut -d" " -f2- > sha.sums
+          ARTSIZE=`cat sha.sums | wc -l`
+          ARTSIZE2=$((ARTSIZE / 2))
+          sed -e "s/<<SHA256>>/$(head -n $ARTSIZE2 sha.sums | sort -k 2 | sed -z 's:\n:\\n:g' | sed 's:/:\\/:g')/g" -i release.template.md
+          sed -e "s/<<SHA512>>/$(tail -n $ARTSIZE2 sha.sums | sort -k 2 | sed -z 's:\n:\\n:g' | sed 's:/:\\/:g')/g" -i release.template.md
+          sed 's/<<TAG_NAME>>/${{ inputs.release_tag }}/g' -i release.template.md
+          sed 's/<<RELEASE_HIGHLIGHTS>>/${{ inputs.release_highlights }}/g' -i release.template.md
+          sed "s/<<DOCKER_VERSION>>/$DOCKER_VERSION/g" -i release.template.md
+          sed "s/<<DOCKER_COMPOSE_VERSION>>/$DOCKER_COMPOSE_VERSION/g" -i release.template.md
+          sed "s/<<PODMAN_VERSION>>/$PODMAN_VERSION/g" -i release.template.md
+          sed "s/<<QEMU_VERSION>>/$QEMU_VERSION/g" -i release.template.md
+          sed -e "s/<<BUILD_LOG_URL>>/$(echo $BUILD_LOG_URL | sed 's:/:\\/:g')/g" -i release.template.md
+          cat release.template.md
 
       - name: "🏷️ Publish release"
         uses: ncipollo/release-action@v1
@@ -45,4 +75,4 @@ jobs:
           artifacts: "qcw/**/*.exe"
           bodyFile: "release.template.md"
           tag: ${{ inputs.release_tag }}
-          commit: "update-workflows"
+          commit: "main"

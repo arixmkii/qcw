@@ -1,15 +1,24 @@
 name: Prepare QCW Podman (from revision)
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  workflow_call:
+    outputs:
+      podman_version:
+        description: Podman version"
+        value: ${{ jobs.build.outputs.podman_version }}
 
 env:
   PODMAN_GITURL: https://github.com/containers/podman.git
   PODMAN_SHA: 4cbdfde5d862dcdbe450c0f1d76ad75360f67a3c # v5.3.1
+  PODMAN_VERSION: 5.3.1
   PODMAN_REVISION_KIND: prod # prod|dev
 
 jobs:
   build:
     runs-on: windows-latest
+    outputs:
+      podman_version: ${{ steps.make_versions.outputs.podman }}
 
     steps:
       - name: "🏗️ Install msys2"
@@ -101,6 +110,12 @@ jobs:
           find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
           find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
           cat sha.checksums
+
+      - id: make_versions
+        name: "📌 Export versions"
+        shell: msys2 {0}
+        run: |
+          echo "podman=$PODMAN_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: "🚀 Upload artifact"
         uses: actions/upload-artifact@v4
