@@ -81,7 +81,7 @@ Should be installed via official setup mechanism.
 
 Starting from version `0.0.18` of qcw it is possible to use with official windows builds of QEMU (including msys2).
 
-Version `9.1.2` with 3 patch sets from QEMU mailing list:
+Version `9.2.0` with 3 patch sets from QEMU mailing list:
 * hw/9pfs: Add 9pfs support for Windows https://lists.gnu.org/archive/html/qemu-devel/2023-02/msg05533.html;
 * WHPX: Add support for device backed memory regions https://lists.gnu.org/archive/html/qemu-devel/2022-07/msg04837.html;
 * Windows installer: keep dependency cache https://lists.gnu.org/archive/html/qemu-devel/2023-01/msg03125.html.
