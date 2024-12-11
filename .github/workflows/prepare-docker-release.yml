@@ -1,6 +1,8 @@
 name: Prepare QCW Docker (from revision)
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  workflow_call:
 
 env:
   CLI_GITURL: https://github.com/docker/cli.git

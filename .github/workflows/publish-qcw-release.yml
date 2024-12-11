@@ -1,0 +1,20 @@
+name: Publish tagged QCW release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  call-prepare-docker:
+    uses: ./.github/workflows/prepare-docker-release.yml
+
+  prepare:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "📝 Configure checkout"
+        run: git config --global core.autocrlf input
+
+      - name: "📝 Checkout"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
