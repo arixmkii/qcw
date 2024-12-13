@@ -31,6 +31,7 @@ jobs:
             git
             unzip
             base-devel
+            man-db
             mingw-w64-ucrt-x86_64-toolchain
             zip
             mingw-w64-ucrt-x86_64-go

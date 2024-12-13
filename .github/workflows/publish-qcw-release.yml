@@ -56,8 +56,10 @@ jobs:
           cat ./*/*/sha.checksums | awk '{ print length, $0 }' | sort -n | cut -d" " -f2- > sha.sums
           ARTSIZE=`cat sha.sums | wc -l`
           ARTSIZE2=$((ARTSIZE / 2))
-          sed -e "s/<<SHA256>>/$(head -n $ARTSIZE2 sha.sums | sort -k 2 | sed -z 's:\n:\\n:g' | sed 's:/:\\/:g')/g" -i release.template.md
-          sed -e "s/<<SHA512>>/$(tail -n $ARTSIZE2 sha.sums | sort -k 2 | sed -z 's:\n:\\n:g' | sed 's:/:\\/:g')/g" -i release.template.md
+          head -n $ARTSIZE2 sha.sums | sort -k 2 > qcw/checksums.sha256
+          tail -n $ARTSIZE2 sha.sums | sort -k 2 > qcw/checksums.sha512
+          sed -e "s/<<SHA256>>/$(cat qcw/checksums.sha256 | sed -z 's:\n:\\n:g' | sed 's:/:\\/:g')/g" -i release.template.md
+          sed -e "s/<<SHA512>>/$(cat qcw/checksums.sha512 | sed -z 's:\n:\\n:g' | sed 's:/:\\/:g')/g" -i release.template.md
           sed 's/<<TAG_NAME>>/${{ inputs.release_tag }}/g' -i release.template.md
           sed 's/<<RELEASE_HIGHLIGHTS>>/${{ inputs.release_highlights }}/g' -i release.template.md
           sed "s/<<DOCKER_VERSION>>/$DOCKER_VERSION/g" -i release.template.md
@@ -72,7 +74,7 @@ jobs:
         with:
           name: ${{ inputs.release_name }}
           prerelease: "true"
-          artifacts: "qcw/**/*.exe"
+          artifacts: "qcw/**/*.exe,qcw/*.sha256,qcw/*.sha512"
           bodyFile: "release.template.md"
           tag: ${{ inputs.release_tag }}
           commit: "main"
