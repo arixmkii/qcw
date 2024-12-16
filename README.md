@@ -51,7 +51,7 @@ Version `v27.4.0`. Rebuilt for Windows amd64 platform.
 
 #### `docker-compose`
 
-Version `v2.31.0`. Rebuilt for Windows amd64 platform.
+Version `v2.32.0`. Rebuilt for Windows amd64 platform.
 
 #### `gocat`
 
