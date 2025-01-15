@@ -29,18 +29,18 @@ default.
 
 Ordered alphabetically
 
-* `docker-cli` - [Github](https://github.com/docker/cli) `docker` command line interface;
-* `docker-compose` - [Github](https://github.com/docker/compose) orchestration tool for containers;
-* `gocat` - [Github](https://github.com/sumup-oss/gocat) multipurpose networking relay;
-* `gvisor-tap-vsock` - [Github](https://github.com/containers/gvisor-tap-vsock) the tool to provide networking for
+* `docker-cli` - [GitHub](https://github.com/docker/cli) `docker` command line interface;
+* `docker-compose` - [GitHub](https://github.com/docker/compose) orchestration tool for containers;
+* `gvisor-tap-vsock` - [GitHub](https://github.com/containers/gvisor-tap-vsock) the tool to provide networking for
 accessing containers from Windows;
-* `OpenSSH` - [home page](https://www.openssh.com/) SSH connectivity tool fork from [Powershell Github](https://github.com/PowerShell/openssh-portable);
-* `Podman` - [home page](https://podman.io/) and [Github](https://github.com/containers/podman) free and open source
+* `OpenSSH` - [home page](https://www.openssh.com/) SSH connectivity tool fork from [Powershell GitHub](https://github.com/PowerShell/openssh-portable);
+* `Podman` - [home page](https://podman.io/) and [GitHub](https://github.com/containers/podman) free and open source
 container runtime;
-* `Podman Desktop` - [home page](https://podman-desktop.io/) and [Github](https://github.com/containers/podman-desktop)
+* `Podman Desktop` - [home page](https://podman-desktop.io/) and [GitHub](https://github.com/containers/podman-desktop)
 GUI companion to Podman;
-* `QEMU` - [home page](https://www.qemu.org/) and [Github (mirror)](https://github.com/qemu/qemu) free and open source
+* `QEMU` - [home page](https://www.qemu.org/) and [GitHub (mirror)](https://github.com/qemu/qemu) free and open source
 feature rich machine emulator;
+* `WinSocat` - [GitHub](https://github.com/firejox/WinSocat) socat-like windows-specific program;
 * `Zlib` - [home page](https://www.zlib.net/) compression library.
 
 ### Versions and patches
@@ -52,10 +52,6 @@ Version `v27.4.0`. Rebuilt for Windows amd64 platform.
 #### `docker-compose`
 
 Version `v2.31.0`. Rebuilt for Windows amd64 platform.
-
-#### `gocat`
-
-Built from HEAD of the development branch. Added patch with updated dependencies.
 
 #### `gvisor-tap-vsock`
 
@@ -85,6 +81,13 @@ Version `9.2.0` with 3 patch sets from QEMU mailing list:
 * hw/9pfs: Add 9pfs support for Windows https://lists.gnu.org/archive/html/qemu-devel/2023-02/msg05533.html;
 * WHPX: Add support for device backed memory regions https://lists.gnu.org/archive/html/qemu-devel/2022-07/msg04837.html;
 * Windows installer: keep dependency cache https://lists.gnu.org/archive/html/qemu-devel/2023-01/msg03125.html.
+
+#### `WinSocat`
+
+Version `0.1.3` with 3 patch sets:
+* Pending commits after the release https://github.com/firejox/WinSocat/compare/v0.1.3...b7e32fa8f782ae38475cfc7cf1eed25de1fad339
+* Dependency updates from https://github.com/firejox/WinSocat/pull/16
+* Some additinal cleanups for VisualStudio solution setup
 
 #### `Zlib`
 

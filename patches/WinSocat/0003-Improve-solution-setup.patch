@@ -1,0 +1,76 @@
+From fc0baba25d8c7a118381f8a0675444445af7722b Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Wed, 15 Jan 2025 17:21:42 +0200
+Subject: [PATCH] Improve solution setup
+
+---
+ .editorconfig                                 | 10 ++++++++++
+ .gitignore                                    | 10 +++++-----
+ .../PublishProfiles/AppProfile.pubxml         | 20 +++++++++++++++++++
+ 3 files changed, 35 insertions(+), 5 deletions(-)
+ create mode 100644 .editorconfig
+ create mode 100644 winsocat/Properties/PublishProfiles/AppProfile.pubxml
+
+diff --git a/.editorconfig b/.editorconfig
+new file mode 100644
+index 0000000..47af143
+--- /dev/null
++++ b/.editorconfig
+@@ -0,0 +1,10 @@
++# EditorConfig is awesome: https://editorconfig.org
++
++# top-most EditorConfig file
++root = true
++
++# Unix-style newlines with a newline ending every file
++[*]
++end_of_line = lf
++insert_final_newline = true
++charset = utf-8
+diff --git a/.gitignore b/.gitignore
+index a5a99dd..6e97d64 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1,6 +1,6 @@
+-/winsocat/obj/
+-/winsocat/bin/
+-/Tests/obj
+-/Tests/bin
+-/.vs
++obj/
++bin/
++.vs/
++.idea/
++build/
+ *.user
+\ No newline at end of file
+diff --git a/winsocat/Properties/PublishProfiles/AppProfile.pubxml b/winsocat/Properties/PublishProfiles/AppProfile.pubxml
+new file mode 100644
+index 0000000..ef9eb0f
+--- /dev/null
++++ b/winsocat/Properties/PublishProfiles/AppProfile.pubxml
+@@ -0,0 +1,20 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!--
++https://go.microsoft.com/fwlink/?LinkID=208121.
++-->
++<Project>
++  <PropertyGroup>
++    <Configuration>Release</Configuration>
++    <Platform>Any CPU</Platform>
++    <PublishDir>..\build\x64</PublishDir>
++    <PublishProtocol>FileSystem</PublishProtocol>
++    <_TargetId>Folder</_TargetId>
++    <TargetFramework>net8.0</TargetFramework>
++    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
++    <SelfContained>true</SelfContained>
++    <PublishSingleFile>true</PublishSingleFile>
++    <PublishReadyToRun>true</PublishReadyToRun>
++    <PublishTrimmed>true</PublishTrimmed>
++    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
++  </PropertyGroup>
++</Project>
+\ No newline at end of file
+-- 
+2.48.1
+

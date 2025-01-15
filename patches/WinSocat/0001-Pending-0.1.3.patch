@@ -1,0 +1,123 @@
+From 0580ae45c013b66d88d51aa1de5715d51f796d43 Mon Sep 17 00:00:00 2001
+From: Firejox <firejox@gmail.com>
+Date: Sun, 28 May 2023 20:59:16 +0800
+Subject: [PATCH 1/2] Update README.md
+
+---
+ README.md | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/README.md b/README.md
+index 5df26da..f7ecfb4 100644
+--- a/README.md
++++ b/README.md
+@@ -10,13 +10,21 @@
+ WinSocat is a socat-like program specific on Windows platform. It can bridge Windows named pipe and other general I/O, e.g., STDIO, TCP, the STDIO of Process.
+ 
+ ## Installation
++There are several ways to install WinSocat.
+ 
++### .NET CLI
+ [Install .NET 6 or newer](https://get.dot.net) and install via `dotnet tool`
+ 
+ ```
+ dotnet tool install -g winsocat
+ ```
+ 
++### Windows Package Manager
++Install via `winget`
++```
++winget install -e --id Firejox.WinSocat
++```
++
+ ## Command Form
+ 
+ The WinSocat is accept two address pattern
+
+From b7e32fa8f782ae38475cfc7cf1eed25de1fad339 Mon Sep 17 00:00:00 2001
+From: Firejox <firejox@gmail.com>
+Date: Sun, 21 Apr 2024 21:27:31 +0800
+Subject: [PATCH 2/2] Fix the bug when exe path contains space will result
+ error (#11)
+
+---
+ Tests/ProcPiperInfoTest.cs |  2 ++
+ winsocat/AddressElement.cs |  2 +-
+ winsocat/Process.cs        | 22 ++++++----------------
+ 3 files changed, 9 insertions(+), 17 deletions(-)
+
+diff --git a/Tests/ProcPiperInfoTest.cs b/Tests/ProcPiperInfoTest.cs
+index 16bafe0..2b1e122 100644
+--- a/Tests/ProcPiperInfoTest.cs
++++ b/Tests/ProcPiperInfoTest.cs
+@@ -34,6 +34,7 @@ public void InvalidInputParseTest(string input)
+ 
+     [TestCase(@"EXEC:C:\Foo.exe bar", ExpectedResult = @"C:\Foo.exe")]
+     [TestCase(@"EXEC:C:\Foo.exe", ExpectedResult = @"C:\Foo.exe")]
++    [TestCase(@"EXEC:""C:\foo\space dir\bar.exe"" arg1 arg2", ExpectedResult = @"C:\foo\space dir\bar.exe")]
+     public string FileNamePatternMatchTest(string input)
+     {
+         var element = AddressElement.TryParse(input);
+@@ -41,6 +42,7 @@ public string FileNamePatternMatchTest(string input)
+     }
+ 
+     [TestCase(@"EXEC:C:\Foo.exe bar1 bar2", ExpectedResult = "bar1 bar2")]
++    [TestCase(@"EXEC:""C:\foo\space dir\bar.exe"" arg1 arg2", ExpectedResult = @"arg1 arg2")]
+     public string ArgumentPatternMatchTest(string input)
+     {
+         var element = AddressElement.TryParse(input);
+diff --git a/winsocat/AddressElement.cs b/winsocat/AddressElement.cs
+index a768ba5..094ccff 100644
+--- a/winsocat/AddressElement.cs
++++ b/winsocat/AddressElement.cs
+@@ -36,7 +36,7 @@ public static AddressElement TryParse(string input)
+             return null!;
+ 
+         string tag = tagSplits[0];
+-        string address = tagSplits[1].Substring(0, addressSepOffset);
++        string address = tagSplits[1].Substring(0, addressSepOffset).Trim();
+         var options = GetOptions(tagSplits[1].Substring(addressSepOffset));
+         
+         return new AddressElement(tag, address, options);
+diff --git a/winsocat/Process.cs b/winsocat/Process.cs
+index fe0ef28..84f3a4b 100644
+--- a/winsocat/Process.cs
++++ b/winsocat/Process.cs
+@@ -1,5 +1,6 @@
+ using System.Diagnostics;
+ using System.IO.Pipelines;
++using System.CommandLine.Parsing;
+ 
+ namespace Firejox.App.WinSocat;
+ 
+@@ -20,25 +21,14 @@ public ProcPiperInfo(string filename, string arguments)
+     public static ProcPiperInfo TryParse(AddressElement element)
+     {
+         if (!element.Tag.Equals("EXEC", StringComparison.OrdinalIgnoreCase)) return null!;
+-        
+-        string execPattern = element.Address.Trim('\'', '\"');
+-        int sepIndex = execPattern.IndexOf(' ');
+-        string filename;
+-        string arguments;
+-
+-        if (sepIndex != -1)
+-        {
+-            filename = execPattern.Substring(0, sepIndex);
+-            arguments = execPattern.Substring(sepIndex + 1);
+-        }
+-        else
+-        {
+-            filename = execPattern;
+-            arguments = "";
+-        }
++        var execPattern = element.Address;
++        var cmdLine = CommandLineStringSplitter.Instance.Split(execPattern);
++        string filename = cmdLine.First();
++        string arguments = String.Join(' ', cmdLine.Skip(1));
+ 
+         return new ProcPiperInfo(filename, arguments);
+     }
++
+ }
+ 
+ public class ProcPiper : IPiper
