@@ -28,6 +28,7 @@ jobs:
           install: >-
             git
             dos2unix
+            patch
 
       - name: "🏗️ Install dotnet"
         uses: actions/setup-dotnet@v4
