@@ -10,8 +10,8 @@ on:
 
 env:
   PODMAN_GITURL: https://github.com/containers/podman.git
-  PODMAN_SHA: 4cbdfde5d862dcdbe450c0f1d76ad75360f67a3c # v5.3.1
-  PODMAN_VERSION: 5.3.1
+  PODMAN_SHA: 85043bb1a3818102194afa82845cb63841067c9c # v5.3.2
+  PODMAN_VERSION: 5.3.2
   PODMAN_REVISION_KIND: prod # prod|dev
 
 jobs:
