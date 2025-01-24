@@ -52,8 +52,8 @@ jobs:
       - id: make_versions
         name: "📌 Export versions"
         run: |
-          echo "apline=$ALPINE_VERSION" >> "$GITHUB_OUTPUT"
-          echo "apline_wsl=$ALPINE_WSL_VERSION" >> "$GITHUB_OUTPUT"
+          echo "alpine=$ALPINE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "alpine_wsl=$ALPINE_WSL_VERSION" >> "$GITHUB_OUTPUT"
       - name: "🚀 Upload artifact"
         uses: actions/upload-artifact@v4
         with:

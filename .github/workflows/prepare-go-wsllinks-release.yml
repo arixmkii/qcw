@@ -48,7 +48,7 @@ jobs:
         run: |
           mkdir -p qcw
           cp "go-wsllinks-release/go-wsllinks.exe" qcw/
-          cd ../qcw
+          cd qcw
           find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
           find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
           cat sha.checksums

@@ -4,17 +4,24 @@ on:
   workflow_call:
     outputs:
       lima_version:
-        description: lima version"
+        description: "Lima version"
         value: ${{ jobs.build.outputs.lima_version }}
+      gowsllinks_version:
+        description: "go-wsllinks version"
+        value: ${{ jobs.build.outputs.gowsllinks_version }}
 env:
   LIMA_GITURL: https://github.com/lima-vm/lima.git
   LIMA_SHA: e911564e4a5f3151a3beef5ec2446914e016c745
   LIMA_VERSION: dev
 jobs:
+  call-prepare-go-wsllinks:
+    uses: ./.github/workflows/prepare-go-wsllinks-release.yml
   build:
+    needs: [call-prepare-go-wsllinks]
     runs-on: windows-latest
     outputs:
       lima_version: ${{ steps.make_versions.outputs.lima }}
+      gowsllinks_version: ${{ steps.make_versions.outputs.gowsllinks }}
     steps:
       - name: "🏗️ Install msys2"
         uses: msys2/setup-msys2@v2
@@ -29,6 +36,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+      - name: "🛻 Donwload artifacts"
+        uses: actions/download-artifact@v4
+        with:
+          path: qcw-art
       - name: "📝 Fetch sources"
         shell: msys2 {0}
         run: |
@@ -43,7 +54,8 @@ jobs:
         working-directory: lima-release
         shell: msys2 {0}
         run: |
-          make binaries
+          cp -f ../qcw-art/qcw-go-wsllinks/go-wsllinks.exe ./contrib/bundle-wsl/go-wsllinks.exe
+          make binaries add-bundles
       - name: "📦 Pack Lima"
         shell: msys2 {0}
         run: |
@@ -58,9 +70,12 @@ jobs:
           cat sha.checksums
       - id: make_versions
         name: "📌 Export versions"
+        env:
+          GOWSLLINKS_VERSION: ${{ needs.call-prepare-go-wsllinks.outputs.gowsllinks_version }}
         shell: msys2 {0}
         run: |
           echo "lima=$LIMA_VERSION-$LIMA_SHA" >> "$GITHUB_OUTPUT"
+          echo "gowsllinks=$GOWSLLINKS_VERSION" >> "$GITHUB_OUTPUT"
       - name: "🚀 Upload artifact"
         uses: actions/upload-artifact@v4
         with:

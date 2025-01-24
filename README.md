@@ -11,12 +11,13 @@ on Windows using QEMU virtualization. It started in the scope of the discussion 
 The aim is to maintain rebuilds with a minimal set of changes to all needed projects and later to archive it or this
 project would become an instruction on how to build that kind of setup using released versions.
 
-All thanks goes and attribution stays with the authours of the great pieces of software, which made this project
+All thanks go and attribution stays with the authours of the great pieces of software, which made this project
 possible in the first place.
 
 ## License
 
-The build and setup scripts in this repository are licensed under Apache-2.0 license, but the patches and the original software being patched and rebuilt keeps its original license in effect. This project doesn't change how the rebuilt software is licensed.
+The build and setup scripts in this repository are licensed under Apache-2.0 license, but the patches and the original software
+being patched and rebuilt keeps its original license in effect. This project doesn't change how the rebuilt software is licensed.
 
 ## Specific requirements
 
@@ -24,6 +25,10 @@ This is built for relatively fresh Windows systems, which has unix domain socket
 starting with Windows 10 Insiders build in late 2017: https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/
 It will also require [Hyper-V](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/about/) support by
 default.
+
+Some features require even more fresh Windows systems. To use `Lima` one would need at least Windows 11 22H2 with mirrored network
+mode https://learn.microsoft.com/en-us/windows/wsl/networking#mirrored-mode-networking and WSL2 release newer than
+[`2.4.8`](https://github.com/microsoft/WSL/releases/tag/2.4.8) prerelease is a hard requirement.
 
 ## Included software
 
@@ -35,6 +40,7 @@ Ordered alphabetically
 * `gvisor-tap-vsock` - [GitHub](https://github.com/containers/gvisor-tap-vsock) the tool to provide networking for
 accessing containers from Windows;
 * `go-wsllinks` - [GitHub](https://github.com/arixmkii/go-wsllinks) symlink like binaries for WSL2;
+* `Lima` - [GitHub](https://github.com/lima-vm/lima) Linux virtual machines, with a focus on running containers;
 * `OpenSSH` - [home page](https://www.openssh.com/) SSH connectivity tool fork from [Powershell GitHub](https://github.com/PowerShell/openssh-portable);
 * `Podman` - [home page](https://podman.io/) and [GitHub](https://github.com/containers/podman) free and open source
 container runtime;
@@ -69,6 +75,11 @@ Version bundled with Podman is used
 
 Version `v0.0.1`. Rebuilt for Windows amd64 platform.
 
+#### `Lima`
+
+Development main branch from revision `e911564e4a5f3151a3beef5ec2446914e016c745` with 1 patch set:
+* Enable QEMU support in Lima
+
 #### `OpenSSH`
 
 Version `v9.5.0.0` with 1 patch from Powershell OpenSSH fork PRs:
@@ -88,6 +99,7 @@ Should be installed via official setup mechanism.
 #### `QEMU`
 
 Starting from version `0.0.18` of qcw it is possible to use with official windows builds of QEMU (including msys2).
+To launch Lima one still will need the patched version of QEMU.
 
 Version `9.2.0` with 3 patch sets from QEMU mailing list:
 * hw/9pfs: Add 9pfs support for Windows https://lists.gnu.org/archive/html/qemu-devel/2023-02/msg05533.html;
@@ -125,7 +137,8 @@ when installation completes. When using `podman-default.bat` one needs to config
 `%APPDATA%\containers\containers.conf` setting `provider = "qemu"` or `provider = "wsl"` inside `[machine]` section.
 
 Then run the Podman machine init command as one would do with all other Podman installations. The catch is to give
-2 mandatory config overrides:
+2 mandatory config overrides
+
 ```bat
 podman machine init -v ""
 ```
@@ -139,6 +152,7 @@ re-add older implementation with `9p` filesystem back for Windows, but it is not
 `9p` support in their Windows builds.
 
 Then run the machine as normal
+
 ```bat
 podman machine start
 ```
@@ -199,7 +213,41 @@ docker compose up --wait
 
 ## How to use Lima
 
-TBD
+### Preparation
+
+Donwload from release page `lima-infra` WSL distribution. If one was previously installed it should be first removed using command
+`wsl --unregister lima-infra`. Install the new one by double clicking on the `.wsl` file or using command
+`wsl --install --from-file lima-infra.wsl`. Don't rename the distribution - currently only predefined name `lima-infra` having
+default user `lima` is supported.
+
+### Basics
+
+Download `lima.zip` and extract it to the local machine. Either add `<path-to-extract>\lima\bin` to your PATH environment variable
+or run terminal inside `<path-to-extract>\lima\bin` folder.
+
+Create new instance. Only default template had been checked and updated to work out of the box, all others might require changes.
+
+```bat
+limactl create default
+```
+
+Start the instance as normal
+
+```bat
+limactl start default
+```
+
+Then start the first container with
+
+```bat
+lima nerdctl run -it --rm -p 8080:80 nginx
+```
+
+And test it with `curl`
+
+```bat
+curl http://localhost:8080
+```
 
 ## Known issues QEMU
 
@@ -224,6 +272,16 @@ There is no way to use file system mounts in Podman with QEMU on Windows hosts.
 
 ## Known issues Lima
 
-### 1. TBD
+### 1. AF_UNIX port forwarding from VM doesn't work
 
-TBD
+Additional work is required to bring AF_UNIX port forwarding (same applied to Unix socket to named pipe forwarding)
+
+### 2. WSL driver is currently broken
+
+Lima supprot is in prototype stage and numerous features from original version are broken, this includes support for provisioning
+WSL2 VMs using Lima. Only QEMU driver is supported in this rebuild.
+
+### 3. Key pairs created with official Lima instance will lack Unix permissions and will be rejected
+
+To use older key pairs one would need to manually adjust their persmissions from `wsl` shell of `lima-infra` distribution.
+This doesn't apply to keys, which would be generated by this rebuild.

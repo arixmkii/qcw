@@ -1,20 +1,22 @@
-From aaeefc9e90d34c8129d6f134fc0e637ae478f47f Mon Sep 17 00:00:00 2001
+From 7df9651f4e754513c3578e97b64e6eeac1515373 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 28 Jan 2025 14:55:26 +0200
 Subject: [PATCH] Add Lima customizations
 
 ---
- src_x64/Makefile              |  8 +++++---
+ src_x64/Makefile              |  9 ++++++---
+ src_x64/cygpath               |  5 +++++
  src_x64/oobe.sh               |  8 ++++++++
  src_x64/wsl-distribution.conf |  4 ++++
  src_x64/wsl.conf              | 10 ++++++++++
- 4 files changed, 27 insertions(+), 3 deletions(-)
+ 5 files changed, 33 insertions(+), 3 deletions(-)
+ create mode 100755 src_x64/cygpath
  create mode 100755 src_x64/oobe.sh
  create mode 100644 src_x64/wsl-distribution.conf
  create mode 100644 src_x64/wsl.conf
 
 diff --git a/src_x64/Makefile b/src_x64/Makefile
-index ead99a0..d87fbc3 100644
+index ead99a0..de75b76 100644
 --- a/src_x64/Makefile
 +++ b/src_x64/Makefile
 @@ -3,7 +3,7 @@ LNCR_EXE=Alpine.exe
@@ -26,7 +28,7 @@ index ead99a0..d87fbc3 100644
  ROOTFS_TARBALL_CKSM_URL=${BASE_URL}.sha512
  LNCR_ZIP_URL=https://github.com/yuk7/wsldl/releases/download/23072600/icons.zip
  LNCR_ZIP_EXE=Alpine.exe
-@@ -43,9 +43,11 @@ rootfs: base.tar.gz profile
+@@ -43,9 +43,12 @@ rootfs: base.tar.gz profile
  	sudo cp -f /etc/resolv.conf rootfs/etc/resolv.conf
  	sudo cp -f profile rootfs/etc/profile
  	sudo chroot rootfs /sbin/apk update
@@ -37,12 +39,24 @@ index ead99a0..d87fbc3 100644
 +	sudo cp -f oobe.sh rootfs/etc/oobe.sh
 +	sudo cp -f wsl.conf rootfs/etc/wsl.conf
 +	sudo cp -f wsl-distribution.conf rootfs/etc/wsl-distribution.conf
++	sudo cp -f cygpath rootfs/usr/local/bin/cygpath
  	sudo chmod +x rootfs
  
  base.tar.gz:
+diff --git a/src_x64/cygpath b/src_x64/cygpath
+new file mode 100755
+index 0000000..975a36f
+--- /dev/null
++++ b/src_x64/cygpath
+@@ -0,0 +1,5 @@
++#!/usr/bin/env bash
++
++set -ue
++
++/bin/wslpath "$@"
 diff --git a/src_x64/oobe.sh b/src_x64/oobe.sh
 new file mode 100755
-index 0000000..64bc8e5
+index 0000000..c9ab254
 --- /dev/null
 +++ b/src_x64/oobe.sh
 @@ -0,0 +1,8 @@
@@ -52,8 +66,8 @@ index 0000000..64bc8e5
 +
 +addgroup --gid 1000 lima
 +adduser -D --gecos "" --home /home/lima --ingroup lima --uid 1000 -s /bin/bash lima
-+mkdir -p -m 700 /run/user/1000
-+chown lima:lima /run/user/1000
++mkdir -p -m 700 /var/opt/lima
++chown lima:lima /var/opt/lima
 diff --git a/src_x64/wsl-distribution.conf b/src_x64/wsl-distribution.conf
 new file mode 100644
 index 0000000..a0b83aa

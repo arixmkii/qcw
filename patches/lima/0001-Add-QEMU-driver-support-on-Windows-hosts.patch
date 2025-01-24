@@ -1,25 +1,57 @@
-From 36faee666dfb15cd2f39d81ca307c1801fb68dd2 Mon Sep 17 00:00:00 2001
+From f97d2c5d7968e6172b9b542a78351854f8e983dd Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Wed, 22 Jan 2025 17:24:01 +0200
 Subject: [PATCH] Add QEMU driver support on Windows hosts
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
- cmd/limactl/main.go            | 14 ++++++++++++++
- cmd/limactl/shell.go           |  3 ++-
- pkg/cidata/cidata.go           | 11 ++++++++++-
- pkg/hostagent/hostagent.go     |  7 ++++++-
- pkg/hostagent/mount.go         | 21 ++++++++++++++++++---
- pkg/ioutilx/ioutilx.go         |  3 ++-
- pkg/iso9660util/iso9660util.go |  6 ------
- pkg/osutil/user.go             |  2 +-
- pkg/qemu/qemu.go               |  2 ++
- pkg/sshutil/sshutil.go         | 19 ++++++++++---------
- templates/default.yaml         |  2 +-
- 11 files changed, 66 insertions(+), 24 deletions(-)
+ Makefile                           | 14 ++++++++++++++
+ cmd/limactl/main.go                | 14 ++++++++++++++
+ cmd/limactl/shell.go               |  3 ++-
+ contrib/bundle-wsl/go-wsllinks.exe |  0
+ contrib/bundle-wsl/sftp-server.ini |  1 +
+ contrib/bundle-wsl/wsllinks.ini    |  2 ++
+ pkg/cidata/cidata.go               | 11 ++++++++++-
+ pkg/hostagent/hostagent.go         |  7 ++++++-
+ pkg/hostagent/mount.go             | 21 ++++++++++++++++++---
+ pkg/ioutilx/ioutilx.go             |  3 ++-
+ pkg/iso9660util/iso9660util.go     |  6 ------
+ pkg/osutil/user.go                 |  2 +-
+ pkg/qemu/qemu.go                   |  2 ++
+ pkg/sshutil/sshutil.go             | 19 ++++++++++---------
+ templates/default.yaml             |  2 +-
+ 15 files changed, 83 insertions(+), 24 deletions(-)
+ create mode 100644 contrib/bundle-wsl/go-wsllinks.exe
+ create mode 100644 contrib/bundle-wsl/sftp-server.ini
+ create mode 100644 contrib/bundle-wsl/wsllinks.ini
 
+diff --git a/Makefile b/Makefile
+index 71bea6e4..afde990b 100644
+--- a/Makefile
++++ b/Makefile
+@@ -551,6 +551,20 @@ artifacts-misc: | _artifacts
+ 
+ MKDIR_TARGETS += _artifacts
+ 
++.PHONY: add-bundles
++add-bundles: add-bundle-wsl
++
++add-bundle-wsl: _output/bin/bundle-wsl/wsllinks.ini _output/bin/bundle-wsl/sftp-server.ini _output/bin/bundle-wsl/cygpath.exe _output/bin/bundle-wsl/id.exe _output/bin/bundle-wsl/realpath.exe _output/bin/bundle-wsl/sftp-server.exe _output/bin/bundle-wsl/ssh.exe _output/bin/bundle-wsl/ssh-keygen.exe 
++
++
++_output/bin/bundle-wsl/%.ini: contrib/bundle-wsl/%.ini | _output/bin/bundle-wsl
++	cp -a $< $@
++
++_output/bin/bundle-wsl/%.exe:
++	cp -a contrib/bundle-wsl/go-wsllinks.exe $@
++
++MKDIR_TARGETS += _output/bin/bundle-wsl
++
+ ################################################################################
+ # This target must be placed after any changes to the `MKDIR_TARGETS` variable.
+ # It seems that variable expansion in Makefile targets is not done recursively.
 diff --git a/cmd/limactl/main.go b/cmd/limactl/main.go
-index 259f622a..fc6a9505 100644
+index 259f622a..4369387f 100644
 --- a/cmd/limactl/main.go
 +++ b/cmd/limactl/main.go
 @@ -25,6 +25,20 @@ const (
@@ -30,7 +62,7 @@ index 259f622a..fc6a9505 100644
 +		binary, e := os.Executable()
 +		if e == nil {
 +			binaryDir := filepath.Dir(binary)
-+			extrasDir := filepath.Join(binaryDir, "extras")
++			extrasDir := filepath.Join(binaryDir, "bundle-wsl")
 +			p := os.Getenv("PATH")
 +			e = os.Setenv("PATH", extrasDir+string(filepath.ListSeparator)+p)
 +			if e != nil {
@@ -64,6 +96,24 @@ index c4611a0b..37f4f1e7 100644
  		changeDirCmd = "false"
  	}
  	logrus.Debugf("changeDirCmd=%q", changeDirCmd)
+diff --git a/contrib/bundle-wsl/go-wsllinks.exe b/contrib/bundle-wsl/go-wsllinks.exe
+new file mode 100644
+index 00000000..e69de29b
+diff --git a/contrib/bundle-wsl/sftp-server.ini b/contrib/bundle-wsl/sftp-server.ini
+new file mode 100644
+index 00000000..47d2814a
+--- /dev/null
++++ b/contrib/bundle-wsl/sftp-server.ini
+@@ -0,0 +1 @@
++binary = /usr/lib/ssh/sftp-server
+diff --git a/contrib/bundle-wsl/wsllinks.ini b/contrib/bundle-wsl/wsllinks.ini
+new file mode 100644
+index 00000000..60b0c8e8
+--- /dev/null
++++ b/contrib/bundle-wsl/wsllinks.ini
+@@ -0,0 +1,2 @@
++distro = lima-infra
++user = lima
 diff --git a/pkg/cidata/cidata.go b/pkg/cidata/cidata.go
 index 2030a9a8..bdbca881 100644
 --- a/pkg/cidata/cidata.go
@@ -180,7 +230,7 @@ index 646dc5d4..d7ef289f 100644
  		return nil, fmt.Errorf("failed to prepare reverse sshfs for %q on %q: %w", location, mountPoint, err)
  	}
 diff --git a/pkg/ioutilx/ioutilx.go b/pkg/ioutilx/ioutilx.go
-index efee8203..cdec1327 100644
+index efee8203..4b52f24a 100644
 --- a/pkg/ioutilx/ioutilx.go
 +++ b/pkg/ioutilx/ioutilx.go
 @@ -5,6 +5,7 @@ import (
@@ -196,7 +246,7 @@ index efee8203..cdec1327 100644
  func CanonicalWindowsPath(orig string) string {
  	newPath := orig
 -	out, err := exec.Command("cygpath", "-m", orig).CombinedOutput()
-+	out, err := exec.Command("wslpath", filepath.ToSlash(orig)).CombinedOutput()
++	out, err := exec.Command("cygpath", filepath.ToSlash(orig)).CombinedOutput()
  	if err != nil {
  		logrus.WithError(err).Errorf("failed to convert path to mingw, maybe not using Git ssh?")
  	} else {
@@ -254,7 +304,7 @@ index 9bd5a8c5..38bf6c2f 100644
  
  	switch arch {
 diff --git a/pkg/sshutil/sshutil.go b/pkg/sshutil/sshutil.go
-index 563bc5ed..45b0acfd 100644
+index 563bc5ed..37908acb 100644
 --- a/pkg/sshutil/sshutil.go
 +++ b/pkg/sshutil/sshutil.go
 @@ -9,6 +9,7 @@ import (
@@ -308,7 +358,7 @@ index 563bc5ed..45b0acfd 100644
 -		controlSock = ioutilx.CanonicalWindowsPath(controlSock)
 -		controlPath = fmt.Sprintf(`ControlPath='%s'`, controlSock)
 +		controlSock = strings.ReplaceAll(ioutilx.CanonicalWindowsPath(controlSock), "/", "_")
-+		controlPath = fmt.Sprintf(`ControlPath='%s'`, path.Join("/run/user/1000", strings.TrimPrefix(controlSock, "_mnt_")))
++		controlPath = fmt.Sprintf(`ControlPath='%s'`, path.Join("/var/opt/lima", strings.TrimPrefix(controlSock, "_mnt_")))
  	}
  	opts = append(opts,
  		fmt.Sprintf("User=%s", username), // guest and host have the same username, but we should specify the username explicitly (#85)

@@ -22,8 +22,12 @@ jobs:
     uses: ./.github/workflows/prepare-podman-release.yml
   call-prepare-qemu:
     uses: ./.github/workflows/prepare-qemu-release.yml
+  call-prepare-alpine-wsl:
+    uses: ./.github/workflows/prepare-alpine-wsl-release.yml
+  call-prepare-lima:
+    uses: ./.github/workflows/prepare-lima-release.yml
   publish:
-    needs: [call-prepare-docker, call-prepare-podman, call-prepare-qemu]
+    needs: [call-prepare-docker, call-prepare-podman, call-prepare-qemu, call-prepare-lima, call-prepare-alpine-wsl]
     runs-on: ubuntu-latest
     steps:
       - name: "📝 Configure checkout"
@@ -38,8 +42,12 @@ jobs:
           path: qcw
       - name: "🗒️ Prepare release notes"
         env:
+          ALPINE_VERSION: ${{ needs.call-prepare-alpine-wsl.outputs.alpine_version }}
+          ALPINEWSL_VERSION: ${{ needs.call-prepare-alpine-wsl.outputs.alpine_wsl_version }}
           DOCKER_VERSION: ${{ needs.call-prepare-docker.outputs.cli_version }}
           DOCKER_COMPOSE_VERSION: ${{ needs.call-prepare-docker.outputs.compose_version }}
+          GOWSLLINKS_VERSION: ${{ needs.call-prepare-lima.outputs.gowsllinks_version }}
+          LIMA_VERSION: ${{ needs.call-prepare-lima.outputs.lima_version }}
           PODMAN_VERSION: ${{ needs.call-prepare-podman.outputs.podman_version }}
           QEMU_VERSION: ${{ needs.call-prepare-qemu.outputs.qemu_version }}
           BUILD_LOG_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -53,18 +61,24 @@ jobs:
           sed -e "s/<<SHA512>>/$(cat qcw/checksums.sha512 | sed -z 's:\n:\\n:g' | sed 's:/:\\/:g')/g" -i release.template.md
           sed 's/<<TAG_NAME>>/${{ inputs.release_tag }}/g' -i release.template.md
           sed 's/<<RELEASE_HIGHLIGHTS>>/${{ inputs.release_highlights }}/g' -i release.template.md
+          sed "s/<<ALPINE_VERSION>>/$ALPINE_VERSION/g" -i release.template.md
+          sed "s/<<ALPINEWSL_VERSION>>/$ALPINEWSL_VERSION/g" -i release.template.md
           sed "s/<<DOCKER_VERSION>>/$DOCKER_VERSION/g" -i release.template.md
           sed "s/<<DOCKER_COMPOSE_VERSION>>/$DOCKER_COMPOSE_VERSION/g" -i release.template.md
+          sed "s/<<GOWSLLINKS_VERSION>>/$GOWSLLINKS_VERSION/g" -i release.template.md
+          sed "s/<<LIMA_VERSION>>/$LIMA_VERSION/g" -i release.template.md
           sed "s/<<PODMAN_VERSION>>/$PODMAN_VERSION/g" -i release.template.md
           sed "s/<<QEMU_VERSION>>/$QEMU_VERSION/g" -i release.template.md
           sed -e "s/<<BUILD_LOG_URL>>/$(echo $BUILD_LOG_URL | sed 's:/:\\/:g')/g" -i release.template.md
           cat release.template.md
+          cat qcw/checksums.sha256
+          cat qcw/checksums.sha512
       - name: "🏷️ Publish release"
         uses: ncipollo/release-action@v1
         with:
           name: ${{ inputs.release_name }}
           prerelease: "true"
-          artifacts: "qcw/**/*.exe,qcw/*.sha256,qcw/*.sha512"
+          artifacts: "qcw/**/*.exe,qcw/**/*.wsl,qcw/*.sha256,qcw/*.sha512"
           bodyFile: "release.template.md"
           tag: ${{ inputs.release_tag }}
           commit: "main"
