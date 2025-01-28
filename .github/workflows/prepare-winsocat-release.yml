@@ -1,5 +1,4 @@
 name: Prepare QCW WinSocat (from revision)
-
 on:
   workflow_dispatch:
   workflow_call:
@@ -7,18 +6,15 @@ on:
       winsocat_version:
         description: WinSocat version"
         value: ${{ jobs.build.outputs.winsocat_version }}
-
 env:
   WINSOCAT_GITURL: https://github.com/firejox/WinSocat.git
   WINSOCAT_SHA: ad84bd28b6721c6415b73a37bb4a23aa53936062 # v0.1.3
   WINSOCAT_VERSION: 0.1.3
-
 jobs:
   build:
     runs-on: windows-latest
     outputs:
       winsocat_version: ${{ steps.make_versions.outputs.winsocat }}
-
     steps:
       - name: "🏗️ Install msys2"
         uses: msys2/setup-msys2@v2
@@ -26,24 +22,18 @@ jobs:
           msystem: UCRT64
           update: true
           install: >-
-            git
-            dos2unix
-            patch
-
+            git dos2unix patch
       - name: "🏗️ Install dotnet"
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
           dotnet-quality: 'ga'
-
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
-
       - name: "📝 Checkout"
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-
       - name: "📝 Fetch sources"
         shell: msys2 {0}
         run: |
@@ -57,7 +47,6 @@ jobs:
           patch --binary -l -p 1 < ../patches/WinSocat/0001-Pending-0.1.3.patch
           patch --binary -l -p 1 < ../patches/WinSocat/0002-Upgrade-to-dontent8.patch
           patch --binary -l -p 1 < ../patches/WinSocat/0003-Improve-solution-setup.patch
-
       - name: "🧪 Test WinSocat"
         working-directory: winsocat-release
         shell: pwsh
@@ -65,15 +54,10 @@ jobs:
           dotnet restore
           dotnet build --no-restore
           dotnet test --no-build
-
       - name: "🛠️ Build WinSocat"
         working-directory: winsocat-release
         shell: pwsh
-        run: |
-          dotnet restore
-          dotnet build -c Release --no-restore 
-          dotnet publish winsocat -c Release -r win-x64 -p:PublishDir=../build/x64 -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:PublishReadyToRun=true -p:PublishTrimmed=true --self-contained true
-
+        run: "dotnet restore\ndotnet build -c Release --no-restore \ndotnet publish winsocat -c Release -r win-x64 -p:PublishDir=../build/x64 -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:PublishReadyToRun=true -p:PublishTrimmed=true --self-contained true\n"
       - name: "📦 Pack WinSocat"
         shell: msys2 {0}
         run: |
@@ -83,13 +67,11 @@ jobs:
           find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
           find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
           cat sha.checksums
-
       - id: make_versions
         name: "📌 Export versions"
         shell: msys2 {0}
         run: |
           echo "winsocat=$WINSOCAT_VERSION" >> "$GITHUB_OUTPUT"
-
       - name: "🚀 Upload artifact"
         uses: actions/upload-artifact@v4
         with:

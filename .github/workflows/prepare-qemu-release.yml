@@ -1,5 +1,4 @@
 name: Prepare QCW QEMU (from TarBall sources)
-
 on:
   workflow_dispatch:
   workflow_call:
@@ -7,17 +6,14 @@ on:
       qemu_version:
         description: QEMU version"
         value: ${{ jobs.build.outputs.qemu_version }}
-
 env:
   QEMU_VERSION: 9.2.0
   MSYS: "winsymlinks:native"
-
 jobs:
   build:
     runs-on: windows-latest
     outputs:
       qemu_version: ${{ steps.make_versions.outputs.qemu }}
-
     steps:
       - name: "🏗️ Install msys2"
         uses: msys2/setup-msys2@v2
@@ -25,69 +21,22 @@ jobs:
           msystem: UCRT64
           update: true
           install: >-
-            base-devel
-            bison
-            diffutils
-            flex
-            git
-            grep
-            make
-            sed
-            unzip
-            mingw-w64-ucrt-x86_64-binutils
-            mingw-w64-ucrt-x86_64-capstone
-            mingw-w64-ucrt-x86_64-ccache
-            mingw-w64-ucrt-x86_64-curl-gnutls
-            mingw-w64-ucrt-x86_64-cyrus-sasl
-            mingw-w64-ucrt-x86_64-dtc
-            mingw-w64-ucrt-x86_64-gcc
-            mingw-w64-ucrt-x86_64-glib2
-            mingw-w64-ucrt-x86_64-gnutls
-            mingw-w64-ucrt-x86_64-gtk3
-            mingw-w64-ucrt-x86_64-libgcrypt
-            mingw-w64-ucrt-x86_64-libjpeg-turbo
-            mingw-w64-ucrt-x86_64-libnfs
-            mingw-w64-ucrt-x86_64-libpng
-            mingw-w64-ucrt-x86_64-libslirp
-            mingw-w64-ucrt-x86_64-libssh
-            mingw-w64-ucrt-x86_64-libtasn1
-            mingw-w64-ucrt-x86_64-libusb
-            mingw-w64-ucrt-x86_64-lzo2
-            mingw-w64-ucrt-x86_64-meson
-            mingw-w64-ucrt-x86_64-nettle
-            mingw-w64-ucrt-x86_64-ninja
-            mingw-w64-ucrt-x86_64-nsis
-            mingw-w64-ucrt-x86_64-pixman
-            mingw-w64-ucrt-x86_64-pkgconf
-            mingw-w64-ucrt-x86_64-python
-            mingw-w64-ucrt-x86_64-SDL2
-            mingw-w64-ucrt-x86_64-SDL2_image
-            mingw-w64-ucrt-x86_64-snappy
-            mingw-w64-ucrt-x86_64-spice
-            mingw-w64-ucrt-x86_64-toolchain
-            mingw-w64-ucrt-x86_64-usbredir
-            mingw-w64-ucrt-x86_64-virglrenderer
-            mingw-w64-ucrt-x86_64-zstd
-
+            base-devel bison diffutils flex git grep make sed unzip mingw-w64-ucrt-x86_64-binutils mingw-w64-ucrt-x86_64-capstone mingw-w64-ucrt-x86_64-ccache mingw-w64-ucrt-x86_64-curl-gnutls mingw-w64-ucrt-x86_64-cyrus-sasl mingw-w64-ucrt-x86_64-dtc mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-glib2 mingw-w64-ucrt-x86_64-gnutls mingw-w64-ucrt-x86_64-gtk3 mingw-w64-ucrt-x86_64-libgcrypt mingw-w64-ucrt-x86_64-libjpeg-turbo mingw-w64-ucrt-x86_64-libnfs mingw-w64-ucrt-x86_64-libpng mingw-w64-ucrt-x86_64-libslirp mingw-w64-ucrt-x86_64-libssh mingw-w64-ucrt-x86_64-libtasn1 mingw-w64-ucrt-x86_64-libusb mingw-w64-ucrt-x86_64-lzo2 mingw-w64-ucrt-x86_64-meson mingw-w64-ucrt-x86_64-nettle mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-nsis mingw-w64-ucrt-x86_64-pixman mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-SDL2 mingw-w64-ucrt-x86_64-SDL2_image mingw-w64-ucrt-x86_64-snappy mingw-w64-ucrt-x86_64-spice mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-usbredir mingw-w64-ucrt-x86_64-virglrenderer mingw-w64-ucrt-x86_64-zstd
       - name: "🏗️ Install tools"
         uses: crazy-max/ghaction-chocolatey@v3
         with:
           args: install 7zip.install
-
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
-
       - name: "📝 Checkout"
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-
       - name: "🔗 Link tools"
         shell: msys2 {0}
         run: |
           mkdir -p /usr/local/bin
           ln -sf "/c/Program Files/7-Zip/7z.exe" "/usr/local/bin/7z.exe"
-
       - name: "📝 Fetch sources"
         shell: msys2 {0}
         run: |
@@ -102,7 +51,6 @@ jobs:
           patch --binary -l -p 1 < ../patches/qemu/0001-9pfs-Add-9pfs-support-for-Windows-host.patch
           patch --binary -l -p 1 < ../patches/qemu/0002-WHPX-Add-support-for-device-backed-memory-regions.patch
           patch --binary -l -p 1 < ../patches/qemu/0003-Windows-installer-keep-dependency-cache.patch
-
       - name: "🛠️ Build QEMU"
         working-directory: qemu-release
         shell: msys2 {0}
@@ -110,7 +58,6 @@ jobs:
           ./configure --enable-gtk --enable-sdl --disable-debug-info
           make
           make installer
-
       - name: "📦 Pack QEMU"
         shell: msys2 {0}
         run: |
@@ -120,13 +67,11 @@ jobs:
           find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
           find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
           cat sha.checksums
-
       - id: make_versions
         name: "📌 Export versions"
         shell: msys2 {0}
         run: |
           echo "qemu=$QEMU_VERSION" >> "$GITHUB_OUTPUT"
-
       - name: "🚀 Upload artifact"
         uses: actions/upload-artifact@v4
         with:

@@ -1,5 +1,4 @@
 name: Prepare QCW Podman (from revision)
-
 on:
   workflow_dispatch:
   workflow_call:
@@ -7,19 +6,16 @@ on:
       podman_version:
         description: Podman version"
         value: ${{ jobs.build.outputs.podman_version }}
-
 env:
   PODMAN_GITURL: https://github.com/containers/podman.git
   PODMAN_SHA: 85043bb1a3818102194afa82845cb63841067c9c # v5.3.2
   PODMAN_VERSION: 5.3.2
   PODMAN_REVISION_KIND: prod # prod|dev
-
 jobs:
   build:
     runs-on: windows-latest
     outputs:
       podman_version: ${{ steps.make_versions.outputs.podman }}
-
     steps:
       - name: "🏗️ Install msys2"
         uses: msys2/setup-msys2@v2
@@ -27,32 +23,19 @@ jobs:
           msystem: UCRT64
           update: true
           install: >-
-            make
-            git
-            unzip
-            base-devel
-            man-db
-            mingw-w64-ucrt-x86_64-toolchain
-            zip
-            mingw-w64-ucrt-x86_64-go
-            mingw-w64-ucrt-x86_64-qemu
-
+            make git unzip base-devel man-db mingw-w64-ucrt-x86_64-toolchain zip mingw-w64-ucrt-x86_64-go mingw-w64-ucrt-x86_64-qemu
       - name: "🏗️ Install Pandoc"
         uses: crazy-max/ghaction-chocolatey@v3
         with:
           args: install pandoc -y --force\
-
       - name: "🏗️ Install WiX toolset"
         run: dotnet tool install --global wix
-
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
-
       - name: "📝 Checkout"
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-
       - name: "🔗 Link tools"
         shell: msys2 {0}
         run: |
@@ -60,7 +43,6 @@ jobs:
           ln -sf "$PROGRAMFILES\\Pandoc\\pandoc.exe" "/usr/local/bin/pandoc.exe"
           ln -sf "$USERPROFILE\\.dotnet\\tools\\wix.exe" "/usr/local/bin/wix.exe"
           ln -sf "$USERPROFILE\\.dotnet\\tools\\.store" "/usr/local/bin/.store"
-
       - name: "📝 Fetch sources"
         shell: msys2 {0}
         run: |
@@ -73,13 +55,11 @@ jobs:
           patch --binary -l -p 1 < ../patches/podman/0001-Fix-compilation-issues-in-QEMU-machine-files-Windows.patch
           patch --binary -l -p 1 < ../patches/podman/0002-Implement-QEMU-Podman-machine-on-Windows.patch
           patch --binary -l -p 1 < ../patches/podman/0003-Improve-platform-specific-URL-handling-in-podman-com.patch
-
       - name: "⚗️ Prepare Test Podman"
         working-directory: podman-release
         shell: msys2 {0}
         run: |
           HELPER_BINARIES_DIR=`cygpath -w "$(pwd)/bin/windows"` make clean podman-remote win-gvproxy
-
       - name: "🧪 Test Podman"
         working-directory: podman-release
         shell: pwsh
@@ -89,7 +69,6 @@ jobs:
         run: |
           $env:PATH="$env:PATH;D:\a\_temp\msys64\ucrt64\bin"
           ./winmake localmachine
-
       - name: "🛠️ Build Podman"
         working-directory: podman-release
         shell: msys2 {0}
@@ -100,7 +79,6 @@ jobs:
           cp *.zip contrib/win-installer/current/
           cd contrib/win-installer
           powershell -ExecutionPolicy Bypass -File build.ps1 $BUILD_PODMAN_VERSION $PODMAN_REVISION_KIND current
-
       - name: "📦 Pack Podman"
         shell: msys2 {0}
         run: |
@@ -111,13 +89,11 @@ jobs:
           find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
           find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
           cat sha.checksums
-
       - id: make_versions
         name: "📌 Export versions"
         shell: msys2 {0}
         run: |
           echo "podman=$PODMAN_VERSION" >> "$GITHUB_OUTPUT"
-
       - name: "🚀 Upload artifact"
         uses: actions/upload-artifact@v4
         with:

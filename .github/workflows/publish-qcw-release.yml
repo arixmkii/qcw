@@ -1,5 +1,4 @@
 name: Publish tagged QCW release
-
 on:
   workflow_dispatch:
     inputs:
@@ -16,35 +15,27 @@ on:
         default: 'TBD.'
         required: true
         type: string
-
 jobs:
   call-prepare-docker:
     uses: ./.github/workflows/prepare-docker-release.yml
-
   call-prepare-podman:
     uses: ./.github/workflows/prepare-podman-release.yml
-
   call-prepare-qemu:
     uses: ./.github/workflows/prepare-qemu-release.yml
-
   publish:
     needs: [call-prepare-docker, call-prepare-podman, call-prepare-qemu]
     runs-on: ubuntu-latest
-
     steps:
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
-
       - name: "📝 Checkout"
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-
       - name: "🛻 Donwload artifacts"
         uses: actions/download-artifact@v4
         with:
           path: qcw
-
       - name: "🗒️ Prepare release notes"
         env:
           DOCKER_VERSION: ${{ needs.call-prepare-docker.outputs.cli_version }}
@@ -68,7 +59,6 @@ jobs:
           sed "s/<<QEMU_VERSION>>/$QEMU_VERSION/g" -i release.template.md
           sed -e "s/<<BUILD_LOG_URL>>/$(echo $BUILD_LOG_URL | sed 's:/:\\/:g')/g" -i release.template.md
           cat release.template.md
-
       - name: "🏷️ Publish release"
         uses: ncipollo/release-action@v1
         with:
