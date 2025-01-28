@@ -1,0 +1,330 @@
+From 36faee666dfb15cd2f39d81ca307c1801fb68dd2 Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Wed, 22 Jan 2025 17:24:01 +0200
+Subject: [PATCH] Add QEMU driver support on Windows hosts
+
+Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+---
+ cmd/limactl/main.go            | 14 ++++++++++++++
+ cmd/limactl/shell.go           |  3 ++-
+ pkg/cidata/cidata.go           | 11 ++++++++++-
+ pkg/hostagent/hostagent.go     |  7 ++++++-
+ pkg/hostagent/mount.go         | 21 ++++++++++++++++++---
+ pkg/ioutilx/ioutilx.go         |  3 ++-
+ pkg/iso9660util/iso9660util.go |  6 ------
+ pkg/osutil/user.go             |  2 +-
+ pkg/qemu/qemu.go               |  2 ++
+ pkg/sshutil/sshutil.go         | 19 ++++++++++---------
+ templates/default.yaml         |  2 +-
+ 11 files changed, 66 insertions(+), 24 deletions(-)
+
+diff --git a/cmd/limactl/main.go b/cmd/limactl/main.go
+index 259f622a..fc6a9505 100644
+--- a/cmd/limactl/main.go
++++ b/cmd/limactl/main.go
+@@ -25,6 +25,20 @@ const (
+ )
+ 
+ func main() {
++	if runtime.GOOS == "windows" {
++		binary, e := os.Executable()
++		if e == nil {
++			binaryDir := filepath.Dir(binary)
++			extrasDir := filepath.Join(binaryDir, "extras")
++			p := os.Getenv("PATH")
++			e = os.Setenv("PATH", extrasDir+string(filepath.ListSeparator)+p)
++			if e != nil {
++				logrus.Warning("Can't add extras to PATH, relying fully on system PATH")
++			}
++		} else {
++			logrus.Warning("Can't get binary location, relying fully on system PATH")
++		}
++	}
+ 	if err := newApp().Execute(); err != nil {
+ 		handleExitCoder(err)
+ 		logrus.Fatal(err)
+diff --git a/cmd/limactl/shell.go b/cmd/limactl/shell.go
+index c4611a0b..37f4f1e7 100644
+--- a/cmd/limactl/shell.go
++++ b/cmd/limactl/shell.go
+@@ -5,6 +5,7 @@ import (
+ 	"fmt"
+ 	"os"
+ 	"os/exec"
++	"runtime"
+ 	"strconv"
+ 	"strings"
+ 
+@@ -105,7 +106,7 @@ func shellAction(cmd *cobra.Command, args []string) error {
+ 		logrus.Debug("the host home does not seem mounted, so the guest shell will have a different cwd")
+ 	}
+ 
+-	if changeDirCmd == "" {
++	if runtime.GOOS == "windows" || changeDirCmd == "" {
+ 		changeDirCmd = "false"
+ 	}
+ 	logrus.Debugf("changeDirCmd=%q", changeDirCmd)
+diff --git a/pkg/cidata/cidata.go b/pkg/cidata/cidata.go
+index 2030a9a8..bdbca881 100644
+--- a/pkg/cidata/cidata.go
++++ b/pkg/cidata/cidata.go
+@@ -10,6 +10,7 @@ import (
+ 	"os"
+ 	"path"
+ 	"path/filepath"
++	"runtime"
+ 	"slices"
+ 	"strings"
+ 	"time"
+@@ -17,6 +18,7 @@ import (
+ 	"github.com/docker/go-units"
+ 	"github.com/lima-vm/lima/pkg/debugutil"
+ 	"github.com/lima-vm/lima/pkg/identifierutil"
++	"github.com/lima-vm/lima/pkg/ioutilx"
+ 	"github.com/lima-vm/lima/pkg/iso9660util"
+ 	"github.com/lima-vm/lima/pkg/limayaml"
+ 	"github.com/lima-vm/lima/pkg/localpathutil"
+@@ -200,10 +202,17 @@ func templateArgs(bootScripts bool, instDir, name string, instConfig *limayaml.L
+ 		if err != nil {
+ 			return nil, err
+ 		}
+-		mountPoint, err := localpathutil.Expand(*f.MountPoint)
++
++		mountPoint := *f.MountPoint
++		if !path.IsAbs(mountPoint) {
++			mountPoint, err = localpathutil.Expand(mountPoint)
++		}
+ 		if err != nil {
+ 			return nil, err
+ 		}
++		if runtime.GOOS == "windows" && !path.IsAbs(mountPoint) {
++			mountPoint = ioutilx.CanonicalWindowsPath(mountPoint)
++		}
+ 		options := "defaults"
+ 		switch fstype {
+ 		case "9p", "virtiofs":
+diff --git a/pkg/hostagent/hostagent.go b/pkg/hostagent/hostagent.go
+index 396401a4..212f0c35 100644
+--- a/pkg/hostagent/hostagent.go
++++ b/pkg/hostagent/hostagent.go
+@@ -11,6 +11,7 @@ import (
+ 	"os"
+ 	"os/exec"
+ 	"path/filepath"
++	"runtime"
+ 	"strconv"
+ 	"strings"
+ 	"sync"
+@@ -132,7 +133,11 @@ func New(instName string, stdout io.Writer, signalCh chan os.Signal, opts ...Opt
+ 		vSockPort = port
+ 	} else if *inst.Config.VMType == limayaml.QEMU {
+ 		// virtserialport doesn't seem to work reliably: https://github.com/lima-vm/lima/issues/2064
+-		virtioPort = "" // filenames.VirtioPort
++		if runtime.GOOS != "windows" {
++			virtioPort = "" // filenames.VirtioPort
++		} else {
++			virtioPort = filenames.VirtioPort
++		}
+ 	}
+ 
+ 	if err := cidata.GenerateCloudConfig(inst.Dir, instName, inst.Config); err != nil {
+diff --git a/pkg/hostagent/mount.go b/pkg/hostagent/mount.go
+index 646dc5d4..d7ef289f 100644
+--- a/pkg/hostagent/mount.go
++++ b/pkg/hostagent/mount.go
+@@ -4,7 +4,10 @@ import (
+ 	"errors"
+ 	"fmt"
+ 	"os"
++	"path"
++	"runtime"
+ 
++	"github.com/lima-vm/lima/pkg/ioutilx"
+ 	"github.com/lima-vm/lima/pkg/limayaml"
+ 	"github.com/lima-vm/lima/pkg/localpathutil"
+ 	"github.com/lima-vm/sshocker/pkg/reversesshfs"
+@@ -36,13 +39,22 @@ func (a *HostAgent) setupMount(m limayaml.Mount) (*mount, error) {
+ 	if err != nil {
+ 		return nil, err
+ 	}
++	if err := os.MkdirAll(location, 0o755); err != nil {
++		return nil, err
++	}
++	if runtime.GOOS == "windows" && !path.IsAbs(location) {
++		location = ioutilx.CanonicalWindowsPath(location)
++	}
+ 
+-	mountPoint, err := localpathutil.Expand(*m.MountPoint)
++	mountPoint := *m.MountPoint
++	if !path.IsAbs(mountPoint) {
++		mountPoint, err = localpathutil.Expand(mountPoint)
++	}
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	if err := os.MkdirAll(location, 0o755); err != nil {
+-		return nil, err
++	if runtime.GOOS == "windows" && !path.IsAbs(mountPoint) {
++		mountPoint = ioutilx.CanonicalWindowsPath(mountPoint)
+ 	}
+ 	// NOTE: allow_other requires "user_allow_other" in /etc/fuse.conf
+ 	sshfsOptions := "allow_other"
+@@ -64,6 +76,9 @@ func (a *HostAgent) setupMount(m limayaml.Mount) (*mount, error) {
+ 		Readonly:            !(*m.Writable),
+ 		SSHFSAdditionalArgs: []string{"-o", sshfsOptions},
+ 	}
++	if runtime.GOOS == "windows" {
++		rsf.OpensshSftpServerBinary = "sftp-server" // using wrapper
++	}
+ 	if err := rsf.Prepare(); err != nil {
+ 		return nil, fmt.Errorf("failed to prepare reverse sshfs for %q on %q: %w", location, mountPoint, err)
+ 	}
+diff --git a/pkg/ioutilx/ioutilx.go b/pkg/ioutilx/ioutilx.go
+index efee8203..cdec1327 100644
+--- a/pkg/ioutilx/ioutilx.go
++++ b/pkg/ioutilx/ioutilx.go
+@@ -5,6 +5,7 @@ import (
+ 	"fmt"
+ 	"io"
+ 	"os/exec"
++	"path/filepath"
+ 	"strings"
+ 
+ 	"github.com/sirupsen/logrus"
+@@ -47,7 +48,7 @@ func FromUTF16leToString(r io.Reader) (string, error) {
+ 
+ func CanonicalWindowsPath(orig string) string {
+ 	newPath := orig
+-	out, err := exec.Command("cygpath", "-m", orig).CombinedOutput()
++	out, err := exec.Command("wslpath", filepath.ToSlash(orig)).CombinedOutput()
+ 	if err != nil {
+ 		logrus.WithError(err).Errorf("failed to convert path to mingw, maybe not using Git ssh?")
+ 	} else {
+diff --git a/pkg/iso9660util/iso9660util.go b/pkg/iso9660util/iso9660util.go
+index 74ef0bbe..ff8ccca5 100644
+--- a/pkg/iso9660util/iso9660util.go
++++ b/pkg/iso9660util/iso9660util.go
+@@ -4,8 +4,6 @@ import (
+ 	"io"
+ 	"os"
+ 	"path"
+-	"path/filepath"
+-	"runtime"
+ 
+ 	"github.com/diskfs/go-diskfs/filesystem"
+ 	"github.com/diskfs/go-diskfs/filesystem/iso9660"
+@@ -33,10 +31,6 @@ func Write(isoPath, label string, layout []Entry) error {
+ 	if err != nil {
+ 		return err
+ 	}
+-	if runtime.GOOS == "windows" {
+-		// go-embed unfortunately needs unix path
+-		workdir = filepath.ToSlash(workdir)
+-	}
+ 	logrus.Debugf("Creating iso file %s", isoFile.Name())
+ 	logrus.Debugf("Using %s as workspace", workdir)
+ 	fs, err := iso9660.Create(isoFile, 0, 0, 0, workdir)
+diff --git a/pkg/osutil/user.go b/pkg/osutil/user.go
+index d1883c59..240f040b 100644
+--- a/pkg/osutil/user.go
++++ b/pkg/osutil/user.go
+@@ -141,7 +141,7 @@ func LimaUser(limaVersion string, warn bool) *user.User {
+ 				warnings = append(warnings, warning)
+ 				limaUser.Gid = formatUidGid(gid)
+ 			}
+-			home, err := call([]string{"cygpath", limaUser.HomeDir})
++			home, err := call([]string{"realpath", "~"})
+ 			if err != nil {
+ 				logrus.Debug(err)
+ 			}
+diff --git a/pkg/qemu/qemu.go b/pkg/qemu/qemu.go
+index 9bd5a8c5..38bf6c2f 100644
+--- a/pkg/qemu/qemu.go
++++ b/pkg/qemu/qemu.go
+@@ -1120,9 +1120,11 @@ func getFirmware(qemuExe string, arch limayaml.Arch) (string, error) {
+ 	userLocalDir := filepath.Join(currentUser.HomeDir, ".local") // "$HOME/.local"
+ 
+ 	relativePath := fmt.Sprintf("share/qemu/edk2-%s-code.fd", qemuEdk2Arch(arch))
++	relativePathWin := fmt.Sprintf("share/edk2-%s-code.fd", qemuEdk2Arch(arch))
+ 	candidates := []string{
+ 		filepath.Join(userLocalDir, relativePath), // XDG-like
+ 		filepath.Join(localDir, relativePath),     // macOS (homebrew)
++		filepath.Join(binDir, relativePathWin),    // Windows installer
+ 	}
+ 
+ 	switch arch {
+diff --git a/pkg/sshutil/sshutil.go b/pkg/sshutil/sshutil.go
+index 563bc5ed..45b0acfd 100644
+--- a/pkg/sshutil/sshutil.go
++++ b/pkg/sshutil/sshutil.go
+@@ -9,6 +9,7 @@ import (
+ 	"io/fs"
+ 	"os"
+ 	"os/exec"
++	"path"
+ 	"path/filepath"
+ 	"regexp"
+ 	"runtime"
+@@ -95,8 +96,12 @@ func DefaultPubKeys(loadDotSSH bool) ([]PubKey, error) {
+ 		}
+ 		if err := lockutil.WithDirLock(configDir, func() error {
+ 			// no passphrase, no user@host comment
++			privPath := filepath.Join(configDir, filenames.UserPrivateKey)
++			if runtime.GOOS == "windows" {
++				privPath = ioutilx.CanonicalWindowsPath(privPath)
++			}
+ 			keygenCmd := exec.Command("ssh-keygen", "-t", "ed25519", "-q", "-N", "",
+-				"-C", "lima", "-f", filepath.Join(configDir, filenames.UserPrivateKey))
++				"-C", "lima", "-f", privPath)
+ 			logrus.Debugf("executing %v", keygenCmd.Args)
+ 			if out, err := keygenCmd.CombinedOutput(); err != nil {
+ 				return fmt.Errorf("failed to run %v: %q: %w", keygenCmd.Args, string(out), err)
+@@ -177,7 +182,7 @@ func CommonOpts(sshPath string, useDotSSH bool) ([]string, error) {
+ 
+ 	// Append all private keys corresponding to ~/.ssh/*.pub to keep old instances working
+ 	// that had been created before lima started using an internal identity.
+-	if useDotSSH {
++	if runtime.GOOS != "windows" && useDotSSH {
+ 		homeDir, err := os.UserHomeDir()
+ 		if err != nil {
+ 			return nil, err
+@@ -204,11 +209,7 @@ func CommonOpts(sshPath string, useDotSSH bool) ([]string, error) {
+ 				// Fail on permission-related and other path errors
+ 				return nil, err
+ 			}
+-			if runtime.GOOS == "windows" {
+-				opts = append(opts, fmt.Sprintf(`IdentityFile='%s'`, privateKeyPath))
+-			} else {
+-				opts = append(opts, fmt.Sprintf(`IdentityFile="%s"`, privateKeyPath))
+-			}
++			opts = append(opts, fmt.Sprintf(`IdentityFile="%s"`, privateKeyPath))
+ 		}
+ 	}
+ 
+@@ -265,8 +266,8 @@ func SSHOpts(sshPath, instDir, username string, useDotSSH, forwardAgent, forward
+ 	}
+ 	controlPath := fmt.Sprintf(`ControlPath="%s"`, controlSock)
+ 	if runtime.GOOS == "windows" {
+-		controlSock = ioutilx.CanonicalWindowsPath(controlSock)
+-		controlPath = fmt.Sprintf(`ControlPath='%s'`, controlSock)
++		controlSock = strings.ReplaceAll(ioutilx.CanonicalWindowsPath(controlSock), "/", "_")
++		controlPath = fmt.Sprintf(`ControlPath='%s'`, path.Join("/run/user/1000", strings.TrimPrefix(controlSock, "_mnt_")))
+ 	}
+ 	opts = append(opts,
+ 		fmt.Sprintf("User=%s", username), // guest and host have the same username, but we should specify the username explicitly (#85)
+diff --git a/templates/default.yaml b/templates/default.yaml
+index 3eee29a3..987eb180 100644
+--- a/templates/default.yaml
++++ b/templates/default.yaml
+@@ -99,7 +99,7 @@ mounts:
+     # See https://www.kernel.org/doc/Documentation/filesystems/9p.txt
+     # 🟢 Builtin default: "fscache" for non-writable mounts, "mmap" for writable mounts
+     cache: null
+-- location: "/tmp/lima"
++- location: "C:\\tmp\\lima"
+   # 🟢 Builtin default: false
+   # 🔵 This file: true (only for "/tmp/lima")
+   writable: true
+-- 
+2.48.1
+

@@ -1,0 +1,73 @@
+name: Prepare QCW Lima (from revision)
+on:
+  workflow_dispatch:
+  workflow_call:
+    outputs:
+      lima_version:
+        description: lima version"
+        value: ${{ jobs.build.outputs.lima_version }}
+      lima_revision:
+        description: lima revision"
+        value: ${{ jobs.build.outputs.lima_revision }}
+env:
+  LIMA_GITURL: https://github.com/lima-vm/lima.git
+  LIMA_SHA: e911564e4a5f3151a3beef5ec2446914e016c745 
+  LIMA_VERSION: dev
+jobs:
+  build:
+    runs-on: windows-latest
+    outputs:
+      lima_version: ${{ steps.make_versions.outputs.lima }}
+      lima_revision: ${{ steps.make_versions.outputs.lima_revision }}
+    steps:
+      - name: "🏗️ Install msys2"
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            make git unzip base-devel mingw-w64-ucrt-x86_64-toolchain zip mingw-w64-ucrt-x86_64-go
+      - name: "📝 Configure checkout"
+        run: git config --global core.autocrlf input
+      - name: "📝 Checkout"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: "📝 Fetch sources"
+        shell: msys2 {0}
+        run: |
+          mkdir lima-release
+          cd lima-release
+          git init
+          git remote add origin $LIMA_GITURL
+          git fetch --depth 1 origin $LIMA_SHA
+          git checkout FETCH_HEAD
+          patch --binary -l -p 1 < ../patches/lima/0001-Add-QEMU-driver-support-on-Windows-hosts.patch
+      - name: "🛠️ Build Lima"
+        working-directory: lima-release
+        shell: msys2 {0}
+        run: |
+          make binaries
+      - name: "📦 Pack Lima"
+        shell: msys2 {0}
+        run: |
+          mkdir -p qcw
+          mkdir -p qcw-tmp
+          cp "lima-release/_output" qcw-tmp/lima
+          cd qcw-tmp/
+          zip -9 -r ../qcw/lima.zip .
+          cd ../qcw
+          find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
+          find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
+          cat sha.checksums
+      - id: make_versions
+        name: "📌 Export versions"
+        shell: msys2 {0}
+        run: |
+          echo "lima=$LIMA_VERSION" >> "$GITHUB_OUTPUT"
+          echo "lima_REVISION=$LIMA_SHA" >> "$GITHUB_OUTPUT"
+      - name: "🚀 Upload artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: qcw-lima
+          path: qcw
