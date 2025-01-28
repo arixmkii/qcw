@@ -1,0 +1,61 @@
+name: Prepare QCW Alpine-WSL (from revision)
+on:
+  workflow_dispatch:
+  workflow_call:
+    outputs:
+      alpine_version:
+        description: "Alpine version"
+        value: ${{ jobs.build.outputs.alpine_version }}
+      alpine_wsl_version:
+        description: "Alpine-WSL version"
+        value: ${{ jobs.build.outputs.alpine_wsl_version }}
+env:
+  ALPINE_WSL_GITURL: https://github.com/yuk7/AlpineWSL.git
+  ALPINE_WSL_SHA: f7aceea3c25aee24fdee0a08a5ec5d02abb8f2a0 # 3.18.4-0
+  ALPINE_WSL_VERSION: 3.18.4-0
+  ALPINE_VERSION: 3.21.2-0 # from the last applied patch
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      alpine_version: ${{ steps.make_versions.outputs.alpine }}
+      alpine_wsl_version: ${{ steps.make_versions.outputs.alpine_wsl }}
+    steps:
+      - name: "📝 Configure checkout"
+        run: git config --global core.autocrlf input
+      - name: "📝 Checkout"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: "📝 Fetch sources"
+        run: |
+          mkdir alpine-wsl-release
+          cd alpine-wsl-release
+          git init
+          git remote add origin $ALPINE_WSL_GITURL
+          git fetch --depth 1 origin $ALPINE_WSL_SHA
+          git checkout FETCH_HEAD
+          patch --binary -l -p 1 < ../patches/AlpineWSL/0001-Updated-Alpine-Linux-distro-version-to-3.20.3.patch
+          patch --binary -l -p 1 < ../patches/AlpineWSL/0002-Add-Lima-customizations.patch
+      - name: "🛠️ Build Alpine-WSL"
+        working-directory: alpine-wsl-release/src_x64
+        run: |
+          make rootfs.tar.gz
+      - name: "📦 Pack Alpine-WSL"
+        run: |
+          mkdir -p qcw
+          cp alpine-wsl-release/src_x64/rootfs.tar.gz qcw/lima-infra.wsl
+          cd qcw
+          find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
+          find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
+          cat sha.checksums
+      - id: make_versions
+        name: "📌 Export versions"
+        run: |
+          echo "apline=$ALPINE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "apline_wsl=$ALPINE_WSL_VERSION" >> "$GITHUB_OUTPUT"
+      - name: "🚀 Upload artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: qcw-docker
+          path: qcw

@@ -1,0 +1,104 @@
+From b57a5a5b97236c5c33803775b243c8957a2cbb80 Mon Sep 17 00:00:00 2001
+From: TKTek <TGJek@qq.com>
+Date: Fri, 18 Oct 2024 05:30:19 +0800
+Subject: [PATCH] Updated Alpine Linux distro version from 3.18.4 to
+ 3.20.3(ARM64 not tested). Write a checksum logic in downloading distro target
+ in Makefile. Updated copyright information. Written by a teenagers, just for
+ fun?
+
+---
+ LICENSE            |  1 +
+ README.md          |  1 +
+ src_arm64/Makefile | 10 +++++++++-
+ src_x64/Makefile   | 10 +++++++++-
+ 4 files changed, 20 insertions(+), 2 deletions(-)
+
+diff --git a/LICENSE b/LICENSE
+index 172596d..62b027f 100644
+--- a/LICENSE
++++ b/LICENSE
+@@ -1,6 +1,7 @@
+ MIT License
+ 
+ Copyright (c) 2017-2022 yuk7
++Copyright (c) 2024 TKTek
+ 
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+diff --git a/README.md b/README.md
+index d1f40ae..731986a 100644
+--- a/README.md
++++ b/README.md
+@@ -94,3 +94,4 @@ $ make ARCH=arm64 OUT_ZIP=Alpine_arm64.zip
+ |  DLR  |  file downloader  | curl |
+ |  DLR_FLAGS  |  downloader flags  | -L |
+ |  BASE_URL  |  base rootfs url  | https:~ |
++|  ROOTFS_TARBALL_CKSM_URL  |  sha-sum for the base rootfs tarball  |  https:~ |
+diff --git a/src_arm64/Makefile b/src_arm64/Makefile
+index b533303..8df4897 100644
+--- a/src_arm64/Makefile
++++ b/src_arm64/Makefile
+@@ -3,7 +3,8 @@ LNCR_EXE=Alpine.exe
+ 
+ DLR=curl
+ DLR_FLAGS=-L
+-BASE_URL=https://dl-cdn.alpinelinux.org/alpine/v3.18/releases/aarch64/alpine-minirootfs-3.18.4-aarch64.tar.gz
++BASE_URL=https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/aarch64/alpine-minirootfs-3.20.3-aarch64.tar.gz
++ROOTFS_TARBALL_CKSM_URL=${BASE_URL}.sha512
+ LNCR_ZIP_URL=https://github.com/yuk7/wsldl/releases/download/23072600/icons_arm64.zip
+ LNCR_ZIP_EXE=Alpine.exe
+ 
+@@ -48,6 +49,12 @@ rootfs: base.tar.gz profile
+ base.tar.gz:
+ 	@echo -e '\e[1;31mDownloading base.tar.gz...\e[m'
+ 	$(DLR) $(DLR_FLAGS) $(BASE_URL) -o base.tar.gz
++	$(DLR) $(DLR_FLAGS) $(ROOTFS_TARBALL_CKSM_URL) -o base.tar.gz.sha512sum.txt
++	if ! (head -c 128 < base.tar.gz.sha512sum.txt; echo "  base.tar.gz") | shasum -c; then \
++		echo 'Checksum failed.'; \
++		rm base.tar.gz base.tar.gz.sha512sum.txt; \
++		exit 1; \
++	fi
+ 
+ clean:
+ 	@echo -e '\e[1;31mCleaning files...\e[m'
+@@ -56,5 +63,6 @@ clean:
+ 	-rm Launcher.exe
+ 	-rm icons.zip
+ 	-rm rootfs.tar.gz
++	-rm rootfs.tar.gz.sha512sum.txt
+ 	-sudo rm -r rootfs
+ 	-rm base.tar.gz
+diff --git a/src_x64/Makefile b/src_x64/Makefile
+index b5d5ade..ead99a0 100644
+--- a/src_x64/Makefile
++++ b/src_x64/Makefile
+@@ -3,7 +3,8 @@ LNCR_EXE=Alpine.exe
+ 
+ DLR=curl
+ DLR_FLAGS=-L
+-BASE_URL=https://dl-cdn.alpinelinux.org/alpine/v3.18/releases/x86_64/alpine-minirootfs-3.18.4-x86_64.tar.gz
++BASE_URL=https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/x86_64/alpine-minirootfs-3.20.3-x86_64.tar.gz
++ROOTFS_TARBALL_CKSM_URL=${BASE_URL}.sha512
+ LNCR_ZIP_URL=https://github.com/yuk7/wsldl/releases/download/23072600/icons.zip
+ LNCR_ZIP_EXE=Alpine.exe
+ 
+@@ -50,6 +51,12 @@ rootfs: base.tar.gz profile
+ base.tar.gz:
+ 	@echo -e '\e[1;31mDownloading base.tar.gz...\e[m'
+ 	$(DLR) $(DLR_FLAGS) $(BASE_URL) -o base.tar.gz
++	$(DLR) $(DLR_FLAGS) $(ROOTFS_TARBALL_CKSM_URL) -o base.tar.gz.sha512sum.txt
++	if ! (head -c 128 < base.tar.gz.sha512sum.txt; echo "  base.tar.gz") | shasum -c; then \
++		echo 'Checksum failed.'; \
++		rm base.tar.gz base.tar.gz.sha512sum.txt; \
++		exit 1; \
++	fi
+ 
+ clean:
+ 	@echo -e '\e[1;31mCleaning files...\e[m'
+@@ -58,5 +65,6 @@ clean:
+ 	-rm Launcher.exe
+ 	-rm icons.zip
+ 	-rm rootfs.tar.gz
++	-rm rootfs.tar.gz.sha512sum.txt
+ 	-sudo rm -r rootfs
+ 	-rm base.tar.gz

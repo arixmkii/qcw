@@ -29,6 +29,7 @@ default.
 
 Ordered alphabetically
 
+* `AlpineWSL` - [GitHub](https://github.com/yuk7/AlpineWSL) Alpine Linux based WSL distribution;
 * `docker-cli` - [GitHub](https://github.com/docker/cli) `docker` command line interface;
 * `docker-compose` - [GitHub](https://github.com/docker/compose) orchestration tool for containers;
 * `gvisor-tap-vsock` - [GitHub](https://github.com/containers/gvisor-tap-vsock) the tool to provide networking for
@@ -45,6 +46,12 @@ feature rich machine emulator;
 * `Zlib` - [home page](https://www.zlib.net/) compression library.
 
 ### Versions and patches
+
+#### `Alpine-WSL`
+
+Version `3.18.4-0` with 2 patch sets:
+* Update Alpine to 3.20.3
+* Update Alpine to 3.21.2 and add Lima required tools
 
 #### `docker-cli`
 
