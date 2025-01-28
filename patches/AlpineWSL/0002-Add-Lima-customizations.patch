@@ -52,7 +52,7 @@ index 0000000..64bc8e5
 +
 +addgroup --gid 1000 lima
 +adduser -D --gecos "" --home /home/lima --ingroup lima --uid 1000 -s /bin/bash lima
-+mkdir -m 700 /run/user/1000
++mkdir -p -m 700 /run/user/1000
 +chown lima:lima /run/user/1000
 diff --git a/src_x64/wsl-distribution.conf b/src_x64/wsl-distribution.conf
 new file mode 100644
