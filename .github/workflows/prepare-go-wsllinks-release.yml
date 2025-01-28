@@ -1,0 +1,67 @@
+name: Prepare QCW go-wsllinks (from revision)
+on:
+  workflow_dispatch:
+  workflow_call:
+    outputs:
+      gowsllinks_version:
+        description: go-wsllinks version"
+        value: ${{ jobs.build.outputs.gowsllinks_version }}
+env:
+  GOWSLLINKS_GITURL: https://github.com/arixmkii/go-wsllinks.git
+  GOWSLLINKS_SHA: 787c748e5330ba4ce6d23c144904e3cd141b8d4d # v0.0.1
+  GOWSLLINKS_VERSION: 0.0.1
+jobs:
+  build:
+    runs-on: windows-latest
+    outputs:
+      gowsllinks_version: ${{ steps.make_versions.outputs.gowsllinks }}
+    steps:
+      - name: "🏗️ Install msys2"
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            make git unzip base-devel mingw-w64-ucrt-x86_64-toolchain zip mingw-w64-ucrt-x86_64-go
+      - name: "📝 Configure checkout"
+        run: git config --global core.autocrlf input
+      - name: "📝 Checkout"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: "📝 Fetch sources"
+        shell: msys2 {0}
+        run: |
+          mkdir go-wsllinks-release
+          cd go-wsllinks-release
+          git init
+          git remote add origin $GOWSLLINKS_GITURL
+          git fetch --depth 1 origin $GOWSLLINKS_SHA
+          git checkout FETCH_HEAD
+      - name: "🛠️ Build go-wsllinks"
+        working-directory: go-wsllinks-release
+        shell: msys2 {0}
+        run: |
+          go build -ldflags="-s -w"
+      - name: "📦 Pack go-wsllinks"
+        shell: msys2 {0}
+        run: |
+          mkdir -p qcw
+          mkdir -p qcw-tmp
+          cp "go-wsllinks-release/go-wsllinks.exe" qcw-tmp/
+          cd qcw-tmp/
+          zip -9 -r ../qcw/go-wsllinks.zip .
+          cd ../qcw
+          find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
+          find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
+          cat sha.checksums
+      - id: make_versions
+        name: "📌 Export versions"
+        shell: msys2 {0}
+        run: |
+          echo "gowsllinks=$GOWSLLINKS_VERSION" >> "$GITHUB_OUTPUT"
+      - name: "🚀 Upload artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: qcw-go-wsllinks
+          path: qcw

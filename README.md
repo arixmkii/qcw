@@ -33,6 +33,7 @@ Ordered alphabetically
 * `docker-compose` - [GitHub](https://github.com/docker/compose) orchestration tool for containers;
 * `gvisor-tap-vsock` - [GitHub](https://github.com/containers/gvisor-tap-vsock) the tool to provide networking for
 accessing containers from Windows;
+* `go-wsllinks` - [GitHub](https://github.com/arixmkii/go-wsllinks) symlink like binaries for WSL2;
 * `OpenSSH` - [home page](https://www.openssh.com/) SSH connectivity tool fork from [Powershell GitHub](https://github.com/PowerShell/openssh-portable);
 * `Podman` - [home page](https://podman.io/) and [GitHub](https://github.com/containers/podman) free and open source
 container runtime;
@@ -56,6 +57,10 @@ Version `v2.31.0`. Rebuilt for Windows amd64 platform.
 #### `gvisor-tap-vsock`
 
 Version bundled with Podman is used
+
+#### `go-wsllinks`
+
+Version `v0.0.1`. Rebuilt for Windows amd64 platform.
 
 #### `OpenSSH`
 
