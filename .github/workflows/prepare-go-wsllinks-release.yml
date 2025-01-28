@@ -47,10 +47,7 @@ jobs:
         shell: msys2 {0}
         run: |
           mkdir -p qcw
-          mkdir -p qcw-tmp
-          cp "go-wsllinks-release/go-wsllinks.exe" qcw-tmp/
-          cd qcw-tmp/
-          zip -9 -r ../qcw/go-wsllinks.zip .
+          cp "go-wsllinks-release/go-wsllinks.exe" qcw/
           cd ../qcw
           find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
           find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
