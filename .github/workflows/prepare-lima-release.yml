@@ -6,19 +6,15 @@ on:
       lima_version:
         description: lima version"
         value: ${{ jobs.build.outputs.lima_version }}
-      lima_revision:
-        description: lima revision"
-        value: ${{ jobs.build.outputs.lima_revision }}
 env:
   LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: e911564e4a5f3151a3beef5ec2446914e016c745 
+  LIMA_SHA: e911564e4a5f3151a3beef5ec2446914e016c745
   LIMA_VERSION: dev
 jobs:
   build:
     runs-on: windows-latest
     outputs:
       lima_version: ${{ steps.make_versions.outputs.lima }}
-      lima_revision: ${{ steps.make_versions.outputs.lima_revision }}
     steps:
       - name: "🏗️ Install msys2"
         uses: msys2/setup-msys2@v2
@@ -53,7 +49,7 @@ jobs:
         run: |
           mkdir -p qcw
           mkdir -p qcw-tmp
-          cp "lima-release/_output" qcw-tmp/lima
+          cp -r "lima-release/_output" qcw-tmp/lima
           cd qcw-tmp/
           zip -9 -r ../qcw/lima.zip .
           cd ../qcw
@@ -64,8 +60,7 @@ jobs:
         name: "📌 Export versions"
         shell: msys2 {0}
         run: |
-          echo "lima=$LIMA_VERSION" >> "$GITHUB_OUTPUT"
-          echo "lima_REVISION=$LIMA_SHA" >> "$GITHUB_OUTPUT"
+          echo "lima=$LIMA_VERSION-$LIMA_SHA" >> "$GITHUB_OUTPUT"
       - name: "🚀 Upload artifact"
         uses: actions/upload-artifact@v4
         with:
