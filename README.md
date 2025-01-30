@@ -41,7 +41,6 @@ Ordered alphabetically
 accessing containers from Windows;
 * `go-wsllinks` - [GitHub](https://github.com/arixmkii/go-wsllinks) symlink like binaries for WSL2;
 * `Lima` - [GitHub](https://github.com/lima-vm/lima) Linux virtual machines, with a focus on running containers;
-* `OpenSSH` - [home page](https://www.openssh.com/) SSH connectivity tool fork from [Powershell GitHub](https://github.com/PowerShell/openssh-portable);
 * `Podman` - [home page](https://podman.io/) and [GitHub](https://github.com/containers/podman) free and open source
 container runtime;
 * `Podman Desktop` - [home page](https://podman-desktop.io/) and [GitHub](https://github.com/containers/podman-desktop)
@@ -49,7 +48,6 @@ GUI companion to Podman;
 * `QEMU` - [home page](https://www.qemu.org/) and [GitHub (mirror)](https://github.com/qemu/qemu) free and open source
 feature rich machine emulator;
 * `WinSocat` - [GitHub](https://github.com/firejox/WinSocat) socat-like windows-specific program;
-* `Zlib` - [home page](https://www.zlib.net/) compression library.
 
 ### Versions and patches
 
@@ -80,11 +78,6 @@ Version `v0.0.1`. Rebuilt for Windows amd64 platform.
 Development main branch from revision `e911564e4a5f3151a3beef5ec2446914e016c745` with 1 patch set:
 * Enable QEMU support in Lima
 
-#### `OpenSSH`
-
-Version `v9.5.0.0` with 1 patch from Powershell OpenSSH fork PRs:
-* Add support for AF_UNIX https://github.com/PowerShell/openssh-portable/pull/674
-
 #### `Podman`
 
 Version `5.3.2` with 3 patch sets:
@@ -112,12 +105,6 @@ Version `0.1.3` with 3 patch sets:
 * Pending commits after the release https://github.com/firejox/WinSocat/compare/v0.1.3...b7e32fa8f782ae38475cfc7cf1eed25de1fad339
 * Dependency updates from https://github.com/firejox/WinSocat/pull/16
 * Some additinal cleanups for VisualStudio solution setup
-
-#### `Zlib`
-
-Version `1.3` with 2 patches from main after release and from Powershell fork:
-* Add vc17 support
-* Set Multibyte character set and spectre mitigation
 
 ## How to use QEMU
 
