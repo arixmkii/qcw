@@ -263,10 +263,9 @@ There is no way to use file system mounts in Podman with QEMU on Windows hosts.
 
 Additional work is required to bring AF_UNIX port forwarding (same applied to Unix socket to named pipe forwarding)
 
-### 2. WSL driver is currently broken
+### 2. Containers in WSL2 machine are not operational
 
-Lima supprot is in prototype stage and numerous features from original version are broken, this includes support for provisioning
-WSL2 VMs using Lima. Only QEMU driver is supported in this rebuild.
+Rootless containerd is not installing and rootful containerd lacks networking connectivity.
 
 ### 3. Key pairs created with official Lima instance will lack Unix permissions and will be rejected
 

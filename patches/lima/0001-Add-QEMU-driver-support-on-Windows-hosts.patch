@@ -1,4 +1,4 @@
-From f97d2c5d7968e6172b9b542a78351854f8e983dd Mon Sep 17 00:00:00 2001
+From cd7ce15a7838fb45e618f445a39599b1ac21c557 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Wed, 22 Jan 2025 17:24:01 +0200
 Subject: [PATCH] Add QEMU driver support on Windows hosts
@@ -13,20 +13,20 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
  contrib/bundle-wsl/wsllinks.ini    |  2 ++
  pkg/cidata/cidata.go               | 11 ++++++++++-
  pkg/hostagent/hostagent.go         |  7 ++++++-
- pkg/hostagent/mount.go             | 21 ++++++++++++++++++---
+ pkg/hostagent/mount.go             | 23 ++++++++++++++++++++---
  pkg/ioutilx/ioutilx.go             |  3 ++-
  pkg/iso9660util/iso9660util.go     |  6 ------
  pkg/osutil/user.go                 |  2 +-
  pkg/qemu/qemu.go                   |  2 ++
  pkg/sshutil/sshutil.go             | 19 ++++++++++---------
  templates/default.yaml             |  2 +-
- 15 files changed, 83 insertions(+), 24 deletions(-)
+ 15 files changed, 85 insertions(+), 24 deletions(-)
  create mode 100644 contrib/bundle-wsl/go-wsllinks.exe
  create mode 100644 contrib/bundle-wsl/sftp-server.ini
  create mode 100644 contrib/bundle-wsl/wsllinks.ini
 
 diff --git a/Makefile b/Makefile
-index 71bea6e4..afde990b 100644
+index 71bea6e4..3d77640f 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -551,6 +551,20 @@ artifacts-misc: | _artifacts
@@ -36,7 +36,7 @@ index 71bea6e4..afde990b 100644
 +.PHONY: add-bundles
 +add-bundles: add-bundle-wsl
 +
-+add-bundle-wsl: _output/bin/bundle-wsl/wsllinks.ini _output/bin/bundle-wsl/sftp-server.ini _output/bin/bundle-wsl/cygpath.exe _output/bin/bundle-wsl/id.exe _output/bin/bundle-wsl/realpath.exe _output/bin/bundle-wsl/sftp-server.exe _output/bin/bundle-wsl/ssh.exe _output/bin/bundle-wsl/ssh-keygen.exe 
++add-bundle-wsl: _output/bin/bundle-wsl/wsllinks.ini _output/bin/bundle-wsl/sftp-server.ini _output/bin/bundle-wsl/cygpath.exe _output/bin/bundle-wsl/id.exe _output/bin/bundle-wsl/realpath.exe _output/bin/bundle-wsl/sftp-server.exe _output/bin/bundle-wsl/ssh.exe _output/bin/bundle-wsl/ssh-keygen.exe _output/bin/bundle-wsl/gzip.exe 
 +
 +
 +_output/bin/bundle-wsl/%.ini: contrib/bundle-wsl/%.ini | _output/bin/bundle-wsl
@@ -179,13 +179,14 @@ index 396401a4..212f0c35 100644
  
  	if err := cidata.GenerateCloudConfig(inst.Dir, instName, inst.Config); err != nil {
 diff --git a/pkg/hostagent/mount.go b/pkg/hostagent/mount.go
-index 646dc5d4..d7ef289f 100644
+index 646dc5d4..9a59f25c 100644
 --- a/pkg/hostagent/mount.go
 +++ b/pkg/hostagent/mount.go
-@@ -4,7 +4,10 @@ import (
+@@ -4,7 +4,11 @@ import (
  	"errors"
  	"fmt"
  	"os"
++	"os/exec"
 +	"path"
 +	"runtime"
  
@@ -193,7 +194,7 @@ index 646dc5d4..d7ef289f 100644
  	"github.com/lima-vm/lima/pkg/limayaml"
  	"github.com/lima-vm/lima/pkg/localpathutil"
  	"github.com/lima-vm/sshocker/pkg/reversesshfs"
-@@ -36,13 +39,22 @@ func (a *HostAgent) setupMount(m limayaml.Mount) (*mount, error) {
+@@ -36,13 +40,22 @@ func (a *HostAgent) setupMount(m limayaml.Mount) (*mount, error) {
  	if err != nil {
  		return nil, err
  	}
@@ -219,12 +220,13 @@ index 646dc5d4..d7ef289f 100644
  	}
  	// NOTE: allow_other requires "user_allow_other" in /etc/fuse.conf
  	sshfsOptions := "allow_other"
-@@ -64,6 +76,9 @@ func (a *HostAgent) setupMount(m limayaml.Mount) (*mount, error) {
+@@ -64,6 +77,10 @@ func (a *HostAgent) setupMount(m limayaml.Mount) (*mount, error) {
  		Readonly:            !(*m.Writable),
  		SSHFSAdditionalArgs: []string{"-o", sshfsOptions},
  	}
-+	if runtime.GOOS == "windows" {
-+		rsf.OpensshSftpServerBinary = "sftp-server" // using wrapper
++	serverPath, err := exec.LookPath("sftp-server")
++	if err == nil {
++		rsf.OpensshSftpServerBinary = serverPath
 +	}
  	if err := rsf.Prepare(); err != nil {
  		return nil, fmt.Errorf("failed to prepare reverse sshfs for %q on %q: %w", location, mountPoint, err)
