@@ -50,6 +50,15 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: qcw-art
+      - name: "⚙️ Configure WSL2 networking mode"
+        shell: msys2 {0}
+        run: |
+          cat /c/Users/runneradmin/.wslconfig || true
+          cat > /c/Users/runneradmin/.wslconfig <<EOF
+          [wsl2]
+          networkingMode=mirrored
+          EOF
+          cat /c/Users/runneradmin/.wslconfig
       - name: "🏗️ Install lima-infra"
         shell: pwsh
         run: |
