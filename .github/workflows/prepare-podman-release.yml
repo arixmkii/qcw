@@ -27,7 +27,7 @@ jobs:
       - name: "🏗️ Install Pandoc"
         uses: crazy-max/ghaction-chocolatey@v3
         with:
-          args: install pandoc -y --force\
+          args: install pandoc -y --force
       - name: "🏗️ Install WiX toolset"
         run: dotnet tool install --global wix
       - name: "📝 Configure checkout"

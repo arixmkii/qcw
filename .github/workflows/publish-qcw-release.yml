@@ -22,12 +22,10 @@ jobs:
     uses: ./.github/workflows/prepare-podman-release.yml
   call-prepare-qemu:
     uses: ./.github/workflows/prepare-qemu-release.yml
-  call-prepare-alpine-wsl:
-    uses: ./.github/workflows/prepare-alpine-wsl-release.yml
   call-prepare-lima:
     uses: ./.github/workflows/prepare-lima-release.yml
   publish:
-    needs: [call-prepare-docker, call-prepare-podman, call-prepare-qemu, call-prepare-lima, call-prepare-alpine-wsl]
+    needs: [call-prepare-docker, call-prepare-podman, call-prepare-qemu, call-prepare-lima]
     runs-on: ubuntu-latest
     steps:
       - name: "📝 Configure checkout"
@@ -42,8 +40,8 @@ jobs:
           path: qcw
       - name: "🗒️ Prepare release notes"
         env:
-          ALPINE_VERSION: ${{ needs.call-prepare-alpine-wsl.outputs.alpine_version }}
-          ALPINEWSL_VERSION: ${{ needs.call-prepare-alpine-wsl.outputs.alpine_wsl_version }}
+          ALPINE_VERSION: ${{ needs.call-prepare-lima.outputs.alpine_version }}
+          ALPINEWSL_VERSION: ${{ needs.call-prepare-lima.outputs.alpine_wsl_version }}
           DOCKER_VERSION: ${{ needs.call-prepare-docker.outputs.cli_version }}
           DOCKER_COMPOSE_VERSION: ${{ needs.call-prepare-docker.outputs.compose_version }}
           GOWSLLINKS_VERSION: ${{ needs.call-prepare-lima.outputs.gowsllinks_version }}

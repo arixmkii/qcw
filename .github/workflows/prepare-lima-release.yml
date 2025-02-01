@@ -9,19 +9,29 @@ on:
       gowsllinks_version:
         description: "go-wsllinks version"
         value: ${{ jobs.build.outputs.gowsllinks_version }}
+      alpine_version:
+        description: "Alpine version"
+        value: ${{ jobs.build.outputs.alpine_version }}
+      alpine_wsl_version:
+        description: "Alpine-WSL version"
+        value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/lima-vm/lima.git
   LIMA_SHA: e911564e4a5f3151a3beef5ec2446914e016c745
   LIMA_VERSION: dev
 jobs:
+  call-prepare-alpine-wsl:
+    uses: ./.github/workflows/prepare-alpine-wsl-release.yml
   call-prepare-go-wsllinks:
     uses: ./.github/workflows/prepare-go-wsllinks-release.yml
   build:
-    needs: [call-prepare-go-wsllinks]
+    needs: [call-prepare-go-wsllinks, call-prepare-alpine-wsl]
     runs-on: windows-latest
     outputs:
       lima_version: ${{ steps.make_versions.outputs.lima }}
       gowsllinks_version: ${{ steps.make_versions.outputs.gowsllinks }}
+      alpine_version: ${{ steps.make_versions.outputs.alpine }}
+      alpine_wsl_version: ${{ steps.make_versions.outputs.alpine_wsl }}
     steps:
       - name: "🏗️ Install msys2"
         uses: msys2/setup-msys2@v2
@@ -40,6 +50,24 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: qcw-art
+      - name: "🏗️ Install lima-infra"
+        shell: pwsh
+        run: |
+          wsl --set-default-version 2
+          wsl --shutdown
+          Import-module -Name Appx -UseWindowsPowerShell
+          Add-AppxPackage https://github.com/microsoft/WSL/releases/download/2.4.9/Microsoft.WSL_2.4.9.0_x64_ARM64.msixbundle
+          wsl --version
+          wsl --install --from-file qcw-art/qcw-alpine/lima-infra.wsl
+          wsl -l -v
+      # workaround for oobe https://github.com/microsoft/WSL/issues/12398
+      - name: "✅ Check user"
+        shell: pwsh
+        run: |
+          cmd /c "start wsl -d lima-infra"
+          sleep 5
+          wsl -d lima-infra whoami
+          wsl -d lima-infra -u lima whoami
       - name: "📝 Fetch sources"
         shell: msys2 {0}
         run: |
@@ -56,6 +84,13 @@ jobs:
         run: |
           cp -f ../qcw-art/qcw-go-wsllinks/go-wsllinks.exe ./contrib/bundle-wsl/go-wsllinks.exe
           make binaries add-bundles
+      - name: "🧪 Test Lima WSL2"
+        working-directory: lima-release/_output/bin
+        shell: pwsh
+        run: |
+          .\limactl start template://experimental/wsl2
+          type C:\Users\runneradmin\.lima\wsl2\ha.stdout.log
+          type C:\Users\runneradmin\.lima\wsl2\ha.stderr.log
       - name: "📦 Pack Lima"
         shell: msys2 {0}
         run: |
@@ -72,10 +107,14 @@ jobs:
         name: "📌 Export versions"
         env:
           GOWSLLINKS_VERSION: ${{ needs.call-prepare-go-wsllinks.outputs.gowsllinks_version }}
+          ALPINE_VERSION: ${{ needs.call-prepare-alpine-wsl.outputs.alpine_version }}
+          ALPINEWSL_VERSION: ${{ needs.call-prepare-alpine-wsl.outputs.alpine_wsl_version }}
         shell: msys2 {0}
         run: |
           echo "lima=$LIMA_VERSION-$LIMA_SHA" >> "$GITHUB_OUTPUT"
           echo "gowsllinks=$GOWSLLINKS_VERSION" >> "$GITHUB_OUTPUT"
+          echo "alpine=$ALPINE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "alpine_wsl=$ALPINE_WSL_VERSION" >> "$GITHUB_OUTPUT"
       - name: "🚀 Upload artifact"
         uses: actions/upload-artifact@v4
         with:
