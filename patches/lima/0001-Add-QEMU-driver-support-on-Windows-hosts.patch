@@ -1,11 +1,11 @@
-From cd7ce15a7838fb45e618f445a39599b1ac21c557 Mon Sep 17 00:00:00 2001
+From 1f2e1692af3f1336f81fe1bdd690666713a5800e Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Wed, 22 Jan 2025 17:24:01 +0200
 Subject: [PATCH] Add QEMU driver support on Windows hosts
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
- Makefile                           | 14 ++++++++++++++
+ Makefile                           | 17 +++++++++++++++++
  cmd/limactl/main.go                | 14 ++++++++++++++
  cmd/limactl/shell.go               |  3 ++-
  contrib/bundle-wsl/go-wsllinks.exe |  0
@@ -20,24 +20,27 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
  pkg/qemu/qemu.go                   |  2 ++
  pkg/sshutil/sshutil.go             | 19 ++++++++++---------
  templates/default.yaml             |  2 +-
- 15 files changed, 85 insertions(+), 24 deletions(-)
+ 15 files changed, 88 insertions(+), 24 deletions(-)
  create mode 100644 contrib/bundle-wsl/go-wsllinks.exe
  create mode 100644 contrib/bundle-wsl/sftp-server.ini
  create mode 100644 contrib/bundle-wsl/wsllinks.ini
 
 diff --git a/Makefile b/Makefile
-index 71bea6e4..3d77640f 100644
+index 71bea6e4..33ee9e8b 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -551,6 +551,20 @@ artifacts-misc: | _artifacts
+@@ -551,6 +551,23 @@ artifacts-misc: | _artifacts
  
  MKDIR_TARGETS += _artifacts
  
 +.PHONY: add-bundles
 +add-bundles: add-bundle-wsl
 +
-+add-bundle-wsl: _output/bin/bundle-wsl/wsllinks.ini _output/bin/bundle-wsl/sftp-server.ini _output/bin/bundle-wsl/cygpath.exe _output/bin/bundle-wsl/id.exe _output/bin/bundle-wsl/realpath.exe _output/bin/bundle-wsl/sftp-server.exe _output/bin/bundle-wsl/ssh.exe _output/bin/bundle-wsl/ssh-keygen.exe _output/bin/bundle-wsl/gzip.exe 
-+
++add-bundle-wsl: _output/bin/bundle-wsl/wsllinks.ini _output/bin/bundle-wsl/sftp-server.ini \
++	_output/bin/bundle-wsl/cygpath.exe _output/bin/bundle-wsl/id.exe _output/bin/bundle-wsl/realpath.exe\
++	_output/bin/bundle-wsl/sftp-server.exe _output/bin/bundle-wsl/ssh.exe _output/bin/bundle-wsl/ssh-keygen.exe \
++	_output/bin/bundle-wsl/gzip.exe _output/bin/bundle-wsl/bzip2.exe _output/bin/bundle-wsl/xz.exe \
++	_output/bin/bundle-wsl/zstd.exe
 +
 +_output/bin/bundle-wsl/%.ini: contrib/bundle-wsl/%.ini | _output/bin/bundle-wsl
 +	cp -a $< $@
