@@ -202,11 +202,11 @@ docker compose up --wait
 
 ### Preparation
 
-Donwload from release page `lima-infra` WSL distribution. If one was previously installed it should be first removed using command
-`wsl --unregister lima-infra`. Install the new one by double clicking on the `.wsl` file or using command
-`wsl --install --from-file lima-infra.wsl` (if one uses this, then it is important to open default shell with `wsl -d lima-infra`
-for setup completion because of https://github.com/microsoft/WSL/issues/12398). Don't rename the distribution -
-currently only predefined name `lima-infra` having default user `lima` is supported.
+Donwload from release page `lima-infra` WSL distribution. If one was previously installed it should be first removed
+using command `wsl --unregister lima-infra`. Install the new one by double clicking on the `.wsl` file or using command
+`wsl --install --from-file lima-infra.wsl` (if one uses this, then it is important to open default shell with
+`wsl -d lima-infra` for setup completion). Don't rename the distribution - currently only predefined name `lima-infra`
+having default user `lima` is supported.
 
 ### Basics
 

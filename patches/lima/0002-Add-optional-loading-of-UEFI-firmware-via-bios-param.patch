@@ -1,0 +1,168 @@
+From aef43e60d028f74ac27c1c456fb6269fb4f9ffef Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Sat, 8 Feb 2025 23:22:31 +0200
+Subject: [PATCH 2/2] Add optional loading of UEFI firmware via -bios parameter
+ in QEMU
+
+Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+---
+ pkg/limayaml/defaults.go | 10 +++++
+ pkg/limayaml/limayaml.go |  5 +++
+ pkg/qemu/qemu.go         | 80 +++++++++++++++++++++++++++++++++++++++-
+ 3 files changed, 93 insertions(+), 2 deletions(-)
+
+diff --git a/pkg/limayaml/defaults.go b/pkg/limayaml/defaults.go
+index dfa88885..1175dc26 100644
+--- a/pkg/limayaml/defaults.go
++++ b/pkg/limayaml/defaults.go
+@@ -385,6 +385,16 @@ func FillDefault(y, d, o *LimaYAML, filePath string, warn bool) {
+ 		y.Firmware.LegacyBIOS = ptr.Of(false)
+ 	}
+ 
++	if y.Firmware.CompatUEFIViaBIOS == nil {
++		y.Firmware.CompatUEFIViaBIOS = d.Firmware.CompatUEFIViaBIOS
++	}
++	if o.Firmware.CompatUEFIViaBIOS != nil {
++		y.Firmware.CompatUEFIViaBIOS = o.Firmware.CompatUEFIViaBIOS
++	}
++	if y.Firmware.CompatUEFIViaBIOS == nil {
++		y.Firmware.CompatUEFIViaBIOS = ptr.Of(runtime.GOOS == "windows")
++	}
++
+ 	y.Firmware.Images = append(append(o.Firmware.Images, y.Firmware.Images...), d.Firmware.Images...)
+ 	for i := range y.Firmware.Images {
+ 		f := &y.Firmware.Images[i]
+diff --git a/pkg/limayaml/limayaml.go b/pkg/limayaml/limayaml.go
+index 6927fab2..05485873 100644
+--- a/pkg/limayaml/limayaml.go
++++ b/pkg/limayaml/limayaml.go
+@@ -181,6 +181,11 @@ type Firmware struct {
+ 	// LegacyBIOS is ignored for aarch64.
+ 	LegacyBIOS *bool `yaml:"legacyBIOS,omitempty" json:"legacyBIOS,omitempty" jsonschema:"nullable"`
+ 
++	// CompatUEFIViaBIOS forces QEMU to load concatenated firmware with -bios option
++	// CompatUEFIViaBIOS is ignored for non x86_64
++	// This should be deprecated, if the issue in QEMU is fixed https://gitlab.com/qemu-project/qemu/-/issues/513
++	CompatUEFIViaBIOS *bool `yaml:"compatUEFIInBIOS" json:"compatUEFIInBIOS,omitempty" jsonschema:"nullable"` // default: false on non Windows and true on Windows
++
+ 	// Images specify UEFI images (edk2-aarch64-code.fd.gz).
+ 	// Defaults to built-in UEFI.
+ 	Images []FileWithVMType `yaml:"images,omitempty" json:"images,omitempty"`
+diff --git a/pkg/qemu/qemu.go b/pkg/qemu/qemu.go
+index 9bd5a8c5..507398bb 100644
+--- a/pkg/qemu/qemu.go
++++ b/pkg/qemu/qemu.go
+@@ -6,6 +6,7 @@ import (
+ 	"encoding/json"
+ 	"errors"
+ 	"fmt"
++	"io"
+ 	"io/fs"
+ 	"os"
+ 	"os/exec"
+@@ -624,9 +625,45 @@ func Cmdline(ctx context.Context, cfg Config) (exe string, args []string, err er
+ 				return "", nil, err
+ 			}
+ 			logrus.Infof("Using system firmware (%q)", firmware)
++			if *y.Firmware.CompatUEFIViaBIOS && *y.Arch == limayaml.X8664 {
++				firmwareVars, err := getFirmwareVars(exe, *y.Arch)
++				if err != nil {
++					return "", nil, err
++				}
++				logrus.Infof("Using system firmware vars (%q)", firmwareVars)
++				// TODO
++				varsFile, err := os.Open(firmwareVars)
++				if err != nil {
++					return "", nil, err
++				}
++				defer varsFile.Close()
++				codeFile, err := os.Open(firmware)
++				if err != nil {
++					return "", nil, err
++				}
++				defer codeFile.Close()
++				downloadedFile, err := os.OpenFile(downloadedFirmware, os.O_CREATE|os.O_WRONLY, 0644)
++				if err != nil {
++					return "", nil, err
++				}
++				defer downloadedFile.Close()
++				_, err = io.Copy(downloadedFile, varsFile)
++				if err != nil {
++					return "", nil, err
++				}
++				_, err = io.Copy(downloadedFile, codeFile)
++				if err != nil {
++					return "", nil, err
++				}
++				firmware = downloadedFirmware
++			}
+ 		}
+ 		if firmware != "" {
+-			args = append(args, "-drive", fmt.Sprintf("if=pflash,format=raw,readonly=on,file=%s", firmware))
++			if *y.Firmware.CompatUEFIViaBIOS {
++				args = append(args, "-bios", firmware)
++			} else {
++				args = append(args, "-drive", fmt.Sprintf("if=pflash,format=raw,readonly=on,file=%s", firmware))
++			}
+ 		}
+ 	}
+ 
+@@ -1120,9 +1157,11 @@ func getFirmware(qemuExe string, arch limayaml.Arch) (string, error) {
+ 	userLocalDir := filepath.Join(currentUser.HomeDir, ".local") // "$HOME/.local"
+ 
+ 	relativePath := fmt.Sprintf("share/qemu/edk2-%s-code.fd", qemuEdk2Arch(arch))
++	relativePathWin := fmt.Sprintf("share/edk2-%s-code.fd", qemuEdk2Arch(arch))
+ 	candidates := []string{
+ 		filepath.Join(userLocalDir, relativePath), // XDG-like
+ 		filepath.Join(localDir, relativePath),     // macOS (homebrew)
++		filepath.Join(binDir, relativePathWin),    // Windows installer
+ 	}
+ 
+ 	switch arch {
+@@ -1161,5 +1200,42 @@ func getFirmware(qemuExe string, arch limayaml.Arch) (string, error) {
+ 	if arch == limayaml.X8664 {
+ 		return "", fmt.Errorf("could not find firmware for %q (hint: try setting `firmware.legacyBIOS` to `true`)", qemuExe)
+ 	}
+-	return "", fmt.Errorf("could not find firmware for %q (hint: try copying the \"edk-%s-code.fd\" firmware to $HOME/.local/share/qemu/)", arch, qemuExe)
++	return "", fmt.Errorf("could not find firmware for %q (hint: try copying the \"edk-%s-code.fd\" firmware to $HOME/.local/share/qemu/)", qemuExe, arch)
++}
++
++func getFirmwareVars(qemuExe string, arch limayaml.Arch) (string, error) {
++	targetArch := arch
++	switch arch {
++	case limayaml.X8664:
++		targetArch = "i386"
++	default:
++		return "", fmt.Errorf("unexpected architecture: %q", arch)
++	}
++
++	currentUser, err := user.Current()
++	if err != nil {
++		return "", err
++	}
++
++	binDir := filepath.Dir(qemuExe)                              // "/usr/local/bin"
++	localDir := filepath.Dir(binDir)                             // "/usr/local"
++	userLocalDir := filepath.Join(currentUser.HomeDir, ".local") // "$HOME/.local"
++
++	relativePath := fmt.Sprintf("share/qemu/edk2-%s-vars.fd", qemuEdk2Arch(targetArch))
++	relativePathWin := fmt.Sprintf("share/edk2-%s-vars.fd", qemuEdk2Arch(targetArch))
++	candidates := []string{
++		filepath.Join(userLocalDir, relativePath), // XDG-like
++		filepath.Join(localDir, relativePath),     // macOS (homebrew)
++		filepath.Join(binDir, relativePathWin),    // Windows installer
++	}
++
++	logrus.Debugf("firmware vars candidates = %v", candidates)
++
++	for _, f := range candidates {
++		if _, err := os.Stat(f); err == nil {
++			return f, nil
++		}
++	}
++
++	return "", fmt.Errorf("could not find firmware vars for %q", qemuExe)
+ }
+-- 
+2.48.1
+

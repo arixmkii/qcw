@@ -17,7 +17,7 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: e911564e4a5f3151a3beef5ec2446914e016c745
+  LIMA_SHA: 75221d6ea92645bce122449e6ab82678411853e7
   LIMA_VERSION: dev
 jobs:
   call-prepare-alpine-wsl:
@@ -65,7 +65,7 @@ jobs:
           wsl --set-default-version 2
           wsl --shutdown
           Import-module -Name Appx -UseWindowsPowerShell
-          Add-AppxPackage https://github.com/microsoft/WSL/releases/download/2.4.9/Microsoft.WSL_2.4.9.0_x64_ARM64.msixbundle
+          Add-AppxPackage https://github.com/microsoft/WSL/releases/download/2.4.10/Microsoft.WSL_2.4.10.0_x64_ARM64.msixbundle
           wsl --version
           wsl --install --from-file qcw-art/qcw-alpine/lima-infra.wsl
           wsl -l -v
@@ -87,6 +87,7 @@ jobs:
           git fetch --depth 1 origin $LIMA_SHA
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/lima/0001-Add-QEMU-driver-support-on-Windows-hosts.patch
+          patch --binary -l -p 1 < ../patches/lima/0002-Add-optional-loading-of-UEFI-firmware-via-bios-param.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}

@@ -1,7 +1,7 @@
-From 1f2e1692af3f1336f81fe1bdd690666713a5800e Mon Sep 17 00:00:00 2001
+From c375bf94a312bb7568bac26f157925bbd15d7cba Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Wed, 22 Jan 2025 17:24:01 +0200
-Subject: [PATCH] Add QEMU driver support on Windows hosts
+Subject: [PATCH 1/2] Add QEMU driver support on Windows hosts
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
@@ -15,18 +15,16 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
  pkg/hostagent/hostagent.go         |  7 ++++++-
  pkg/hostagent/mount.go             | 23 ++++++++++++++++++++---
  pkg/ioutilx/ioutilx.go             |  3 ++-
- pkg/iso9660util/iso9660util.go     |  6 ------
  pkg/osutil/user.go                 |  2 +-
- pkg/qemu/qemu.go                   |  2 ++
  pkg/sshutil/sshutil.go             | 19 ++++++++++---------
  templates/default.yaml             |  2 +-
- 15 files changed, 88 insertions(+), 24 deletions(-)
+ 13 files changed, 86 insertions(+), 18 deletions(-)
  create mode 100644 contrib/bundle-wsl/go-wsllinks.exe
  create mode 100644 contrib/bundle-wsl/sftp-server.ini
  create mode 100644 contrib/bundle-wsl/wsllinks.ini
 
 diff --git a/Makefile b/Makefile
-index 71bea6e4..33ee9e8b 100644
+index 28b918d2..ce52a4e1 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -551,6 +551,23 @@ artifacts-misc: | _artifacts
@@ -104,14 +102,14 @@ new file mode 100644
 index 00000000..e69de29b
 diff --git a/contrib/bundle-wsl/sftp-server.ini b/contrib/bundle-wsl/sftp-server.ini
 new file mode 100644
-index 00000000..47d2814a
+index 00000000..4ad96ac0
 --- /dev/null
 +++ b/contrib/bundle-wsl/sftp-server.ini
 @@ -0,0 +1 @@
 +binary = /usr/lib/ssh/sftp-server
 diff --git a/contrib/bundle-wsl/wsllinks.ini b/contrib/bundle-wsl/wsllinks.ini
 new file mode 100644
-index 00000000..60b0c8e8
+index 00000000..6f274505
 --- /dev/null
 +++ b/contrib/bundle-wsl/wsllinks.ini
 @@ -0,0 +1,2 @@
@@ -255,30 +253,6 @@ index efee8203..4b52f24a 100644
  	if err != nil {
  		logrus.WithError(err).Errorf("failed to convert path to mingw, maybe not using Git ssh?")
  	} else {
-diff --git a/pkg/iso9660util/iso9660util.go b/pkg/iso9660util/iso9660util.go
-index 74ef0bbe..ff8ccca5 100644
---- a/pkg/iso9660util/iso9660util.go
-+++ b/pkg/iso9660util/iso9660util.go
-@@ -4,8 +4,6 @@ import (
- 	"io"
- 	"os"
- 	"path"
--	"path/filepath"
--	"runtime"
- 
- 	"github.com/diskfs/go-diskfs/filesystem"
- 	"github.com/diskfs/go-diskfs/filesystem/iso9660"
-@@ -33,10 +31,6 @@ func Write(isoPath, label string, layout []Entry) error {
- 	if err != nil {
- 		return err
- 	}
--	if runtime.GOOS == "windows" {
--		// go-embed unfortunately needs unix path
--		workdir = filepath.ToSlash(workdir)
--	}
- 	logrus.Debugf("Creating iso file %s", isoFile.Name())
- 	logrus.Debugf("Using %s as workspace", workdir)
- 	fs, err := iso9660.Create(isoFile, 0, 0, 0, workdir)
 diff --git a/pkg/osutil/user.go b/pkg/osutil/user.go
 index d1883c59..240f040b 100644
 --- a/pkg/osutil/user.go
@@ -292,22 +266,6 @@ index d1883c59..240f040b 100644
  			if err != nil {
  				logrus.Debug(err)
  			}
-diff --git a/pkg/qemu/qemu.go b/pkg/qemu/qemu.go
-index 9bd5a8c5..38bf6c2f 100644
---- a/pkg/qemu/qemu.go
-+++ b/pkg/qemu/qemu.go
-@@ -1120,9 +1120,11 @@ func getFirmware(qemuExe string, arch limayaml.Arch) (string, error) {
- 	userLocalDir := filepath.Join(currentUser.HomeDir, ".local") // "$HOME/.local"
- 
- 	relativePath := fmt.Sprintf("share/qemu/edk2-%s-code.fd", qemuEdk2Arch(arch))
-+	relativePathWin := fmt.Sprintf("share/edk2-%s-code.fd", qemuEdk2Arch(arch))
- 	candidates := []string{
- 		filepath.Join(userLocalDir, relativePath), // XDG-like
- 		filepath.Join(localDir, relativePath),     // macOS (homebrew)
-+		filepath.Join(binDir, relativePathWin),    // Windows installer
- 	}
- 
- 	switch arch {
 diff --git a/pkg/sshutil/sshutil.go b/pkg/sshutil/sshutil.go
 index 563bc5ed..37908acb 100644
 --- a/pkg/sshutil/sshutil.go
@@ -368,7 +326,7 @@ index 563bc5ed..37908acb 100644
  	opts = append(opts,
  		fmt.Sprintf("User=%s", username), // guest and host have the same username, but we should specify the username explicitly (#85)
 diff --git a/templates/default.yaml b/templates/default.yaml
-index 3eee29a3..987eb180 100644
+index 9825d9ee..d4034819 100644
 --- a/templates/default.yaml
 +++ b/templates/default.yaml
 @@ -99,7 +99,7 @@ mounts:
