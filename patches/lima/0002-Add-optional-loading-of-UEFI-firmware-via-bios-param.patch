@@ -1,4 +1,4 @@
-From aef43e60d028f74ac27c1c456fb6269fb4f9ffef Mon Sep 17 00:00:00 2001
+From 20d0016ab3ac92a561352d22a8eb3e8d03b04fd6 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Sat, 8 Feb 2025 23:22:31 +0200
 Subject: [PATCH 2/2] Add optional loading of UEFI firmware via -bios parameter
@@ -49,7 +49,7 @@ index 6927fab2..05485873 100644
  	// Defaults to built-in UEFI.
  	Images []FileWithVMType `yaml:"images,omitempty" json:"images,omitempty"`
 diff --git a/pkg/qemu/qemu.go b/pkg/qemu/qemu.go
-index 9bd5a8c5..507398bb 100644
+index 9bd5a8c5..1d8fea6a 100644
 --- a/pkg/qemu/qemu.go
 +++ b/pkg/qemu/qemu.go
 @@ -6,6 +6,7 @@ import (
@@ -99,7 +99,7 @@ index 9bd5a8c5..507398bb 100644
  		}
  		if firmware != "" {
 -			args = append(args, "-drive", fmt.Sprintf("if=pflash,format=raw,readonly=on,file=%s", firmware))
-+			if *y.Firmware.CompatUEFIViaBIOS {
++			if *y.Firmware.CompatUEFIViaBIOS && *y.Arch == limayaml.X8664 {
 +				args = append(args, "-bios", firmware)
 +			} else {
 +				args = append(args, "-drive", fmt.Sprintf("if=pflash,format=raw,readonly=on,file=%s", firmware))

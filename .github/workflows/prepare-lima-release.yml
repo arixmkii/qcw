@@ -39,7 +39,12 @@ jobs:
           msystem: UCRT64
           update: true
           install: >-
-            make git unzip base-devel mingw-w64-ucrt-x86_64-toolchain zip mingw-w64-ucrt-x86_64-go
+            make git unzip base-devel mingw-w64-ucrt-x86_64-toolchain zip mingw-w64-ucrt-x86_64-go mingw-w64-ucrt-x86_64-qemu mingw-w64-ucrt-x86_64-jq mingw-w64-ucrt-x86_64-curl openbsd-netcat
+      - name: "🏗️ Install yq"
+        shell: msys2 {0}
+        run: |
+            mkdir -p /usr/local/bin
+            curl -o /usr/local/bin/yq.exe -L https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_windows_amd64.exe
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
       - name: "📝 Checkout"
@@ -64,8 +69,7 @@ jobs:
         run: |
           wsl --set-default-version 2
           wsl --shutdown
-          Import-module -Name Appx -UseWindowsPowerShell
-          Add-AppxPackage https://github.com/microsoft/WSL/releases/download/2.4.10/Microsoft.WSL_2.4.10.0_x64_ARM64.msixbundle
+          wsl --update
           wsl --version
           wsl --install --from-file qcw-art/qcw-alpine/lima-infra.wsl
           wsl -l -v
@@ -77,6 +81,7 @@ jobs:
           sleep 5
           wsl -d lima-infra whoami
           wsl -d lima-infra -u lima whoami
+          wsl -d lima-infra wslinfo --networking-mode
       - name: "📝 Fetch sources"
         shell: msys2 {0}
         run: |
@@ -88,12 +93,20 @@ jobs:
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/lima/0001-Add-QEMU-driver-support-on-Windows-hosts.patch
           patch --binary -l -p 1 < ../patches/lima/0002-Add-optional-loading-of-UEFI-firmware-via-bios-param.patch
+          patch --binary -l -p 1 < ../patches/lima/0003-Disable-part-of-the-tests-for-later-rework.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}
         run: |
           cp -f ../qcw-art/qcw-go-wsllinks/go-wsllinks.exe ./contrib/bundle-wsl/go-wsllinks.exe
           make binaries add-bundles
+      # - name: "🧪 Test Lima QEMU"
+      #   working-directory: lima-release
+      #   shell: msys2 {0}
+      #   run: |
+      #     export PATH=$PWD/_output/bin:$PATH
+      #     export LIMACTL_CREATE_ARGS=""
+      #     ./hack/test-templates.sh templates/default.yaml
       - name: "🧪 Test Lima WSL2"
         working-directory: lima-release/_output/bin
         shell: pwsh

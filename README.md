@@ -28,7 +28,7 @@ default.
 
 Some features require even more fresh Windows systems. To use `Lima` one would need at least Windows 11 22H2 with mirrored network
 mode https://learn.microsoft.com/en-us/windows/wsl/networking#mirrored-mode-networking and WSL2 release newer than
-[`2.4.8`](https://github.com/microsoft/WSL/releases/tag/2.4.8) prerelease is a hard requirement.
+[`2.4.10`](https://github.com/microsoft/WSL/releases/tag/2.4.10) prerelease is a hard requirement.
 
 ## Included software
 
@@ -75,8 +75,10 @@ Version `v0.0.3`. Rebuilt for Windows amd64 platform.
 
 #### `Lima`
 
-Development main branch from revision `e911564e4a5f3151a3beef5ec2446914e016c745` with 1 patch set:
+Development main branch from revision `e911564e4a5f3151a3beef5ec2446914e016c745` with 3 patch set:
 * Enable QEMU support in Lima
+* Add optional loading of UEFI firmware via -bios parameter
+* Disable some unsupported tests
 
 #### `Podman`
 

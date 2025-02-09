@@ -8,7 +8,7 @@
 * Lima `<<LIMA_VERSION>>` with patches to enable QEMU support on Windows
 * lima-infra Alpine WSL image `<<ALPINE_VERSION>>` based on AlpineWSL project `<<ALPINEWSL_VERSION>>`
 * Podman `<<PODMAN_VERSION>>` with patches to enable QEMU support on Windows
-* QEMU `<<QEMU_VERSION>>` (this one includes 9pfs on Windows hosts patches and UEFI pflash fixes, if this functionality is not needed, then consider using official installer, this is required to run Lima)
+* QEMU `<<QEMU_VERSION>>` (this one includes 9pfs on Windows hosts patches and UEFI pflash fixes, if this functionality is not needed, then consider using official installer)
 
 #### How to install
 1. Download and install QEMU (from this release or official one version 7.2.0 or newer)
