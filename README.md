@@ -27,8 +27,22 @@ It will also require [Hyper-V](https://docs.microsoft.com/en-us/virtualization/h
 default.
 
 Some features require even more fresh Windows systems. To use `Lima` one would need at least Windows 11 22H2 with mirrored network
-mode https://learn.microsoft.com/en-us/windows/wsl/networking#mirrored-mode-networking and WSL2 release newer than
-[`2.4.10`](https://github.com/microsoft/WSL/releases/tag/2.4.10) prerelease is a hard requirement.
+mode https://learn.microsoft.com/en-us/windows/wsl/networking#mirrored-mode-networking and experimental setting of
+hostAddressLoopback (https://learn.microsoft.com/en-us/windows/wsl/wsl-config#experimental-settings) enabled and WSL2 release
+newer than [`2.4.10`](https://github.com/microsoft/WSL/releases/tag/2.4.10) is a hard requirement.
+
+Minimal supported `.wslconfig` should look like:
+```ini
+[wsl2]
+networkingMode=mirrored
+[experimental]
+hostAddressLoopback=true
+```
+
+It is also recommended to allow inbound connections in Hyper-V firewall to not interfere with port forwarding from inside Lima
+```powershell
+Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
+```
 
 ## Included software
 

@@ -14,7 +14,7 @@
 1. Download and install QEMU (from this release or official one version 7.2.0 or newer)
 2. Download and install Podman from this release (it might be a good idea to uninstall one first if you had it before)
 3. Choose a location where you want utilities to reside and open Powershell terminal there, then execute 
-```powershell
+```pwsh
 iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/arixmkii/qcw/<<TAG_NAME>>/qcw-utils.ps1'))
 ```
 4. Follow the instructions in README.

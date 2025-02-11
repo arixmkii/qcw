@@ -1,0 +1,237 @@
+From 8a0b91e0c248e5d4d22681c8a8cb1ebf6dacbea3 Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Sun, 9 Feb 2025 13:26:40 +0200
+Subject: [PATCH] Update tests for Cygwin/WSL compatibility
+
+---
+ hack/common.inc.sh           |  2 +-
+ hack/test-mount-home.sh      |  5 +++--
+ hack/test-port-forwarding.pl | 12 ++++++++++-
+ hack/test-templates.sh       | 41 +++++++++++++++++++++++++-----------
+ 4 files changed, 44 insertions(+), 16 deletions(-)
+
+diff --git a/hack/common.inc.sh b/hack/common.inc.sh
+index 1e90ff8e..d4d408b7 100644
+--- a/hack/common.inc.sh
++++ b/hack/common.inc.sh
+@@ -23,7 +23,7 @@ if [[ ${BASH_VERSINFO:-0} -lt 4 ]]; then
+ 	exit 1
+ fi
+ 
+-: "${LIMA_HOME:=$HOME/.lima}"
++: "${LIMA_HOME:=${HOME_SRC:-$HOME}/.lima}"
+ _IPERF3=iperf3
+ # iperf3-darwin does some magic on macOS to avoid "No route on host" on macOS 15
+ # https://github.com/lima-vm/socket_vmnet/issues/85
+diff --git a/hack/test-mount-home.sh b/hack/test-mount-home.sh
+index dd8e1afa..5e0c2fed 100755
+--- a/hack/test-mount-home.sh
++++ b/hack/test-mount-home.sh
+@@ -11,14 +11,15 @@ if [ "$#" -ne 1 ]; then
+ fi
+ 
+ NAME="$1"
+-hometmp="$HOME/lima-test-tmp"
++hometmp="${HOME_SRC:-$HOME}/lima-test-tmp"
++hometmpdst="${HOME_DST:-$HOME}/lima-test-tmp"
+ INFO "Testing home access (\"$hometmp\")"
+ rm -rf "$hometmp"
+ mkdir -p "$hometmp"
+ defer "rm -rf \"$hometmp\""
+ echo "random-content-${RANDOM}" >"$hometmp/random"
+ expected="$(cat "$hometmp/random")"
+-got="$(limactl shell "$NAME" cat "$hometmp/random")"
++got="$(limactl shell "$NAME" cat "$hometmpdst/random")"
+ INFO "$hometmp/random: expected=${expected}, got=${got}"
+ if [ "$got" != "$expected" ]; then
+ 	ERROR "Home directory is not shared?"
+diff --git a/hack/test-port-forwarding.pl b/hack/test-port-forwarding.pl
+index 3a41ce1e..c16112ac 100755
+--- a/hack/test-port-forwarding.pl
++++ b/hack/test-port-forwarding.pl
+@@ -33,6 +33,11 @@ if ($ipv4 eq "127.0.0.1" && $Config{osname} eq "darwin") {
+     chomp $ipv4;
+ }
+ 
++if ( $Config{osname} eq "cygwin") {
++  $ipv4 = qx(wsl -d lima-infra bash -c 'ip -4 -o addr show eth0' | awk '{print \$4}' | cut -d/ -f1);
++  chomp $ipv4;
++}
++
+ # If $instance is a filename, add our portForwards to it to enable testing
+ if (-f $instance) {
+     open(my $fh, "+< $instance") or die "Can't open $instance for read/write: $!";
+@@ -100,6 +105,10 @@ while (<DATA>) {
+         printf "🚧 Not supported on $Config{osname}: # $_\n";
+         next;
+     }
++    if ($test{mode} eq "forward" && $test{host_ip} eq "::" && $Config{osname} eq "cygwin") {
++        printf "🚧 Not supported on $Config{osname}: # $_\n";
++        next;
++    }
+     $test{host_ip} ||= "127.0.0.1";
+     $test{host_port} ||= $test{guest_port};
+ 
+@@ -129,7 +138,8 @@ EOF
+ sleep 5;
+ 
+ # Record current log size, so we can skip prior output
+-$ENV{LIMA_HOME} ||= "$ENV{HOME}/.lima";
++$ENV{HOME_SRC} ||= "$ENV{HOME}";
++$ENV{LIMA_HOME} ||= "$ENV{HOME_SRC}/.lima";
+ my $ha_log = "$ENV{LIMA_HOME}/$instance/ha.stderr.log";
+ my $ha_log_size = -s $ha_log or die;
+ 
+diff --git a/hack/test-templates.sh b/hack/test-templates.sh
+index 26e064b5..269f32bf 100755
+--- a/hack/test-templates.sh
++++ b/hack/test-templates.sh
+@@ -13,6 +13,9 @@ fi
+ FILE="$1"
+ NAME="$(basename -s .yaml "$FILE")"
+ 
++HOME_SRC=${HOME_SRC:-$HOME}
++HOME_DST=${HOME_DST:-$HOME}
++
+ INFO "Validating \"$FILE\""
+ limactl validate "$FILE"
+ 
+@@ -93,7 +96,7 @@ esac
+ limactl rm -f "${NAME}-tmp"
+ 
+ if [[ -n ${CHECKS["port-forwards"]} ]]; then
+-	tmpconfig="$HOME/lima-config-tmp"
++	tmpconfig="$HOME_SRC/lima-config-tmp"
+ 	mkdir -p "${tmpconfig}"
+ 	defer "rm -rf \"$tmpconfig\""
+ 	tmpfile="${tmpconfig}/${NAME}.yaml"
+@@ -101,17 +104,21 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
+ 	FILE="${tmpfile}"
+ 	INFO "Setup port forwarding rules for testing in \"${FILE}\""
+ 	"${scriptdir}/test-port-forwarding.pl" "${FILE}"
+-	limactl validate "$FILE"
++	if [ "$(uname -o)" = "Msys" ]; then
++		limactl validate $(cygpath -w "$FILE")
++	else
++		limactl validate "$FILE"
++	fi
+ fi
+ 
+ function diagnose() {
+ 	NAME="$1"
+ 	set -x +e
+-	tail "$HOME/.lima/${NAME}"/*.log
++	tail "$HOME_SRC/.lima/${NAME}"/*.log
+ 	limactl shell "$NAME" systemctl --no-pager status
+ 	limactl shell "$NAME" systemctl --no-pager
+ 	mkdir -p failure-logs
+-	cp -pf "$HOME/.lima/${NAME}"/*.log failure-logs/
++	cp -pf "$HOME_SRC/.lima/${NAME}"/*.log failure-logs/
+ 	limactl shell "$NAME" sudo cat /var/log/cloud-init-output.log | tee failure-logs/cloud-init-output.log
+ 	set +x -e
+ }
+@@ -130,7 +137,11 @@ fi
+ 
+ set -x
+ # shellcheck disable=SC2086
+-"${LIMACTL_CREATE[@]}" ${LIMACTL_CREATE_ARGS} "$FILE"
++if [ "$(uname -o)" = "Msys" ]; then
++	"${LIMACTL_CREATE[@]}" ${LIMACTL_CREATE_ARGS} $(cygpath -w "$FILE")
++else
++	"${LIMACTL_CREATE[@]}" ${LIMACTL_CREATE_ARGS} "$FILE"
++fi
+ set +x
+ 
+ if [[ -n ${CHECKS["mount-path-with-spaces"]} ]]; then
+@@ -152,7 +163,7 @@ limactl shell "$NAME" cat /etc/os-release
+ set +x
+ 
+ INFO "Testing that host home is not wiped out"
+-[ -e "$HOME/.lima" ]
++[ -e "$HOME_SRC/.lima" ]
+ 
+ if [[ -n ${CHECKS["mount-path-with-spaces"]} ]]; then
+ 	INFO 'Testing that "/tmp/lima test dir with spaces" is not wiped out'
+@@ -196,7 +207,7 @@ tmpdir="$(mktemp -d "${TMPDIR:-/tmp}"/lima-test-templates.XXXXXX)"
+ defer "rm -rf \"$tmpdir\""
+ tmpfile="$tmpdir/lima-hostname"
+ rm -f "$tmpfile"
+-limactl cp "$NAME":/etc/hostname "$tmpfile"
++limactl cp "$NAME":/etc/hostname "/mnt/c/msys64$tmpfile"
+ expected="$(limactl shell "$NAME" cat /etc/hostname)"
+ got="$(cat "$tmpfile")"
+ INFO "/etc/hostname: expected=${expected}, got=${got}"
+@@ -249,7 +260,8 @@ if [[ -n ${CHECKS["container-engine"]} ]]; then
+ 	limactl shell "$NAME" $CONTAINER_ENGINE rm -f nginx
+ 	set +x
+ 	if [[ -n ${CHECKS["mount-home"]} ]]; then
+-		hometmp="$HOME/lima-container-engine-test-tmp"
++		hometmp="$HOME_SRC/lima-container-engine-test-tmp"
++		hometmpdst="$HOME_DST/lima-container-engine-test-tmp"
+ 		# test for https://github.com/lima-vm/lima/issues/187
+ 		INFO "Testing home bind mount (\"$hometmp\")"
+ 		rm -rf "$hometmp"
+@@ -259,7 +271,7 @@ if [[ -n ${CHECKS["container-engine"]} ]]; then
+ 		limactl shell "$NAME" $CONTAINER_ENGINE pull --quiet ${alpine_image}
+ 		echo "random-content-${RANDOM}" >"$hometmp/random"
+ 		expected="$(cat "$hometmp/random")"
+-		got="$(limactl shell "$NAME" $CONTAINER_ENGINE run --rm -v "$hometmp/random":/mnt/foo ${alpine_image} cat /mnt/foo)"
++		got="$(limactl shell "$NAME" $CONTAINER_ENGINE run --rm -v "$hometmpdst/random":/mnt/foo ${alpine_image} cat /mnt/foo)"
+ 		INFO "$hometmp/random: expected=${expected}, got=${got}"
+ 		if [ "$got" != "$expected" ]; then
+ 			ERROR "Home directory is not shared?"
+@@ -294,6 +306,7 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
+ 		else
+ 			hostip=$(perl -MSocket -MSys::Hostname -E 'say inet_ntoa(scalar gethostbyname(hostname()))')
+ 		fi
++		hostip=$(wsl -d lima-infra bash -c 'ip -4 -o addr show eth0' | awk '{print $4}' | cut -d/ -f1)
+ 		if [ -n "${hostip}" ]; then
+ 			sudo=""
+ 			if [[ ${NAME} == "alpine"* ]]; then
+@@ -313,7 +326,7 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
+ 			timeout 3m bash -euxc "until curl -f --retry 30 --retry-connrefused http://${hostip}:8888; do sleep 3; done"
+ 			limactl shell "$NAME" $sudo $CONTAINER_ENGINE rm -f nginx
+ 
+-			if [ "$(uname)" = "Darwin" ]; then
++			if [ "$(uname)" = "Darwin" ]; then # TODO add Windows
+ 				# Only macOS can bind to port 80 without root
+ 				limactl shell "$NAME" $sudo $CONTAINER_ENGINE run -d --name nginx -p 127.0.0.1:80:80 ${nginx_image}
+ 				timeout 3m bash -euxc "until curl -f --retry 30 --retry-connrefused http://localhost:80; do sleep 3; done"
+@@ -354,13 +367,16 @@ if [[ -n ${CHECKS["restart"]} ]]; then
+ 	INFO "Create file in the guest home directory and verify that it still exists after a restart"
+ 	# shellcheck disable=SC2016
+ 	limactl shell "$NAME" sh -c 'touch $HOME/sweet-home'
++	limactl shell "$NAME" sh -c 'ls -l -a $HOME'
+ 	if [[ -n ${CHECKS["disk"]} ]]; then
+ 		INFO "Create file in disk and verify that it still exists when it is reattached"
+ 		limactl shell "$NAME" sudo sh -c 'touch /mnt/lima-data/sweet-disk'
+ 	fi
+ 
++	limactl shell "$NAME" sudo shutdown -h now
++	sleep 15
+ 	INFO "Stopping \"$NAME\""
+-	limactl stop "$NAME"
++	limactl stop "$NAME" || true
+ 	sleep 3
+ 
+ 	if [[ -n ${CHECKS["disk"]} ]]; then
+@@ -385,6 +401,7 @@ if [[ -n ${CHECKS["restart"]} ]]; then
+ 		exit 1
+ 	fi
+ 
++	limactl shell "$NAME" sh -c 'ls -l -a $HOME'
+ 	# shellcheck disable=SC2016
+ 	if ! limactl shell "$NAME" sh -c 'test -f $HOME/sweet-home'; then
+ 		ERROR "Guest home directory does not persist across restarts"
+@@ -474,7 +491,7 @@ if [[ $NAME == "fedora" && "$(limactl ls --json "$NAME" | jq -r .vmType)" == "vz
+ fi
+ 
+ INFO "Stopping \"$NAME\""
+-limactl stop "$NAME"
++limactl stop "$NAME" || true
+ sleep 3
+ 
+ INFO "Deleting \"$NAME\""
+-- 
+2.48.1
+

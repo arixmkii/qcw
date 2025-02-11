@@ -38,7 +38,7 @@ index 28b918d2..ce52a4e1 100644
 +	_output/bin/bundle-wsl/cygpath.exe _output/bin/bundle-wsl/id.exe _output/bin/bundle-wsl/realpath.exe\
 +	_output/bin/bundle-wsl/sftp-server.exe _output/bin/bundle-wsl/ssh.exe _output/bin/bundle-wsl/ssh-keygen.exe \
 +	_output/bin/bundle-wsl/gzip.exe _output/bin/bundle-wsl/bzip2.exe _output/bin/bundle-wsl/xz.exe \
-+	_output/bin/bundle-wsl/zstd.exe
++	_output/bin/bundle-wsl/zstd.exe _output/bin/bundle-wsl/scp.exe
 +
 +_output/bin/bundle-wsl/%.ini: contrib/bundle-wsl/%.ini | _output/bin/bundle-wsl
 +	cp -a $< $@
