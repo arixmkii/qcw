@@ -1,14 +1,14 @@
-From 8a0b91e0c248e5d4d22681c8a8cb1ebf6dacbea3 Mon Sep 17 00:00:00 2001
+From 79b2800893b698d62160ad40632f58b21b6b3f00 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Sun, 9 Feb 2025 13:26:40 +0200
-Subject: [PATCH] Update tests for Cygwin/WSL compatibility
+Subject: [PATCH 1/2] Update tests for Cygwin/WSL compatibility
 
 ---
  hack/common.inc.sh           |  2 +-
  hack/test-mount-home.sh      |  5 +++--
- hack/test-port-forwarding.pl | 12 ++++++++++-
- hack/test-templates.sh       | 41 +++++++++++++++++++++++++-----------
- 4 files changed, 44 insertions(+), 16 deletions(-)
+ hack/test-port-forwarding.pl | 12 +++++++++++-
+ hack/test-templates.sh       | 33 ++++++++++++++++++++++++---------
+ 4 files changed, 39 insertions(+), 13 deletions(-)
 
 diff --git a/hack/common.inc.sh b/hack/common.inc.sh
 index 1e90ff8e..d4d408b7 100644
@@ -83,7 +83,7 @@ index 3a41ce1e..c16112ac 100755
  my $ha_log_size = -s $ha_log or die;
  
 diff --git a/hack/test-templates.sh b/hack/test-templates.sh
-index 26e064b5..269f32bf 100755
+index 26e064b5..581851f6 100755
 --- a/hack/test-templates.sh
 +++ b/hack/test-templates.sh
 @@ -13,6 +13,9 @@ fi
@@ -180,58 +180,16 @@ index 26e064b5..269f32bf 100755
  		INFO "$hometmp/random: expected=${expected}, got=${got}"
  		if [ "$got" != "$expected" ]; then
  			ERROR "Home directory is not shared?"
-@@ -294,6 +306,7 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
+@@ -294,6 +306,9 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
  		else
  			hostip=$(perl -MSocket -MSys::Hostname -E 'say inet_ntoa(scalar gethostbyname(hostname()))')
  		fi
-+		hostip=$(wsl -d lima-infra bash -c 'ip -4 -o addr show eth0' | awk '{print $4}' | cut -d/ -f1)
++		if [ "$(uname -o)" = "Msys" ]; then
++			hostip=$(wsl -d lima-infra bash -c 'ip -4 -o addr show eth0' | awk '{print $4}' | cut -d/ -f1)
++		fi
  		if [ -n "${hostip}" ]; then
  			sudo=""
  			if [[ ${NAME} == "alpine"* ]]; then
-@@ -313,7 +326,7 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
- 			timeout 3m bash -euxc "until curl -f --retry 30 --retry-connrefused http://${hostip}:8888; do sleep 3; done"
- 			limactl shell "$NAME" $sudo $CONTAINER_ENGINE rm -f nginx
- 
--			if [ "$(uname)" = "Darwin" ]; then
-+			if [ "$(uname)" = "Darwin" ]; then # TODO add Windows
- 				# Only macOS can bind to port 80 without root
- 				limactl shell "$NAME" $sudo $CONTAINER_ENGINE run -d --name nginx -p 127.0.0.1:80:80 ${nginx_image}
- 				timeout 3m bash -euxc "until curl -f --retry 30 --retry-connrefused http://localhost:80; do sleep 3; done"
-@@ -354,13 +367,16 @@ if [[ -n ${CHECKS["restart"]} ]]; then
- 	INFO "Create file in the guest home directory and verify that it still exists after a restart"
- 	# shellcheck disable=SC2016
- 	limactl shell "$NAME" sh -c 'touch $HOME/sweet-home'
-+	limactl shell "$NAME" sh -c 'ls -l -a $HOME'
- 	if [[ -n ${CHECKS["disk"]} ]]; then
- 		INFO "Create file in disk and verify that it still exists when it is reattached"
- 		limactl shell "$NAME" sudo sh -c 'touch /mnt/lima-data/sweet-disk'
- 	fi
- 
-+	limactl shell "$NAME" sudo shutdown -h now
-+	sleep 15
- 	INFO "Stopping \"$NAME\""
--	limactl stop "$NAME"
-+	limactl stop "$NAME" || true
- 	sleep 3
- 
- 	if [[ -n ${CHECKS["disk"]} ]]; then
-@@ -385,6 +401,7 @@ if [[ -n ${CHECKS["restart"]} ]]; then
- 		exit 1
- 	fi
- 
-+	limactl shell "$NAME" sh -c 'ls -l -a $HOME'
- 	# shellcheck disable=SC2016
- 	if ! limactl shell "$NAME" sh -c 'test -f $HOME/sweet-home'; then
- 		ERROR "Guest home directory does not persist across restarts"
-@@ -474,7 +491,7 @@ if [[ $NAME == "fedora" && "$(limactl ls --json "$NAME" | jq -r .vmType)" == "vz
- fi
- 
- INFO "Stopping \"$NAME\""
--limactl stop "$NAME"
-+limactl stop "$NAME" || true
- sleep 3
- 
- INFO "Deleting \"$NAME\""
 -- 
 2.48.1
 

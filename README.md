@@ -92,7 +92,8 @@ Version `v0.0.3`. Rebuilt for Windows amd64 platform.
 Development main branch from revision `e911564e4a5f3151a3beef5ec2446914e016c745` with 3 patch set:
 * Enable QEMU support in Lima
 * Add optional loading of UEFI firmware via -bios parameter
-* Disable some unsupported tests
+* Update tests for Cygwin/WSL compatibility
+* Add quickfix for Windows compat `limactl stop`
 
 #### `Podman`
 
