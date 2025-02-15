@@ -1,14 +1,15 @@
-From 79b2800893b698d62160ad40632f58b21b6b3f00 Mon Sep 17 00:00:00 2001
+From 1a01e01305e5ec6474a65b98f542737dc50d2659 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Sun, 9 Feb 2025 13:26:40 +0200
-Subject: [PATCH 1/2] Update tests for Cygwin/WSL compatibility
+Subject: [PATCH] Update tests for Cygwin/WSL compatibility
 
 ---
  hack/common.inc.sh           |  2 +-
  hack/test-mount-home.sh      |  5 +++--
  hack/test-port-forwarding.pl | 12 +++++++++++-
- hack/test-templates.sh       | 33 ++++++++++++++++++++++++---------
- 4 files changed, 39 insertions(+), 13 deletions(-)
+ hack/test-templates.sh       | 35 ++++++++++++++++++++++++++---------
+ pkg/qemu/qemu.go             |  2 +-
+ 5 files changed, 42 insertions(+), 14 deletions(-)
 
 diff --git a/hack/common.inc.sh b/hack/common.inc.sh
 index 1e90ff8e..d4d408b7 100644
@@ -46,7 +47,7 @@ index dd8e1afa..5e0c2fed 100755
  if [ "$got" != "$expected" ]; then
  	ERROR "Home directory is not shared?"
 diff --git a/hack/test-port-forwarding.pl b/hack/test-port-forwarding.pl
-index 3a41ce1e..c16112ac 100755
+index 3a41ce1e..9b2855cc 100755
 --- a/hack/test-port-forwarding.pl
 +++ b/hack/test-port-forwarding.pl
 @@ -33,6 +33,11 @@ if ($ipv4 eq "127.0.0.1" && $Config{osname} eq "darwin") {
@@ -54,7 +55,7 @@ index 3a41ce1e..c16112ac 100755
  }
  
 +if ( $Config{osname} eq "cygwin") {
-+  $ipv4 = qx(wsl -d lima-infra bash -c 'ip -4 -o addr show eth0' | awk '{print \$4}' | cut -d/ -f1);
++  $ipv4 = qx(wsl -d lima-infra ip -4 -o addr show eth0 | awk '{print \$4}' | cut -d/ -f1);
 +  chomp $ipv4;
 +}
 +
@@ -83,7 +84,7 @@ index 3a41ce1e..c16112ac 100755
  my $ha_log_size = -s $ha_log or die;
  
 diff --git a/hack/test-templates.sh b/hack/test-templates.sh
-index 26e064b5..581851f6 100755
+index 26e064b5..6a08c0e9 100755
 --- a/hack/test-templates.sh
 +++ b/hack/test-templates.sh
 @@ -13,6 +13,9 @@ fi
@@ -152,16 +153,18 @@ index 26e064b5..581851f6 100755
  
  if [[ -n ${CHECKS["mount-path-with-spaces"]} ]]; then
  	INFO 'Testing that "/tmp/lima test dir with spaces" is not wiped out'
-@@ -196,7 +207,7 @@ tmpdir="$(mktemp -d "${TMPDIR:-/tmp}"/lima-test-templates.XXXXXX)"
+@@ -196,7 +207,9 @@ tmpdir="$(mktemp -d "${TMPDIR:-/tmp}"/lima-test-templates.XXXXXX)"
  defer "rm -rf \"$tmpdir\""
  tmpfile="$tmpdir/lima-hostname"
  rm -f "$tmpfile"
 -limactl cp "$NAME":/etc/hostname "$tmpfile"
-+limactl cp "$NAME":/etc/hostname "/mnt/c/msys64$tmpfile"
++wintmpdir="$(cygpath -w / | sed 's_\\_/_g' | sed 's/.$//')"
++mnttmpdir="$(wsl -d lima-infra wslpath $wintmpdir)"
++limactl cp "$NAME":/etc/hostname "$mnttmpdir$tmpfile"
  expected="$(limactl shell "$NAME" cat /etc/hostname)"
  got="$(cat "$tmpfile")"
  INFO "/etc/hostname: expected=${expected}, got=${got}"
-@@ -249,7 +260,8 @@ if [[ -n ${CHECKS["container-engine"]} ]]; then
+@@ -249,7 +262,8 @@ if [[ -n ${CHECKS["container-engine"]} ]]; then
  	limactl shell "$NAME" $CONTAINER_ENGINE rm -f nginx
  	set +x
  	if [[ -n ${CHECKS["mount-home"]} ]]; then
@@ -171,7 +174,7 @@ index 26e064b5..581851f6 100755
  		# test for https://github.com/lima-vm/lima/issues/187
  		INFO "Testing home bind mount (\"$hometmp\")"
  		rm -rf "$hometmp"
-@@ -259,7 +271,7 @@ if [[ -n ${CHECKS["container-engine"]} ]]; then
+@@ -259,7 +273,7 @@ if [[ -n ${CHECKS["container-engine"]} ]]; then
  		limactl shell "$NAME" $CONTAINER_ENGINE pull --quiet ${alpine_image}
  		echo "random-content-${RANDOM}" >"$hometmp/random"
  		expected="$(cat "$hometmp/random")"
@@ -180,16 +183,29 @@ index 26e064b5..581851f6 100755
  		INFO "$hometmp/random: expected=${expected}, got=${got}"
  		if [ "$got" != "$expected" ]; then
  			ERROR "Home directory is not shared?"
-@@ -294,6 +306,9 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
+@@ -294,6 +308,9 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
  		else
  			hostip=$(perl -MSocket -MSys::Hostname -E 'say inet_ntoa(scalar gethostbyname(hostname()))')
  		fi
 +		if [ "$(uname -o)" = "Msys" ]; then
-+			hostip=$(wsl -d lima-infra bash -c 'ip -4 -o addr show eth0' | awk '{print $4}' | cut -d/ -f1)
++			hostip=$(wsl -d lima-infra ip -4 -o addr show eth0 | awk '{print $4}' | cut -d/ -f1)
 +		fi
  		if [ -n "${hostip}" ]; then
  			sudo=""
  			if [[ ${NAME} == "alpine"* ]]; then
+diff --git a/pkg/qemu/qemu.go b/pkg/qemu/qemu.go
+index 1d8fea6a..ed4390cf 100644
+--- a/pkg/qemu/qemu.go
++++ b/pkg/qemu/qemu.go
+@@ -1080,7 +1080,7 @@ func qemuEdk2Arch(arch limayaml.Arch) string {
+ }
+ 
+ func Exe(arch limayaml.Arch) (exe string, args []string, err error) {
+-	exeBase := "qemu-system-" + qemuArch(arch)
++	exeBase := "qemu-system-" + qemuArch(arch) + "w"
+ 	envK := "QEMU_SYSTEM_" + strings.ToUpper(qemuArch(arch))
+ 	if envV := os.Getenv(envK); envV != "" {
+ 		ss, err := shellwords.Parse(envV)
 -- 
 2.48.1
 
