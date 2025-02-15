@@ -140,7 +140,7 @@ jobs:
           echo "lima=$LIMA_VERSION-$LIMA_SHA" >> "$GITHUB_OUTPUT"
           echo "gowsllinks=$GOWSLLINKS_VERSION" >> "$GITHUB_OUTPUT"
           echo "alpine=$ALPINE_VERSION" >> "$GITHUB_OUTPUT"
-          echo "alpine_wsl=$ALPINE_WSL_VERSION" >> "$GITHUB_OUTPUT"
+          echo "alpine_wsl=$ALPINEWSL_VERSION" >> "$GITHUB_OUTPUT"
       - name: "🚀 Upload artifact"
         uses: actions/upload-artifact@v4
         with:
