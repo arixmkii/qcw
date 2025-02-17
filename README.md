@@ -69,7 +69,7 @@ feature rich machine emulator;
 
 Version `3.18.4-0` with 2 patch sets:
 * Update Alpine to 3.20.3
-* Update Alpine to 3.21.2 and add Lima required tools
+* Update Alpine to 3.21.3 and add Lima required tools
 
 #### `docker-cli`
 

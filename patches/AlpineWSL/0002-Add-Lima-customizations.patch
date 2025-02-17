@@ -24,11 +24,11 @@ index ead99a0..f734975 100644
  DLR=curl
  DLR_FLAGS=-L
 -BASE_URL=https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/x86_64/alpine-minirootfs-3.20.3-x86_64.tar.gz
-+BASE_URL=https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/x86_64/alpine-minirootfs-3.21.2-x86_64.tar.gz
++BASE_URL=https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/x86_64/alpine-minirootfs-3.21.3-x86_64.tar.gz
  ROOTFS_TARBALL_CKSM_URL=${BASE_URL}.sha512
  LNCR_ZIP_URL=https://github.com/yuk7/wsldl/releases/download/23072600/icons.zip
  LNCR_ZIP_EXE=Alpine.exe
-@@ -43,9 +43,13 @@ rootfs: base.tar.gz profile
+@@ -43,9 +43,14 @@ rootfs: base.tar.gz profile
  	sudo cp -f /etc/resolv.conf rootfs/etc/resolv.conf
  	sudo cp -f profile rootfs/etc/profile
  	sudo chroot rootfs /sbin/apk update
@@ -37,7 +37,8 @@ index ead99a0..f734975 100644
 +	sudo chroot rootfs /sbin/apk add bash openssh openssh-client-krb5 socat libdeflate-utils zstd xz bzip2
 +	sudo chroot rootfs /bin/ln -s /usr/bin/libdeflate-gzip /usr/local/bin/gzip # https://github.com/microsoft/WSL/issues/12523
  	sudo rm -rf `sudo find rootfs/var/cache/apk/ -type f`
-+	sudo cp -f oobe.sh rootfs/etc/oobe.sh
++	sudo mkdir -p rootfs/usr/lib/wsl
++	sudo cp -f oobe.sh rootfs/usr/lib/wsl/oobe.sh
 +	sudo cp -f wsl.conf rootfs/etc/wsl.conf
 +	sudo cp -f wsl-distribution.conf rootfs/etc/wsl-distribution.conf
 +	sudo cp -f cygpath rootfs/usr/local/bin/cygpath
@@ -76,7 +77,7 @@ index 0000000..a0b83aa
 +++ b/src_x64/wsl-distribution.conf
 @@ -0,0 +1,4 @@
 +[oobe]
-+command = /etc/oobe.sh
++command = /usr/lib/wsl/oobe.sh
 +defaultUid = 1000
 +defaultName = lima-infra
 diff --git a/src_x64/wsl.conf b/src_x64/wsl.conf

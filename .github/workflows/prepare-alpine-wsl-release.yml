@@ -13,7 +13,7 @@ env:
   ALPINE_WSL_GITURL: https://github.com/yuk7/AlpineWSL.git
   ALPINE_WSL_SHA: f7aceea3c25aee24fdee0a08a5ec5d02abb8f2a0 # 3.18.4-0
   ALPINE_WSL_VERSION: 3.18.4-0
-  ALPINE_VERSION: 3.21.2-0 # from the last applied patch
+  ALPINE_VERSION: 3.21.3-0 # from the last applied patch
 jobs:
   build:
     runs-on: ubuntu-latest
