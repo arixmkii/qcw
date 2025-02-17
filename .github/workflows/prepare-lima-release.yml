@@ -63,10 +63,13 @@ jobs:
           wsl --version
           wsl --install --from-file qcw-art/qcw-alpine/lima-infra.wsl
           wsl -l -v
+      - name: "⚙️ Configure firewalls"
+        shell: pwsh
+        run: |
           Import-Module -Name NetSecurity -UseWindowsPowerShell
           Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
-          netsh advfirewall set allprofiles state off
-          wsl --shutdown
+          New-NetFirewallRule -DisplayName "Allow QEMU x86_64" -Direction Inbound -Program "D:\a\_temp\msys64\ucrt64\bin\qemu-system-x86_64.exe" -Action Allow
+          New-NetFirewallRule -DisplayName "Allow QEMU x86_64w" -Direction Inbound -Program "D:\a\_temp\msys64\ucrt64\bin\qemu-system-x86_64w.exe" -Action Allow
       - name: "✅ Check user"
         shell: pwsh
         run: |
