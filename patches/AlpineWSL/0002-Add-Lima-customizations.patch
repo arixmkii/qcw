@@ -28,7 +28,7 @@ index ead99a0..f734975 100644
  ROOTFS_TARBALL_CKSM_URL=${BASE_URL}.sha512
  LNCR_ZIP_URL=https://github.com/yuk7/wsldl/releases/download/23072600/icons.zip
  LNCR_ZIP_EXE=Alpine.exe
-@@ -43,9 +43,14 @@ rootfs: base.tar.gz profile
+@@ -43,9 +43,15 @@ rootfs: base.tar.gz profile
  	sudo cp -f /etc/resolv.conf rootfs/etc/resolv.conf
  	sudo cp -f profile rootfs/etc/profile
  	sudo chroot rootfs /sbin/apk update
@@ -42,6 +42,7 @@ index ead99a0..f734975 100644
 +	sudo cp -f wsl.conf rootfs/etc/wsl.conf
 +	sudo cp -f wsl-distribution.conf rootfs/etc/wsl-distribution.conf
 +	sudo cp -f cygpath rootfs/usr/local/bin/cygpath
++	echo "# UNCONFIGURED FSTAB" | sudo tee rootfs/etc/fstab
  	sudo chmod +x rootfs
  
  base.tar.gz:
