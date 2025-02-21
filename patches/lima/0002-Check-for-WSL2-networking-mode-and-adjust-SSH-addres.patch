@@ -1,7 +1,7 @@
-From 530ae1d5610e9edebf6208b491a3bd72634050ee Mon Sep 17 00:00:00 2001
+From 0d63ed5149ac593afb708b80e78b277ca9ae66d5 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Sun, 16 Feb 2025 18:16:01 +0200
-Subject: [PATCH 2/2] Check for WSL2 networking mode and adjust SSH address
+Subject: [PATCH 2/3] Check for WSL2 networking mode and adjust SSH address
 
 ---
  pkg/store/instance.go | 21 +++++++++++++++++++++

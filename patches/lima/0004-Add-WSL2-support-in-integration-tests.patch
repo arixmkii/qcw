@@ -1,0 +1,222 @@
+From 674ee0b8d1d430f142e90a5c53e3f9b1106d5b9d Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Sat, 22 Feb 2025 17:47:24 +0200
+Subject: [PATCH] Add WSL2 support in integration tests
+
+---
+ hack/test-port-forwarding.pl  | 24 ++++++++++++++--
+ hack/test-templates.sh        | 52 +++++++++++++++++++++++------------
+ pkg/store/instance_windows.go | 21 ++------------
+ 3 files changed, 59 insertions(+), 38 deletions(-)
+
+diff --git a/hack/test-port-forwarding.pl b/hack/test-port-forwarding.pl
+index a7649f6c..e64cabc9 100755
+--- a/hack/test-port-forwarding.pl
++++ b/hack/test-port-forwarding.pl
+@@ -27,6 +27,8 @@ my $addr = scalar gethostbyname(hostname());
+ my $ipv4 = length $addr ? inet_ntoa($addr) : "127.0.0.1";
+ my $ipv6 = ""; # todo
+ 
++$ENV{LIMA_SSH_PORT_FORWARDER} ||= "true";
++
+ # macOS GitHub runners seem to use "localhost" as the hostname
+ if ($ipv4 eq "127.0.0.1" && $Config{osname} eq "darwin") {
+     $ipv4 = qx(system_profiler SPNetworkDataType -json | jq -r 'first(.SPNetworkDataType[] | select(.ip_address) | .ip_address) | first');
+@@ -101,6 +103,10 @@ while (<DATA>) {
+     /^(forward|ignore):\s+([0-9.:]+)\s+(\d+)(?:\s+→)?(?:\s+([0-9.:]+)(?:\s+(\d+))?)?/;
+     die "Cannot parse test '$_'" unless $1;
+     my %test; @test{qw(mode guest_ip guest_port host_ip host_port)} = ($1, $2, $3, $4, $5);
++
++    $test{host_ip} ||= "127.0.0.1";
++    $test{host_port} ||= $test{guest_port};
++
+     if ($test{mode} eq "forward" && $test{host_port} < 1024 && $Config{osname} ne "darwin") {
+         printf "🚧 Not supported on $Config{osname}: # $_\n";
+         next;
+@@ -109,8 +115,22 @@ while (<DATA>) {
+         printf "🚧 Not supported on $Config{osname}: # $_\n";
+         next;
+     }
+-    $test{host_ip} ||= "127.0.0.1";
+-    $test{host_port} ||= $test{guest_port};
++    if ($test{guest_ip} eq "192.168.5.15" && $instance eq "wsl2") {
++        printf "🚧 Not supported on $Config{osname} for $instance: # $_\n";
++        next;
++    }
++    if ($test{mode} eq "forward" && $test{guest_ip} eq "0.0.0.0" && $test{host_port} eq $test{guest_port} && $instance eq "wsl2") {
++        printf "🚧 Not supported on $Config{osname} for $instance: # $_\n";
++        next;
++    }
++    if ($test{mode} eq "ignore" && $test{host_ip} eq "127.0.0.1" && $test{guest_ip} eq "127.0.0.1" && $test{host_port} eq $test{guest_port} && $instance eq "wsl2") {
++        printf "🚧 Not supported on $Config{osname} for $instance: # $_\n";
++        next;
++    }
++    if ($test{mode} eq "ignore" && $test{host_ip} eq "127.0.0.1" && $test{guest_ip} eq "0.0.0.0" && $test{host_port} eq $test{guest_port} && $instance eq "wsl2") {
++        printf "🚧 Not supported on $Config{osname} for $instance: # $_\n";
++        next;
++    }
+ 
+     my $remote = JoinHostPort($test{guest_ip},$test{guest_port});
+     my $local = JoinHostPort($test{host_ip},$test{host_port});
+diff --git a/hack/test-templates.sh b/hack/test-templates.sh
+index 64239b09..a28e1791 100755
+--- a/hack/test-templates.sh
++++ b/hack/test-templates.sh
+@@ -27,6 +27,7 @@ LIMACTL_CREATE=(limactl --tty=false create --cpus=1 --memory=1)
+ CONTAINER_ENGINE="nerdctl"
+ 
+ declare -A CHECKS=(
++	["proxy-settings"]="1"
+ 	["systemd"]="1"
+ 	["systemd-strict"]="1"
+ 	["mount-home"]="1"
+@@ -74,6 +75,11 @@ case "$NAME" in
+ "docker")
+ 	CONTAINER_ENGINE="docker"
+ 	;;
++"wsl2")
++	CHECKS["systemd"]=
++	CHECKS["proxy-settings"]=
++	CHECKS["port-forwards"]=
++	;;
+ esac
+ 
+ if limactl ls -q | grep -q "$NAME"; then
+@@ -192,16 +198,18 @@ if [[ -n ${CHECKS["set-user"]} ]]; then
+ 	limactl shell "$NAME" grep "^john:x:4711:4711:John Doe:/home/john-john" /etc/passwd
+ fi
+ 
+-INFO "Testing proxy settings are imported"
+-got=$(limactl shell "$NAME" env | grep FTP_PROXY)
+-# Expected: FTP_PROXY is set in addition to ftp_proxy, localhost is replaced
+-# by the gateway address, and the value is set immediately without a restart
+-gatewayIp=$(limactl shell "$NAME" ip route show 0.0.0.0/0 dev eth0 | cut -d\  -f3)
+-expected="FTP_PROXY=http://${gatewayIp}:2121"
+-INFO "FTP_PROXY: expected=${expected} got=${got}"
+-if [ "$got" != "$expected" ]; then
+-	ERROR "proxy environment variable not set to correct value"
+-	exit 1
++if [[ -n ${CHECKS["proxy-settings"]} ]]; then
++	INFO "Testing proxy settings are imported"
++	got=$(limactl shell "$NAME" env | grep FTP_PROXY)
++	# Expected: FTP_PROXY is set in addition to ftp_proxy, localhost is replaced
++	# by the gateway address, and the value is set immediately without a restart
++	gatewayIp=$(limactl shell "$NAME" ip route show 0.0.0.0/0 dev eth0 | cut -d\  -f3)
++	expected="FTP_PROXY=http://${gatewayIp}:2121"
++	INFO "FTP_PROXY: expected=${expected} got=${got}"
++	if [ "$got" != "$expected" ]; then
++		ERROR "proxy environment variable not set to correct value"
++		exit 1
++	fi
+ fi
+ 
+ INFO "Testing limactl copy command"
+@@ -249,19 +257,23 @@ nginx_image="ghcr.io/stargz-containers/nginx:1.19-alpine-org"
+ alpine_image="ghcr.io/containerd/alpine:3.14.0"
+ 
+ if [[ -n ${CHECKS["container-engine"]} ]]; then
++	sudo=""
++	if [[ ${NAME} == "wsl2" ]]; then
++		sudo="sudo"
++	fi
+ 	INFO "Run a nginx container with port forwarding 127.0.0.1:8080"
+ 	set -x
+-	if ! limactl shell "$NAME" $CONTAINER_ENGINE info; then
+-		limactl shell "$NAME" sudo cat /var/log/cloud-init-output.log
++	if ! limactl shell "$NAME" $sudo $CONTAINER_ENGINE info; then
++		limactl shell "$NAME" cat /var/log/cloud-init-output.log
+ 		ERROR "\"${CONTAINER_ENGINE} info\" failed"
+ 		exit 1
+ 	fi
+-	limactl shell "$NAME" $CONTAINER_ENGINE pull --quiet ${nginx_image}
+-	limactl shell "$NAME" $CONTAINER_ENGINE run -d --name nginx -p 127.0.0.1:8080:80 ${nginx_image}
++	limactl shell "$NAME" $sudo $CONTAINER_ENGINE pull --quiet ${nginx_image}
++	limactl shell "$NAME" $sudo $CONTAINER_ENGINE run -d --name nginx -p 127.0.0.1:8080:80 ${nginx_image}
+ 
+ 	timeout 3m bash -euxc "until curl -f --retry 30 --retry-connrefused http://127.0.0.1:8080; do sleep 3; done"
+ 
+-	limactl shell "$NAME" $CONTAINER_ENGINE rm -f nginx
++	limactl shell "$NAME" $sudo $CONTAINER_ENGINE rm -f nginx
+ 	set +x
+ 	if [[ -n ${CHECKS["mount-home"]} ]]; then
+ 		hometmp="$HOME_SRC/lima-container-engine-test-tmp"
+@@ -272,10 +284,10 @@ if [[ -n ${CHECKS["container-engine"]} ]]; then
+ 		mkdir -p "$hometmp"
+ 		defer "rm -rf \"$hometmp\""
+ 		set -x
+-		limactl shell "$NAME" $CONTAINER_ENGINE pull --quiet ${alpine_image}
++		limactl shell "$NAME" $sudo $CONTAINER_ENGINE pull --quiet ${alpine_image}
+ 		echo "random-content-${RANDOM}" >"$hometmp/random"
+ 		expected="$(cat "$hometmp/random")"
+-		got="$(limactl shell "$NAME" $CONTAINER_ENGINE run --rm -v "$hometmpdst/random":/mnt/foo ${alpine_image} cat /mnt/foo)"
++		got="$(limactl shell "$NAME" $sudo $CONTAINER_ENGINE run --rm -v "$hometmpdst/random":/mnt/foo ${alpine_image} cat /mnt/foo)"
+ 		INFO "$hometmp/random: expected=${expected}, got=${got}"
+ 		if [ "$got" != "$expected" ]; then
+ 			ERROR "Home directory is not shared?"
+@@ -300,6 +312,9 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
+ 	if [ "${NAME}" = "opensuse" ]; then
+ 		limactl shell "$NAME" sudo zypper in -y netcat-openbsd
+ 	fi
++	if [ "${NAME}" == "wsl2" ]; then
++		limactl shell "$NAME" sudo dnf install -y nc
++	fi
+ 	"${scriptdir}/test-port-forwarding.pl" "${NAME}"
+ 
+ 	if [[ -n ${CHECKS["container-engine"]} || ${NAME} == "alpine"* ]]; then
+@@ -325,6 +340,9 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
+ 				rm nerdctl-full.tgz
+ 				sudo="sudo"
+ 			fi
++			if [[ ${NAME} == "wsl2" ]]; then
++				sudo="sudo"
++			fi
+ 			limactl shell "$NAME" $sudo $CONTAINER_ENGINE info
+ 			limactl shell "$NAME" $sudo $CONTAINER_ENGINE pull --quiet ${nginx_image}
+ 
+diff --git a/pkg/store/instance_windows.go b/pkg/store/instance_windows.go
+index d7457ec2..a0b9d6a3 100644
+--- a/pkg/store/instance_windows.go
++++ b/pkg/store/instance_windows.go
+@@ -2,7 +2,6 @@ package store
+ 
+ import (
+ 	"fmt"
+-	"os/exec"
+ 	"regexp"
+ 	"strings"
+ 
+@@ -23,7 +22,7 @@ func inspectStatus(instDir string, inst *Instance, y *limayaml.LimaYAML) {
+ 		inst.SSHLocalPort = 22
+ 
+ 		if inst.Status == StatusRunning {
+-			sshAddr, err := getWslSSHAddress(inst.Name)
++			sshAddr, err := GetSSHAddress(inst.Name)
+ 			if err == nil {
+ 				inst.SSHAddress = sshAddr
+ 			} else {
+@@ -115,21 +114,5 @@ func GetWslStatus(instName string) (string, error) {
+ }
+ 
+ func GetSSHAddress(instName string) (string, error) {
+-	return getWslSSHAddress(instName)
+-}
+-
+-// GetWslSSHAddress runs a hostname command to get the IP from inside of a wsl2 VM.
+-//
+-// Expected output (whitespace preserved, [] for optional):
+-// PS > wsl -d <distroName> bash -c hostname -I | cut -d' ' -f1
+-// 168.1.1.1 [10.0.0.1]
+-func getWslSSHAddress(instName string) (string, error) {
+-	distroName := "lima-" + instName
+-	cmd := exec.Command("wsl.exe", "-d", distroName, "bash", "-c", `hostname -I | cut -d ' ' -f1`)
+-	out, err := cmd.CombinedOutput()
+-	if err != nil {
+-		return "", fmt.Errorf("failed to get hostname for instance %q, err: %w (out=%q)", instName, err, string(out))
+-	}
+-
+-	return strings.TrimSpace(string(out)), nil
++	return "127.0.0.1", nil
+ }
+-- 
+2.48.1
+
