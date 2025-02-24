@@ -61,7 +61,7 @@ jobs:
           wsl --set-default-version 2
           wsl --shutdown
           wsl --version
-          wsl --install --from-file qcw-art/qcw-alpine/lima-infra.wsl
+          wsl --install -n --from-file qcw-art/qcw-alpine/lima-infra.wsl
           wsl -l -v
       - name: "⚙️ Configure firewalls"
         shell: pwsh
@@ -73,8 +73,8 @@ jobs:
       - name: "✅ Check user"
         shell: pwsh
         run: |
-          cmd /c "start wsl -d lima-infra"
-          sleep 5
+          cmd /c "start wsl -d lima-infra -u root bash -c `"until pkill -KILL -u 1000; do sleep 1; done`""
+          wsl -d lima-infra
           wsl -d lima-infra whoami
           wsl -d lima-infra -u lima whoami
           wsl -d lima-infra wslinfo --networking-mode
