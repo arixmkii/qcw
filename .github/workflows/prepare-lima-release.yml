@@ -1,37 +1,13 @@
 name: Prepare QCW Lima (from revision)
 on:
   workflow_dispatch:
-  workflow_call:
-    outputs:
-      lima_version:
-        description: "Lima version"
-        value: ${{ jobs.build.outputs.lima_version }}
-      gowsllinks_version:
-        description: "go-wsllinks version"
-        value: ${{ jobs.build.outputs.gowsllinks_version }}
-      alpine_version:
-        description: "Alpine version"
-        value: ${{ jobs.build.outputs.alpine_version }}
-      alpine_wsl_version:
-        description: "Alpine-WSL version"
-        value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: 3b14bee3dadba6985c9804b95434b1b0c60d6d84
+  LIMA_SHA: 26a38210d77157dc8e2ebb5ba1df54dd481b786c
   LIMA_VERSION: dev
 jobs:
-  call-prepare-alpine-wsl:
-    uses: ./.github/workflows/prepare-alpine-wsl-release.yml
-  call-prepare-go-wsllinks:
-    uses: ./.github/workflows/prepare-go-wsllinks-release.yml
   build:
-    needs: [call-prepare-go-wsllinks, call-prepare-alpine-wsl]
     runs-on: windows-2025
-    outputs:
-      lima_version: ${{ steps.make_versions.outputs.lima }}
-      gowsllinks_version: ${{ steps.make_versions.outputs.gowsllinks }}
-      alpine_version: ${{ steps.make_versions.outputs.alpine }}
-      alpine_wsl_version: ${{ steps.make_versions.outputs.alpine_wsl }}
     steps:
       - name: "🏗️ Install msys2"
         uses: msys2/setup-msys2@v2
@@ -51,33 +27,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-      - name: "🛻 Donwload artifacts"
-        uses: actions/download-artifact@v4
-        with:
-          path: qcw-art
       - name: "🏗️ Install lima-infra"
         shell: pwsh
         run: |
           wsl --set-default-version 2
           wsl --shutdown
           wsl --version
-          wsl --install -n --from-file qcw-art/qcw-alpine/lima-infra.wsl
-          wsl -l -v
-      - name: "⚙️ Configure firewalls"
-        shell: pwsh
-        run: |
-          Import-Module -Name NetSecurity -UseWindowsPowerShell
-          Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
-          New-NetFirewallRule -DisplayName "Allow QEMU x86_64" -Direction Inbound -Program "D:\a\_temp\msys64\ucrt64\bin\qemu-system-x86_64.exe" -Action Allow
-          New-NetFirewallRule -DisplayName "Allow QEMU x86_64w" -Direction Inbound -Program "D:\a\_temp\msys64\ucrt64\bin\qemu-system-x86_64w.exe" -Action Allow
-      - name: "✅ Check user"
-        shell: pwsh
-        run: |
-          cmd /c "start wsl -d lima-infra -u root bash -c `"until pkill -KILL -u 1000; do sleep 1; done`""
-          wsl -d lima-infra
-          wsl -d lima-infra whoami
-          wsl -d lima-infra -u lima whoami
-          wsl -d lima-infra wslinfo --networking-mode
       - name: "📝 Fetch sources"
         shell: msys2 {0}
         run: |
@@ -87,73 +42,23 @@ jobs:
           git remote add origin $LIMA_GITURL
           git fetch --depth 1 origin $LIMA_SHA
           git checkout FETCH_HEAD
-          patch --binary -l -p 1 < ../patches/lima/0001-Add-QEMU-driver-support-on-Windows-hosts.patch
-          patch --binary -l -p 1 < ../patches/lima/0002-Check-for-WSL2-networking-mode-and-adjust-SSH-addres.patch
-          patch --binary -l -p 1 < ../patches/lima/0003-Add-optional-loading-of-UEFI-firmware-via-bios-param.patch
-          patch --binary -l -p 1 < ../patches/lima/0004-Add-WSL2-support-in-integration-tests.patch
+          patch --binary -l -p 1 < ../patches/lima/0001-Enable-Integration-tests-in-Windows-CI.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}
         run: |
-          cp -f ../qcw-art/qcw-go-wsllinks/go-wsllinks.exe ./contrib/bundle-wsl/go-wsllinks.exe
-          make binaries add-bundles
-      - name: "🧪 Test Lima QEMU (NAT)"
-        working-directory: lima-release
-        shell: msys2 {0}
-        run: |
-          export PATH=$PWD/_output/bin:$PATH
-          export LIMACTL_CREATE_ARGS=""
-          export HOME_SRC=$(cygpath $USERPROFILE)
-          export HOME_DST=$(wsl -d lima-infra wslpath $(echo $USERPROFILE | sed 's_\\_/_g'))
-          ./hack/test-templates.sh templates/default.yaml
+          make binaries
       - name: "🧪 Test Lima WSL2 (NAT)"
         working-directory: lima-release
-        shell: msys2 {0}
+        shell: pwsh
         run: |
-          export PATH=$PWD/_output/bin:$PATH
-          export LIMACTL_CREATE_ARGS=""
-          export HOME_SRC=$(cygpath $USERPROFILE)
-          export HOME_DST=$(wsl -d lima-infra wslpath $(echo $USERPROFILE | sed 's_\\_/_g'))
-          ./hack/test-templates.sh templates/experimental/wsl2.yaml
-      # - name: "⚙️ Configure WSL2 networking mode mirrored"
-      #   shell: msys2 {0}
-      #   run: |
-      #     cat /c/Users/runneradmin/.wslconfig || true
-      #     cat > /c/Users/runneradmin/.wslconfig <<EOF
-      #     [wsl2]
-      #     networkingMode=mirrored
-      #     [experimental]
-      #     hostAddressLoopback=true
-      #     EOF
-      #     cat /c/Users/runneradmin/.wslconfig
-      #     wsl --shutdown
-      #     sleep 8
-      - name: "📦 Pack Lima"
-        shell: msys2 {0}
-        run: |
-          mkdir -p qcw
-          mkdir -p qcw-tmp
-          cp -r "lima-release/_output" qcw-tmp/lima
-          cd qcw-tmp/
-          zip -9 -r ../qcw/lima.zip .
-          cd ../qcw
-          find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
-          find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
-          cat sha.checksums
-      - id: make_versions
-        name: "📌 Export versions"
-        env:
-          GOWSLLINKS_VERSION: ${{ needs.call-prepare-go-wsllinks.outputs.gowsllinks_version }}
-          ALPINE_VERSION: ${{ needs.call-prepare-alpine-wsl.outputs.alpine_version }}
-          ALPINEWSL_VERSION: ${{ needs.call-prepare-alpine-wsl.outputs.alpine_wsl_version }}
-        shell: msys2 {0}
-        run: |
-          echo "lima=$LIMA_VERSION-$LIMA_SHA" >> "$GITHUB_OUTPUT"
-          echo "gowsllinks=$GOWSLLINKS_VERSION" >> "$GITHUB_OUTPUT"
-          echo "alpine=$ALPINE_VERSION" >> "$GITHUB_OUTPUT"
-          echo "alpine_wsl=$ALPINEWSL_VERSION" >> "$GITHUB_OUTPUT"
-      - name: "🚀 Upload artifact"
-        uses: actions/upload-artifact@v4
-        with:
-          name: qcw-lima
-          path: qcw
+          wsl --import dummy $env:TEMP nul
+          wsl --list --verbose
+          $env:Path = "$pwd\_output\bin;" + 'C:\Program Files\Git\usr\bin;' + $env:Path
+          git.exe -v
+          Set-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment' -Name PATH -Value $env:Path
+          $env:MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
+          $env:HOME_HOST=$(cygpath.exe "$env:USERPROFILE")
+          $env:HOME_GUEST="/mnt$env:HOME_HOST"
+          $env:LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
+          bash.exe -c "./hack/test-templates.sh templates/experimental/wsl2.yaml"
