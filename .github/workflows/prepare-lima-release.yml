@@ -17,7 +17,7 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: 3b14bee3dadba6985c9804b95434b1b0c60d6d84
+  LIMA_SHA: 439c9de34eaccaa2910f7df55608b1c1d8ecbcba
   LIMA_VERSION: dev
 jobs:
   call-prepare-alpine-wsl:
@@ -87,34 +87,50 @@ jobs:
           git remote add origin $LIMA_GITURL
           git fetch --depth 1 origin $LIMA_SHA
           git checkout FETCH_HEAD
-          patch --binary -l -p 1 < ../patches/lima/0001-Add-QEMU-driver-support-on-Windows-hosts.patch
-          patch --binary -l -p 1 < ../patches/lima/0002-Check-for-WSL2-networking-mode-and-adjust-SSH-addres.patch
-          patch --binary -l -p 1 < ../patches/lima/0003-Add-optional-loading-of-UEFI-firmware-via-bios-param.patch
-          patch --binary -l -p 1 < ../patches/lima/0004-Add-WSL2-support-in-integration-tests.patch
+          patch --binary -l -p 1 < ../patches/lima/0001-Enable-Integration-tests-in-Windows-CI.patch
+          patch --binary -l -p 1 < ../patches/lima/0002-Add-QEMU-driver-support-on-Windows-hosts.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}
         run: |
           cp -f ../qcw-art/qcw-go-wsllinks/go-wsllinks.exe ./contrib/bundle-wsl/go-wsllinks.exe
           make binaries add-bundles
-      - name: "🧪 Test Lima QEMU (NAT)"
+      - name: "🧪 Test Lima Git tools WSL2 (NAT)"
         working-directory: lima-release
         shell: msys2 {0}
         run: |
+          rm -f "$(cygpath $USERPROFILE)/.lima/_config/user"* || true
+          wsl -d lima-infra -u root bash -c "ip link delete nerdctl0 || true"
           export PATH=$PWD/_output/bin:$PATH
-          export LIMACTL_CREATE_ARGS=""
-          export HOME_SRC=$(cygpath $USERPROFILE)
-          export HOME_DST=$(wsl -d lima-infra wslpath $(echo $USERPROFILE | sed 's_\\_/_g'))
-          ./hack/test-templates.sh templates/default.yaml
+          export MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
+          export LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
+          export HOME_HOST=$(cygpath $USERPROFILE)
+          export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
+          PATH=/c/Program\ Files/Git/usr/bin:$PATH cmd.exe //C "bash -c './hack/test-templates.sh templates/experimental/wsl2.yaml'"
+      - name: "🧪 Test Lima QEMU WSL2 (NAT)"
+        working-directory: lima-release
+        shell: msys2 {0}
+        run: |
+          rm -f "$(cygpath $USERPROFILE)/.lima/_config/user"* || true
+          wsl -d lima-infra -u root bash -c "ip link delete nerdctl0 || true"
+          export PATH=$PWD/_output/bin:$PATH
+          export MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
+          export LIMACTL_CREATE_ARGS='--vm-type=qemu'
+          export HOME_HOST=$(cygpath $USERPROFILE)
+          export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
+          LIMA_BUNDLED_TOOLS_DIR=bundle-wsl ./hack/test-templates.sh templates/default.yaml
       - name: "🧪 Test Lima WSL2 (NAT)"
         working-directory: lima-release
         shell: msys2 {0}
         run: |
+          rm -f "$(cygpath $USERPROFILE)/.lima/_config/user"* || true
+          wsl -d lima-infra -u root bash -c "ip link delete nerdctl0 || true"
           export PATH=$PWD/_output/bin:$PATH
-          export LIMACTL_CREATE_ARGS=""
-          export HOME_SRC=$(cygpath $USERPROFILE)
-          export HOME_DST=$(wsl -d lima-infra wslpath $(echo $USERPROFILE | sed 's_\\_/_g'))
-          ./hack/test-templates.sh templates/experimental/wsl2.yaml
+          export MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
+          export LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
+          export HOME_HOST=$(cygpath $USERPROFILE)
+          export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
+          LIMA_BUNDLED_TOOLS_DIR=bundle-wsl ./hack/test-templates.sh templates/experimental/wsl2.yaml
       # - name: "⚙️ Configure WSL2 networking mode mirrored"
       #   shell: msys2 {0}
       #   run: |

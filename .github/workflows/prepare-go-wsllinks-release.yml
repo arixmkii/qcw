@@ -8,8 +8,8 @@ on:
         value: ${{ jobs.build.outputs.gowsllinks_version }}
 env:
   GOWSLLINKS_GITURL: https://github.com/arixmkii/go-wsllinks.git
-  GOWSLLINKS_SHA: 7a099c056aca088c41aa78c9ec15252df6dfd28a # v0.0.3
-  GOWSLLINKS_VERSION: 0.0.3
+  GOWSLLINKS_SHA: ca06e5b7613f85f6e389f0c33059d85be7b83f73 # v0.0.5
+  GOWSLLINKS_VERSION: 0.0.5
 jobs:
   build:
     runs-on: windows-latest
