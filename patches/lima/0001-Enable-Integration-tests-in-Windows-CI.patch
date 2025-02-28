@@ -1,20 +1,20 @@
-From adbf2351e9ce66714c3848452e5bf076dcfbb7e1 Mon Sep 17 00:00:00 2001
+From 889ff31c3edd2730960e388049b3105683d53643 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 25 Feb 2025 22:38:10 +0200
 Subject: [PATCH] Enable Integration tests in Windows CI
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
- .github/workflows/test.yml   | 31 +++++-------
- hack/common.inc.sh           |  2 +-
- hack/test-mount-home.sh      |  5 +-
- hack/test-port-forwarding.pl |  3 +-
- hack/test-templates.sh       | 92 ++++++++++++++++++++++++++----------
- pkg/osutil/user.go           |  3 ++
- 6 files changed, 86 insertions(+), 50 deletions(-)
+ .github/workflows/test.yml   |  31 ++++------
+ hack/common.inc.sh           |   2 +-
+ hack/test-mount-home.sh      |   5 +-
+ hack/test-port-forwarding.pl |   3 +-
+ hack/test-templates.sh       | 107 +++++++++++++++++++++++++----------
+ pkg/osutil/user.go           |   3 +
+ 6 files changed, 96 insertions(+), 55 deletions(-)
 
 diff --git a/.github/workflows/test.yml b/.github/workflows/test.yml
-index a5157e73..7dc705db 100644
+index a5157e73..5542708a 100644
 --- a/.github/workflows/test.yml
 +++ b/.github/workflows/test.yml
 @@ -129,12 +129,10 @@ jobs:
@@ -52,14 +52,14 @@ index a5157e73..7dc705db 100644
 -#    - name: Debug
 -#      if: always()
 -#      run: type C:\Users\runneradmin\.lima\wsl2\ha.stderr.log
-+    - name: Integration tests
++    - name: Integration tests (WSL2, Windows host)
 +      run: |
 +        $env:Path = "$pwd\_output\bin;" + 'C:\Program Files\Git\usr\bin;' + $env:Path
 +        Set-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment' -Name PATH -Value $env:Path
 +        $env:MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
 +        $env:HOME_HOST=$(cygpath.exe "$env:USERPROFILE")
 +        $env:HOME_GUEST="/mnt$env:HOME_HOST"
-+        $env:LIMACTL_CREATE_ARGS='--vm-type=qemu --mount-type=wsl2 --containerd=system'
++        $env:LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
 +        bash.exe -c "./hack/test-templates.sh templates/experimental/wsl2.yaml"
  
    qemu:
@@ -114,7 +114,7 @@ index 3a41ce1e..cc1fc96c 100755
  my $ha_log_size = -s $ha_log or die;
  
 diff --git a/hack/test-templates.sh b/hack/test-templates.sh
-index 26e064b5..d92e2cd6 100755
+index 26e064b5..54e0e903 100755
 --- a/hack/test-templates.sh
 +++ b/hack/test-templates.sh
 @@ -1,6 +1,9 @@
@@ -127,19 +127,29 @@ index 26e064b5..d92e2cd6 100755
  scriptdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
  # shellcheck source=common.inc.sh
  source "${scriptdir}/common.inc.sh"
-@@ -13,6 +16,11 @@ fi
+@@ -12,9 +15,19 @@ fi
+ 
  FILE="$1"
  NAME="$(basename -s .yaml "$FILE")"
- 
++OS_HOST="$(uname -o)"
++
 +# On Windows $HOME of the bash runner, %USERPROFILE% of the host machine and mpunting point in the guest machine
 +# are all different folders. This will handle path differences, when values are expilictly set.
 +HOME_HOST=${HOME_HOST:-$HOME}
 +HOME_GUEST=${HOME_GUEST:-$HOME}
-+
- INFO "Validating \"$FILE\""
- limactl validate "$FILE"
++FILE_HOST=$FILE
++if [ "${OS_HOST}" = "Msys" ]; then
++	FILE_HOST="$(cygpath -w "$FILE")"
++fi
  
-@@ -22,6 +30,7 @@ LIMACTL_CREATE=(limactl --tty=false create --cpus=1 --memory=1)
+-INFO "Validating \"$FILE\""
+-limactl validate "$FILE"
++INFO "Validating \"$FILE_HOST\""
++limactl validate "$FILE_HOST"
+ 
+ # --cpus=1 is needed for running vz on GHA: https://github.com/lima-vm/lima/pull/1511#issuecomment-1574937888
+ LIMACTL_CREATE=(limactl --tty=false create --cpus=1 --memory=1)
+@@ -22,6 +35,7 @@ LIMACTL_CREATE=(limactl --tty=false create --cpus=1 --memory=1)
  CONTAINER_ENGINE="nerdctl"
  
  declare -A CHECKS=(
@@ -147,7 +157,7 @@ index 26e064b5..d92e2cd6 100755
  	["systemd"]="1"
  	["systemd-strict"]="1"
  	["mount-home"]="1"
-@@ -69,6 +78,13 @@ case "$NAME" in
+@@ -69,6 +83,13 @@ case "$NAME" in
  "docker")
  	CONTAINER_ENGINE="docker"
  	;;
@@ -161,7 +171,16 @@ index 26e064b5..d92e2cd6 100755
  esac
  
  if limactl ls -q | grep -q "$NAME"; then
-@@ -93,7 +109,7 @@ esac
+@@ -80,7 +101,7 @@ fi
+ # TODO: skip downloading and converting the image here.
+ # Probably `limactl create` should have "dry run" mode that just generates `lima.yaml`.
+ # shellcheck disable=SC2086
+-"${LIMACTL_CREATE[@]}" ${LIMACTL_CREATE_ARGS} --set ".additionalDisks=null" --name="${NAME}-tmp" "$FILE"
++"${LIMACTL_CREATE[@]}" ${LIMACTL_CREATE_ARGS} --set ".additionalDisks=null" --name="${NAME}-tmp" "$FILE_HOST"
+ case "$(yq '.networks[].lima' "${LIMA_HOME}/${NAME}-tmp/lima.yaml")" in
+ "shared")
+ 	CHECKS["vmnet"]=1
+@@ -93,32 +114,38 @@ esac
  limactl rm -f "${NAME}-tmp"
  
  if [[ -n ${CHECKS["port-forwards"]} ]]; then
@@ -170,16 +189,18 @@ index 26e064b5..d92e2cd6 100755
  	mkdir -p "${tmpconfig}"
  	defer "rm -rf \"$tmpconfig\""
  	tmpfile="${tmpconfig}/${NAME}.yaml"
-@@ -101,17 +117,21 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
+ 	cp "$FILE" "${tmpfile}"
  	FILE="${tmpfile}"
++	FILE_HOST=$FILE
++	if [ "${OS_HOST}" = "Msys" ]; then
++		FILE_HOST="$(cygpath -w "$FILE")"
++	fi
++
  	INFO "Setup port forwarding rules for testing in \"${FILE}\""
  	"${scriptdir}/test-port-forwarding.pl" "${FILE}"
 -	limactl validate "$FILE"
-+	if [ "$(uname -o)" = "Msys" ]; then
-+		limactl validate "$(cygpath -w "$FILE")"
-+	else
-+		limactl validate "$FILE"
-+	fi
++	INFO "Validating \"$FILE_HOST\""
++	limactl validate "$FILE_HOST"
  fi
  
  function diagnose() {
@@ -195,20 +216,24 @@ index 26e064b5..d92e2cd6 100755
  	limactl shell "$NAME" sudo cat /var/log/cloud-init-output.log | tee failure-logs/cloud-init-output.log
  	set +x -e
  }
-@@ -130,7 +150,11 @@ fi
+ 
+ export ftp_proxy=http://localhost:2121
+ 
+-INFO "Creating \"$NAME\" from \"$FILE\""
++INFO "Creating \"$NAME\" from \"$FILE_HOST\""
+ defer "limactl delete -f \"$NAME\""
+ 
+ if [[ -n ${CHECKS["disk"]} ]]; then
+@@ -130,7 +157,7 @@ fi
  
  set -x
  # shellcheck disable=SC2086
 -"${LIMACTL_CREATE[@]}" ${LIMACTL_CREATE_ARGS} "$FILE"
-+if [ "$(uname -o)" = "Msys" ]; then
-+	"${LIMACTL_CREATE[@]}" ${LIMACTL_CREATE_ARGS} "$(cygpath -w "$FILE")"
-+else
-+	"${LIMACTL_CREATE[@]}" ${LIMACTL_CREATE_ARGS} "$FILE"
-+fi
++"${LIMACTL_CREATE[@]}" ${LIMACTL_CREATE_ARGS} "$FILE_HOST"
  set +x
  
  if [[ -n ${CHECKS["mount-path-with-spaces"]} ]]; then
-@@ -152,7 +176,7 @@ limactl shell "$NAME" cat /etc/os-release
+@@ -152,7 +179,7 @@ limactl shell "$NAME" cat /etc/os-release
  set +x
  
  INFO "Testing that host home is not wiped out"
@@ -217,7 +242,7 @@ index 26e064b5..d92e2cd6 100755
  
  if [[ -n ${CHECKS["mount-path-with-spaces"]} ]]; then
  	INFO 'Testing that "/tmp/lima test dir with spaces" is not wiped out'
-@@ -179,16 +203,18 @@ if [[ -n ${CHECKS["set-user"]} ]]; then
+@@ -179,16 +206,18 @@ if [[ -n ${CHECKS["set-user"]} ]]; then
  	limactl shell "$NAME" grep "^john:x:4711:4711:John Doe:/home/john-john" /etc/passwd
  fi
  
@@ -246,7 +271,7 @@ index 26e064b5..d92e2cd6 100755
  fi
  
  INFO "Testing limactl copy command"
-@@ -196,6 +222,7 @@ tmpdir="$(mktemp -d "${TMPDIR:-/tmp}"/lima-test-templates.XXXXXX)"
+@@ -196,6 +225,7 @@ tmpdir="$(mktemp -d "${TMPDIR:-/tmp}"/lima-test-templates.XXXXXX)"
  defer "rm -rf \"$tmpdir\""
  tmpfile="$tmpdir/lima-hostname"
  rm -f "$tmpfile"
@@ -254,11 +279,12 @@ index 26e064b5..d92e2cd6 100755
  limactl cp "$NAME":/etc/hostname "$tmpfile"
  expected="$(limactl shell "$NAME" cat /etc/hostname)"
  got="$(cat "$tmpfile")"
-@@ -234,32 +261,37 @@ nginx_image="ghcr.io/stargz-containers/nginx:1.19-alpine-org"
+@@ -234,32 +264,38 @@ nginx_image="ghcr.io/stargz-containers/nginx:1.19-alpine-org"
  alpine_image="ghcr.io/containerd/alpine:3.14.0"
  
  if [[ -n ${CHECKS["container-engine"]} ]]; then
 +	sudo=""
++	# Currently WSL2 machines only support privileged engine. This requirement might be lifted in the future.
 +	if [[ "$(limactl ls --json "${NAME}" | jq -r .vmType)" == "wsl2" ]]; then
 +		sudo="sudo"
 +	fi
@@ -300,43 +326,53 @@ index 26e064b5..d92e2cd6 100755
  		INFO "$hometmp/random: expected=${expected}, got=${got}"
  		if [ "$got" != "$expected" ]; then
  			ERROR "Home directory is not shared?"
-@@ -284,6 +316,9 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
+@@ -284,6 +320,9 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
  	if [ "${NAME}" = "opensuse" ]; then
  		limactl shell "$NAME" sudo zypper in -y netcat-openbsd
  	fi
-+	if [ "${NAME}" == "wsl2" ]; then
++	if [ limactl shell "$NAME" command -v dnf ]; then
 +		limactl shell "$NAME" sudo dnf install -y nc
 +	fi
  	"${scriptdir}/test-port-forwarding.pl" "${NAME}"
  
  	if [[ -n ${CHECKS["container-engine"]} || ${NAME} == "alpine"* ]]; then
-@@ -306,6 +341,9 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
+@@ -306,6 +345,10 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
  				rm nerdctl-full.tgz
  				sudo="sudo"
  			fi
-+			if [[ ${NAME} == "wsl2" ]]; then
++			# Currently WSL2 machines only support privileged engine. This requirement might be lifted in the future.
++			if [[ "$(limactl ls --json "${NAME}" | jq -r .vmType)" == "wsl2" ]]; then
 +				sudo="sudo"
 +			fi
  			limactl shell "$NAME" $sudo $CONTAINER_ENGINE info
  			limactl shell "$NAME" $sudo $CONTAINER_ENGINE pull --quiet ${nginx_image}
  
-@@ -360,7 +398,8 @@ if [[ -n ${CHECKS["restart"]} ]]; then
+@@ -360,7 +403,8 @@ if [[ -n ${CHECKS["restart"]} ]]; then
  	fi
  
  	INFO "Stopping \"$NAME\""
 -	limactl stop "$NAME"
 +	# TODO https://github.com/lima-vm/lima/issues/3221
-+	limactl stop "$NAME" || [ "$(uname -o)" = "Msys" ]
++	limactl stop "$NAME" || [ "${OS_HOST}" = "Msys" ]
  	sleep 3
  
  	if [[ -n ${CHECKS["disk"]} ]]; then
-@@ -474,7 +513,8 @@ if [[ $NAME == "fedora" && "$(limactl ls --json "$NAME" | jq -r .vmType)" == "vz
+@@ -406,7 +450,7 @@ fi
+ if [[ -n ${CHECKS["user-v2"]} ]]; then
+ 	INFO "Testing user-v2 network"
+ 	secondvm="$NAME-1"
+-	"${LIMACTL_CREATE[@]}" --set ".additionalDisks=null" "$FILE" --name "$secondvm"
++	"${LIMACTL_CREATE[@]}" --set ".additionalDisks=null" "$FILE_HOST" --name "$secondvm"
+ 	if ! limactl start "$secondvm"; then
+ 		ERROR "Failed to start \"$secondvm\""
+ 		diagnose "$secondvm"
+@@ -474,7 +518,8 @@ if [[ $NAME == "fedora" && "$(limactl ls --json "$NAME" | jq -r .vmType)" == "vz
  fi
  
  INFO "Stopping \"$NAME\""
 -limactl stop "$NAME"
 +# TODO https://github.com/lima-vm/lima/issues/3221
-+limactl stop "$NAME" || [ "$(uname -o)" = "Msys" ]
++limactl stop "$NAME" || [ "${OS_HOST}" = "Msys" ]
  sleep 3
  
  INFO "Deleting \"$NAME\""
