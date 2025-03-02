@@ -1,4 +1,4 @@
-From 1c785551864a82fc40c2775c57b3fc0163721f51 Mon Sep 17 00:00:00 2001
+From 50ee5ed5370298d2181c998e254d40fe14da626d Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Fri, 28 Feb 2025 23:40:18 +0200
 Subject: [PATCH] Add QEMU driver support on Windows hosts
@@ -7,7 +7,7 @@ Subject: [PATCH] Add QEMU driver support on Windows hosts
  Makefile                           | 40 +++++++++++++++++++++++++
  cmd/limactl/copy.go                | 13 ++++++++
  cmd/limactl/main.go                | 23 ++++++++++++++
- cmd/limactl/shell.go               |  3 +-
+ cmd/limactl/shell.go               | 17 +++++++++++
  contrib/bundle-git/sftp-server.ini |  1 +
  contrib/bundle-git/wsllinks.ini    |  2 ++
  contrib/bundle-wsl/sftp-server.ini |  1 +
@@ -26,7 +26,7 @@ Subject: [PATCH] Add QEMU driver support on Windows hosts
  pkg/store/instance.go              | 21 +++++++++++++
  pkg/store/instance_windows.go      | 21 ++-----------
  templates/default.yaml             |  2 +-
- 22 files changed, 239 insertions(+), 48 deletions(-)
+ 22 files changed, 254 insertions(+), 47 deletions(-)
  create mode 100644 contrib/bundle-git/sftp-server.ini
  create mode 100644 contrib/bundle-git/wsllinks.ini
  create mode 100644 contrib/bundle-wsl/sftp-server.ini
@@ -161,26 +161,59 @@ index 259f622a..c95c1070 100644
  		handleExitCoder(err)
  		logrus.Fatal(err)
 diff --git a/cmd/limactl/shell.go b/cmd/limactl/shell.go
-index c4611a0b..37f4f1e7 100644
+index c4611a0b..05cd9f84 100644
 --- a/cmd/limactl/shell.go
 +++ b/cmd/limactl/shell.go
-@@ -5,6 +5,7 @@ import (
+@@ -5,11 +5,14 @@ import (
  	"fmt"
  	"os"
  	"os/exec"
++	"path"
 +	"runtime"
  	"strconv"
  	"strings"
  
-@@ -105,7 +106,7 @@ func shellAction(cmd *cobra.Command, args []string) error {
- 		logrus.Debug("the host home does not seem mounted, so the guest shell will have a different cwd")
- 	}
+ 	"al.essio.dev/pkg/shellescape"
+ 	"github.com/coreos/go-semver/semver"
++	"github.com/lima-vm/lima/pkg/ioutilx"
+ 	"github.com/lima-vm/lima/pkg/sshutil"
+ 	"github.com/lima-vm/lima/pkg/store"
+ 	"github.com/mattn/go-isatty"
+@@ -89,6 +92,9 @@ func shellAction(cmd *cobra.Command, args []string) error {
+ 		// FIXME: check whether y.Mounts contains the home, not just len > 0
+ 	} else if len(inst.Config.Mounts) > 0 {
+ 		hostCurrentDir, err := os.Getwd()
++		if err == nil && runtime.GOOS == "windows" {
++			hostCurrentDir, err = mountDirFromWindowsDir(hostCurrentDir)
++		}
+ 		if err == nil {
+ 			changeDirCmd = fmt.Sprintf("cd %s", shellescape.Quote(hostCurrentDir))
+ 		} else {
+@@ -96,6 +102,9 @@ func shellAction(cmd *cobra.Command, args []string) error {
+ 			logrus.WithError(err).Warn("failed to get the current directory")
+ 		}
+ 		hostHomeDir, err := os.UserHomeDir()
++		if err == nil && runtime.GOOS == "windows" {
++			hostHomeDir, err = mountDirFromWindowsDir(hostHomeDir)
++		}
+ 		if err == nil {
+ 			changeDirCmd = fmt.Sprintf("%s || cd %s", changeDirCmd, shellescape.Quote(hostHomeDir))
+ 		} else {
+@@ -186,6 +195,14 @@ func shellAction(cmd *cobra.Command, args []string) error {
+ 	return sshCmd.Run()
+ }
  
--	if changeDirCmd == "" {
-+	if runtime.GOOS == "windows" || changeDirCmd == "" {
- 		changeDirCmd = "false"
- 	}
- 	logrus.Debugf("changeDirCmd=%q", changeDirCmd)
++func mountDirFromWindowsDir(dir string) (string, error) {
++	dir, err := ioutilx.WindowsSubsystemPath(dir)
++	if err == nil && !strings.HasPrefix(dir, "/mnt/") {
++		dir = path.Join("/mnt", dir)
++	}
++	return dir, err
++}
++
+ func shellBashComplete(cmd *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+ 	return bashCompleteInstanceNames(cmd)
+ }
 diff --git a/contrib/bundle-git/sftp-server.ini b/contrib/bundle-git/sftp-server.ini
 new file mode 100644
 index 00000000..71e90810
