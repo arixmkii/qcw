@@ -1,62 +1,124 @@
-From 8a589f9bfbe5cf75cb8a3a3ce1c90e0d694111bf Mon Sep 17 00:00:00 2001
+From 1c785551864a82fc40c2775c57b3fc0163721f51 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Fri, 28 Feb 2025 23:40:18 +0200
 Subject: [PATCH] Add QEMU driver support on Windows hosts
 
 ---
- Makefile                           | 17 +++++++++++++++
- cmd/limactl/main.go                | 23 +++++++++++++++++++++
- cmd/limactl/shell.go               |  3 ++-
- contrib/bundle-wsl/go-wsllinks.exe |  0
+ Makefile                           | 40 +++++++++++++++++++++++++
+ cmd/limactl/copy.go                | 13 ++++++++
+ cmd/limactl/main.go                | 23 ++++++++++++++
+ cmd/limactl/shell.go               |  3 +-
+ contrib/bundle-git/sftp-server.ini |  1 +
+ contrib/bundle-git/wsllinks.ini    |  2 ++
  contrib/bundle-wsl/sftp-server.ini |  1 +
  contrib/bundle-wsl/ssh-keygen.ini  |  1 +
  contrib/bundle-wsl/wsllinks.ini    |  2 ++
- hack/test-port-forwarding.pl       | 33 ++++++++++++++++++++++++++++--
- hack/test-templates.sh             | 33 +++++++++++++++++-------------
- pkg/cidata/cidata.go               | 14 ++++++++++++-
- pkg/hostagent/hostagent.go         |  7 ++++++-
- pkg/hostagent/mount.go             | 29 +++++++++++++++++++++++---
- pkg/ioutilx/ioutilx.go             | 10 ++++-----
- pkg/osutil/user.go                 |  4 +++-
+ contrib/go-wsllinks.exe            |  0
+ hack/test-port-forwarding.pl       | 33 ++++++++++++++++++--
+ hack/test-templates.sh             | 10 +++++--
+ pkg/cidata/cidata.go               | 14 ++++++++-
+ pkg/hostagent/hostagent.go         |  7 ++++-
+ pkg/hostagent/mount.go             | 29 ++++++++++++++++--
+ pkg/ioutilx/ioutilx.go             | 10 +++----
+ pkg/osutil/user.go                 |  4 ++-
  pkg/qemu/qemu.go                   |  2 +-
- pkg/sshutil/sshutil.go             | 32 +++++++++++++++++++++--------
- pkg/store/instance.go              | 21 +++++++++++++++++++
- pkg/store/instance_windows.go      | 21 ++-----------------
+ pkg/sshutil/sshutil.go             | 48 +++++++++++++++++++++++-------
+ pkg/store/instance.go              | 21 +++++++++++++
+ pkg/store/instance_windows.go      | 21 ++-----------
  templates/default.yaml             |  2 +-
- 19 files changed, 197 insertions(+), 58 deletions(-)
- create mode 100644 contrib/bundle-wsl/go-wsllinks.exe
+ 22 files changed, 239 insertions(+), 48 deletions(-)
+ create mode 100644 contrib/bundle-git/sftp-server.ini
+ create mode 100644 contrib/bundle-git/wsllinks.ini
  create mode 100644 contrib/bundle-wsl/sftp-server.ini
  create mode 100644 contrib/bundle-wsl/ssh-keygen.ini
  create mode 100644 contrib/bundle-wsl/wsllinks.ini
+ create mode 100644 contrib/go-wsllinks.exe
 
 diff --git a/Makefile b/Makefile
-index be201c71..4a680fdd 100644
+index be201c71..d3b94cd7 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -568,6 +568,23 @@ artifacts-misc: | _artifacts
+@@ -568,6 +568,46 @@ artifacts-misc: | _artifacts
  
  MKDIR_TARGETS += _artifacts
  
 +.PHONY: add-bundles
-+add-bundles: add-bundle-wsl
++add-bundles: add-bundle-wsl add-bundle-git
 +
 +add-bundle-wsl: _output/bin/bundle-wsl/wsllinks.ini _output/bin/bundle-wsl/sftp-server.ini _output/bin/bundle-wsl/ssh-keygen.ini\
-+	_output/bin/bundle-wsl/cygpath.exe _output/bin/bundle-wsl/id.exe _output/bin/bundle-wsl/scp.exe\
-+	_output/bin/bundle-wsl/sftp-server.exe _output/bin/bundle-wsl/ssh.exe _output/bin/bundle-wsl/ssh-keygen.exe \
-+	_output/bin/bundle-wsl/gzip.exe _output/bin/bundle-wsl/bzip2.exe _output/bin/bundle-wsl/xz.exe \
++	_output/bin/bundle-wsl/bzip2.exe\
++	_output/bin/bundle-wsl/cygpath.exe\
++	_output/bin/bundle-wsl/gzip.exe\
++	_output/bin/bundle-wsl/id.exe\
++	_output/bin/bundle-wsl/scp.exe\
++	_output/bin/bundle-wsl/sftp-server.exe\
++	_output/bin/bundle-wsl/ssh.exe\
++	_output/bin/bundle-wsl/ssh-keygen.exe\
++	_output/bin/bundle-wsl/xz.exe\
 +	_output/bin/bundle-wsl/zstd.exe
++
++add-bundle-git: _output/bin/bundle-git/wsllinks.ini _output/bin/bundle-git/sftp-server.ini\
++	_output/bin/bundle-git/bzip2.exe\
++	_output/bin/bundle-git/cygpath.exe\
++	_output/bin/bundle-git/gzip.exe\
++	_output/bin/bundle-git/id.exe\
++	_output/bin/bundle-git/scp.exe\
++	_output/bin/bundle-git/sftp-server.exe\
++	_output/bin/bundle-git/ssh.exe\
++	_output/bin/bundle-git/ssh-keygen.exe
 +
 +_output/bin/bundle-wsl/%.ini: contrib/bundle-wsl/%.ini | _output/bin/bundle-wsl
 +	cp -a $< $@
 +
++_output/bin/bundle-git/%.ini: contrib/bundle-git/%.ini | _output/bin/bundle-git
++	cp -a $< $@
++
 +_output/bin/bundle-wsl/%.exe:
-+	cp -a contrib/bundle-wsl/go-wsllinks.exe $@
++	cp -a contrib/go-wsllinks.exe $@
++
++_output/bin/bundle-git/%.exe:
++	cp -a contrib/go-wsllinks.exe $@
 +
 +MKDIR_TARGETS += _output/bin/bundle-wsl
++MKDIR_TARGETS += _output/bin/bundle-git
 +
  ################################################################################
  # This target must be placed after any changes to the `MKDIR_TARGETS` variable.
  # It seems that variable expansion in Makefile targets is not done recursively.
+diff --git a/cmd/limactl/copy.go b/cmd/limactl/copy.go
+index 4b5fc3e3..2444ab64 100644
+--- a/cmd/limactl/copy.go
++++ b/cmd/limactl/copy.go
+@@ -5,9 +5,12 @@ import (
+ 	"fmt"
+ 	"os"
+ 	"os/exec"
++	"path/filepath"
++	"runtime"
+ 	"strings"
+ 
+ 	"github.com/coreos/go-semver/semver"
++	"github.com/lima-vm/lima/pkg/ioutilx"
+ 	"github.com/lima-vm/lima/pkg/sshutil"
+ 	"github.com/lima-vm/lima/pkg/store"
+ 	"github.com/sirupsen/logrus"
+@@ -77,6 +80,16 @@ func copyAction(cmd *cobra.Command, args []string) error {
+ 	// this assumes that ssh and scp come from the same place, but scp has no -V
+ 	legacySSH := sshutil.DetectOpenSSHVersion("ssh").LessThan(*semver.New("8.0.0"))
+ 	for _, arg := range args {
++		if runtime.GOOS == "windows" {
++			if filepath.IsAbs(arg) {
++				arg, err = ioutilx.WindowsSubsystemPath(arg)
++				if err != nil {
++					return err
++				}
++			} else {
++				arg = filepath.ToSlash(arg)
++			}
++		}
+ 		path := strings.Split(arg, ":")
+ 		switch len(path) {
+ 		case 1:
 diff --git a/cmd/limactl/main.go b/cmd/limactl/main.go
 index 259f622a..c95c1070 100644
 --- a/cmd/limactl/main.go
@@ -119,9 +181,21 @@ index c4611a0b..37f4f1e7 100644
  		changeDirCmd = "false"
  	}
  	logrus.Debugf("changeDirCmd=%q", changeDirCmd)
-diff --git a/contrib/bundle-wsl/go-wsllinks.exe b/contrib/bundle-wsl/go-wsllinks.exe
+diff --git a/contrib/bundle-git/sftp-server.ini b/contrib/bundle-git/sftp-server.ini
 new file mode 100644
-index 00000000..e69de29b
+index 00000000..71e90810
+--- /dev/null
++++ b/contrib/bundle-git/sftp-server.ini
+@@ -0,0 +1 @@
++baseDir = C:\Program Files\Git\usr\lib\ssh
+diff --git a/contrib/bundle-git/wsllinks.ini b/contrib/bundle-git/wsllinks.ini
+new file mode 100644
+index 00000000..f55d7879
+--- /dev/null
++++ b/contrib/bundle-git/wsllinks.ini
+@@ -0,0 +1,2 @@
++mode = direct
++baseDir = C:\Program Files\Git\usr\bin
 diff --git a/contrib/bundle-wsl/sftp-server.ini b/contrib/bundle-wsl/sftp-server.ini
 new file mode 100644
 index 00000000..47d2814a
@@ -144,6 +218,9 @@ index 00000000..60b0c8e8
 @@ -0,0 +1,2 @@
 +distro = lima-infra
 +user = lima
+diff --git a/contrib/go-wsllinks.exe b/contrib/go-wsllinks.exe
+new file mode 100644
+index 00000000..e69de29b
 diff --git a/hack/test-port-forwarding.pl b/hack/test-port-forwarding.pl
 index cc1fc96c..6f62b74b 100755
 --- a/hack/test-port-forwarding.pl
@@ -206,47 +283,24 @@ index cc1fc96c..6f62b74b 100755
      my $remote = JoinHostPort($test{guest_ip},$test{guest_port});
      my $local = JoinHostPort($test{host_ip},$test{host_port});
 diff --git a/hack/test-templates.sh b/hack/test-templates.sh
-index 71cdc53e..411d6425 100755
+index 71cdc53e..b5fa571e 100755
 --- a/hack/test-templates.sh
 +++ b/hack/test-templates.sh
-@@ -220,20 +220,22 @@ if [[ -n ${CHECKS["proxy-settings"]} ]]; then
- 	fi
- fi
- 
--INFO "Testing limactl copy command"
--tmpdir="$(mktemp -d "${TMPDIR:-/tmp}"/lima-test-templates.XXXXXX)"
--defer "rm -rf \"$tmpdir\""
--tmpfile="$tmpdir/lima-hostname"
--rm -f "$tmpfile"
+@@ -225,8 +225,11 @@ tmpdir="$(mktemp -d "${TMPDIR:-/tmp}"/lima-test-templates.XXXXXX)"
+ defer "rm -rf \"$tmpdir\""
+ tmpfile="$tmpdir/lima-hostname"
+ rm -f "$tmpfile"
 -# TODO support Windows path https://github.com/lima-vm/lima/issues/3215
 -limactl cp "$NAME":/etc/hostname "$tmpfile"
--expected="$(limactl shell "$NAME" cat /etc/hostname)"
--got="$(cat "$tmpfile")"
--INFO "/etc/hostname: expected=${expected}, got=${got}"
--if [ "$got" != "$expected" ]; then
--	ERROR "copy command did not fetch the file"
--	exit 1
--fi
-+# INFO "Testing limactl copy command"
-+# tmpdir="$(mktemp -d "${TMPDIR:-/tmp}"/lima-test-templates.XXXXXX)"
-+# defer "rm -rf \"$tmpdir\""
-+# tmpfile="$tmpdir/lima-hostname"
-+# rm -f "$tmpfile"
-+# # TODO support Windows path https://github.com/lima-vm/lima/issues/3215
-+# wintmpdir="$(cygpath -w / | sed 's_\\_/_g' | sed 's/.$//')"
-+# mnttmpdir="$(wsl -d lima-infra wslpath $wintmpdir)"
-+# limactl cp "$NAME":/etc/hostname "$mnttmpdir$tmpfile"
-+# expected="$(limactl shell "$NAME" cat /etc/hostname)"
-+# got="$(cat "$tmpfile")"
-+# INFO "/etc/hostname: expected=${expected}, got=${got}"
-+# if [ "$got" != "$expected" ]; then
-+# 	ERROR "copy command did not fetch the file"
-+# 	exit 1
-+# fi
- 
- INFO "Testing limactl command with escaped characters"
- limactl shell "$NAME" bash -c "$(echo -e '\n\techo foo\n\techo bar')"
-@@ -333,6 +335,9 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
++tmpfile_host=$tmpfile
++if [ "${OS_HOST}" = "Msys" ]; then
++	tmpfile_host="$(cygpath -w $tmpfile)"
++fi
++limactl cp "$NAME":/etc/hostname "$tmpfile_host"
+ expected="$(limactl shell "$NAME" cat /etc/hostname)"
+ got="$(cat "$tmpfile")"
+ INFO "/etc/hostname: expected=${expected}, got=${got}"
+@@ -333,6 +336,9 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
  		else
  			hostip=$(perl -MSocket -MSys::Hostname -E 'say inet_ntoa(scalar gethostbyname(hostname()))')
  		fi
@@ -455,7 +509,7 @@ index 13cb263e..e4eaa69c 100644
  	if envV := os.Getenv(envK); envV != "" {
  		ss, err := shellwords.Parse(envV)
 diff --git a/pkg/sshutil/sshutil.go b/pkg/sshutil/sshutil.go
-index 563bc5ed..ff185aa9 100644
+index 563bc5ed..2e81287f 100644
 --- a/pkg/sshutil/sshutil.go
 +++ b/pkg/sshutil/sshutil.go
 @@ -9,6 +9,7 @@ import (
@@ -483,28 +537,24 @@ index 563bc5ed..ff185aa9 100644
  			logrus.Debugf("executing %v", keygenCmd.Args)
  			if out, err := keygenCmd.CombinedOutput(); err != nil {
  				return fmt.Errorf("failed to run %v: %q: %w", keygenCmd.Args, string(out), err)
-@@ -169,7 +177,10 @@ func CommonOpts(sshPath string, useDotSSH bool) ([]string, error) {
+@@ -168,12 +176,11 @@ func CommonOpts(sshPath string, useDotSSH bool) ([]string, error) {
+ 		return nil, err
  	}
  	var opts []string
- 	if runtime.GOOS == "windows" {
+-	if runtime.GOOS == "windows" {
 -		privateKeyPath = ioutilx.CanonicalWindowsPath(privateKeyPath)
-+		privateKeyPath, err = ioutilx.WindowsSubsystemPath(privateKeyPath)
-+		if err != nil {
-+			return nil, err
-+		}
- 		opts = []string{fmt.Sprintf(`IdentityFile='%s'`, privateKeyPath)}
- 	} else {
- 		opts = []string{fmt.Sprintf(`IdentityFile="%s"`, privateKeyPath)}
-@@ -177,7 +188,7 @@ func CommonOpts(sshPath string, useDotSSH bool) ([]string, error) {
+-		opts = []string{fmt.Sprintf(`IdentityFile='%s'`, privateKeyPath)}
+-	} else {
+-		opts = []string{fmt.Sprintf(`IdentityFile="%s"`, privateKeyPath)}
++	idf, err := identityFileEntry(privateKeyPath)
++	if err != nil {
++		return nil, err
+ 	}
++	opts = []string{idf}
  
  	// Append all private keys corresponding to ~/.ssh/*.pub to keep old instances working
  	// that had been created before lima started using an internal identity.
--	if useDotSSH {
-+	if runtime.GOOS != "windows" && useDotSSH {
- 		homeDir, err := os.UserHomeDir()
- 		if err != nil {
- 			return nil, err
-@@ -204,11 +215,7 @@ func CommonOpts(sshPath string, useDotSSH bool) ([]string, error) {
+@@ -204,11 +211,11 @@ func CommonOpts(sshPath string, useDotSSH bool) ([]string, error) {
  				// Fail on permission-related and other path errors
  				return nil, err
  			}
@@ -512,12 +562,34 @@ index 563bc5ed..ff185aa9 100644
 -				opts = append(opts, fmt.Sprintf(`IdentityFile='%s'`, privateKeyPath))
 -			} else {
 -				opts = append(opts, fmt.Sprintf(`IdentityFile="%s"`, privateKeyPath))
--			}
-+			opts = append(opts, fmt.Sprintf(`IdentityFile="%s"`, privateKeyPath))
++			idf, err = identityFileEntry(privateKeyPath)
++			if err != nil {
++				return nil, err
+ 			}
++			opts = append(opts, idf)
  		}
  	}
  
-@@ -265,7 +272,14 @@ func SSHOpts(sshPath, instDir, username string, useDotSSH, forwardAgent, forward
+@@ -253,6 +260,18 @@ func CommonOpts(sshPath string, useDotSSH bool) ([]string, error) {
+ 	return opts, nil
+ }
+ 
++func identityFileEntry(privateKeyPath string) (string, error) {
++	if runtime.GOOS == "windows" {
++		privateKeyPath, err := ioutilx.WindowsSubsystemPath(privateKeyPath)
++		if err != nil {
++			return "", err
++		}
++		return fmt.Sprintf(`IdentityFile='%s'`, privateKeyPath), nil
++	} else {
++		return fmt.Sprintf(`IdentityFile="%s"`, privateKeyPath), nil
++	}
++}
++
+ // SSHOpts adds the following options to CommonOptions: User, ControlMaster, ControlPath, ControlPersist.
+ func SSHOpts(sshPath, instDir, username string, useDotSSH, forwardAgent, forwardX11, forwardX11Trusted bool) ([]string, error) {
+ 	controlSock := filepath.Join(instDir, filenames.SSHSock)
+@@ -265,7 +284,14 @@ func SSHOpts(sshPath, instDir, username string, useDotSSH, forwardAgent, forward
  	}
  	controlPath := fmt.Sprintf(`ControlPath="%s"`, controlSock)
  	if runtime.GOOS == "windows" {

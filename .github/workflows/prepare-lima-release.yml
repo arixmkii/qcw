@@ -93,13 +93,14 @@ jobs:
         working-directory: lima-release
         shell: msys2 {0}
         run: |
-          cp -f ../qcw-art/qcw-go-wsllinks/go-wsllinks.exe ./contrib/bundle-wsl/go-wsllinks.exe
+          cp -f ../qcw-art/qcw-go-wsllinks/go-wsllinks.exe ./contrib/go-wsllinks.exe
           make binaries add-bundles
-      - name: "🧪 Test Lima Git tools WSL2 (NAT)"
+      - name: "🧪 Test Lima WSL2 machine Git shell WSL2 (NAT)"
         working-directory: lima-release
         shell: msys2 {0}
         run: |
           rm -f "$(cygpath $USERPROFILE)/.lima/_config/user"* || true
+          rm -f "$(cygpath $USERPROFILE)/.lima/_config/wsl2" || true
           wsl -d lima-infra -u root bash -c "ip link delete nerdctl0 || true"
           export PATH=$PWD/_output/bin:$PATH
           export MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
@@ -107,11 +108,25 @@ jobs:
           export HOME_HOST=$(cygpath $USERPROFILE)
           export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
           PATH=/c/Program\ Files/Git/usr/bin:$PATH cmd.exe //C "bash -c './hack/test-templates.sh templates/experimental/wsl2.yaml'"
-      - name: "🧪 Test Lima QEMU WSL2 (NAT)"
+      - name: "🧪 Test Lima WSL2 machine Git bundle WSL2 (NAT)"
         working-directory: lima-release
         shell: msys2 {0}
         run: |
           rm -f "$(cygpath $USERPROFILE)/.lima/_config/user"* || true
+          rm -f "$(cygpath $USERPROFILE)/.lima/_config/wsl2" || true
+          wsl -d lima-infra -u root bash -c "ip link delete nerdctl0 || true"
+          export PATH=$PWD/_output/bin:$PATH
+          export MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
+          export LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
+          export HOME_HOST=$(cygpath $USERPROFILE)
+          export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
+          LIMA_BUNDLED_TOOLS_DIR=bundle-git ./hack/test-templates.sh templates/experimental/wsl2.yaml
+      - name: "🧪 Test Lima QEMU machine WSL2 bundle WSL2 (NAT)"
+        working-directory: lima-release
+        shell: msys2 {0}
+        run: |
+          rm -f "$(cygpath $USERPROFILE)/.lima/_config/user"* || true
+          rm -f "$(cygpath $USERPROFILE)/.lima/_config/default" || true
           wsl -d lima-infra -u root bash -c "ip link delete nerdctl0 || true"
           export PATH=$PWD/_output/bin:$PATH
           export MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
@@ -119,11 +134,12 @@ jobs:
           export HOME_HOST=$(cygpath $USERPROFILE)
           export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
           LIMA_BUNDLED_TOOLS_DIR=bundle-wsl ./hack/test-templates.sh templates/default.yaml
-      - name: "🧪 Test Lima WSL2 (NAT)"
+      - name: "🧪 Test Lima WSL2 machine WSL2 bundle WSL2 (NAT)"
         working-directory: lima-release
         shell: msys2 {0}
         run: |
           rm -f "$(cygpath $USERPROFILE)/.lima/_config/user"* || true
+          rm -f "$(cygpath $USERPROFILE)/.lima/_config/wsl2" || true
           wsl -d lima-infra -u root bash -c "ip link delete nerdctl0 || true"
           export PATH=$PWD/_output/bin:$PATH
           export MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
