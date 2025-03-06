@@ -73,7 +73,7 @@ Version `3.18.4-0` with 2 patch sets:
 
 #### `docker-cli`
 
-Version `v28.0.0`. Rebuilt for Windows amd64 platform.
+Version `v28.0.1`. Rebuilt for Windows amd64 platform.
 
 #### `docker-compose`
 
