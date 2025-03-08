@@ -1,0 +1,103 @@
+From a9e553b102afb74f1b897b96f5c3e1b1a7a707e4 Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Sat, 8 Mar 2025 23:28:49 +0200
+Subject: [PATCH 2/4] Fix mount support in QEMU on Windows hosts
+
+Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+---
+ pkg/cidata/cidata.go   | 14 +++++++++++++-
+ pkg/hostagent/mount.go | 24 +++++++++++++++++++++---
+ 2 files changed, 34 insertions(+), 4 deletions(-)
+
+diff --git a/pkg/cidata/cidata.go b/pkg/cidata/cidata.go
+index 376bad7d..40caa046 100644
+--- a/pkg/cidata/cidata.go
++++ b/pkg/cidata/cidata.go
+@@ -13,6 +13,7 @@ import (
+ 	"os"
+ 	"path"
+ 	"path/filepath"
++	"runtime"
+ 	"slices"
+ 	"strings"
+ 	"time"
+@@ -20,6 +21,7 @@ import (
+ 	"github.com/docker/go-units"
+ 	"github.com/lima-vm/lima/pkg/debugutil"
+ 	"github.com/lima-vm/lima/pkg/identifierutil"
++	"github.com/lima-vm/lima/pkg/ioutilx"
+ 	"github.com/lima-vm/lima/pkg/iso9660util"
+ 	"github.com/lima-vm/lima/pkg/limayaml"
+ 	"github.com/lima-vm/lima/pkg/localpathutil"
+@@ -204,10 +206,20 @@ func templateArgs(bootScripts bool, instDir, name string, instConfig *limayaml.L
+ 		if err != nil {
+ 			return nil, err
+ 		}
+-		mountPoint, err := localpathutil.Expand(*f.MountPoint)
++
++		mountPoint := *f.MountPoint
++		if !path.IsAbs(mountPoint) {
++			mountPoint, err = localpathutil.Expand(mountPoint)
++		}
+ 		if err != nil {
+ 			return nil, err
+ 		}
++		if runtime.GOOS == "windows" && !path.IsAbs(mountPoint) {
++			mountPoint, err = ioutilx.WindowsSubsystemPath(mountPoint)
++			if err != nil {
++				return nil, err
++			}
++		}
+ 		options := "defaults"
+ 		switch fstype {
+ 		case "9p", "virtiofs":
+diff --git a/pkg/hostagent/mount.go b/pkg/hostagent/mount.go
+index f8088bfc..91bf9583 100644
+--- a/pkg/hostagent/mount.go
++++ b/pkg/hostagent/mount.go
+@@ -7,7 +7,10 @@ import (
+ 	"errors"
+ 	"fmt"
+ 	"os"
++	"path"
++	"runtime"
+ 
++	"github.com/lima-vm/lima/pkg/ioutilx"
+ 	"github.com/lima-vm/lima/pkg/limayaml"
+ 	"github.com/lima-vm/lima/pkg/localpathutil"
+ 	"github.com/lima-vm/sshocker/pkg/reversesshfs"
+@@ -39,13 +42,28 @@ func (a *HostAgent) setupMount(m limayaml.Mount) (*mount, error) {
+ 	if err != nil {
+ 		return nil, err
+ 	}
++	if err := os.MkdirAll(location, 0o755); err != nil {
++		return nil, err
++	}
++	if runtime.GOOS == "windows" && !path.IsAbs(location) {
++		location, err = ioutilx.WindowsSubsystemPath(location)
++		if err != nil {
++			return nil, err
++		}
++	}
+ 
+-	mountPoint, err := localpathutil.Expand(*m.MountPoint)
++	mountPoint := *m.MountPoint
++	if !path.IsAbs(mountPoint) {
++		mountPoint, err = localpathutil.Expand(mountPoint)
++	}
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	if err := os.MkdirAll(location, 0o755); err != nil {
+-		return nil, err
++	if runtime.GOOS == "windows" && !path.IsAbs(mountPoint) {
++		mountPoint, err = ioutilx.WindowsSubsystemPath(mountPoint)
++		if err != nil {
++			return nil, err
++		}
+ 	}
+ 	// NOTE: allow_other requires "user_allow_other" in /etc/fuse.conf
+ 	sshfsOptions := "allow_other"
+-- 
+2.48.1
+

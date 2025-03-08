@@ -17,7 +17,7 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: 439c9de34eaccaa2910f7df55608b1c1d8ecbcba
+  LIMA_SHA: 9fd85199673d46188be880fb921442bc8f9134d2
   LIMA_VERSION: dev
 jobs:
   call-prepare-alpine-wsl:
@@ -87,8 +87,12 @@ jobs:
           git remote add origin $LIMA_GITURL
           git fetch --depth 1 origin $LIMA_SHA
           git checkout FETCH_HEAD
-          patch --binary -l -p 1 < ../patches/lima/0001-Enable-Integration-tests-in-Windows-CI.patch
-          patch --binary -l -p 1 < ../patches/lima/0002-Add-QEMU-driver-support-on-Windows-hosts.patch
+          patch --binary -l -p 1 < ../patches/lima/0001-Add-Temp-variable-to-host-templates.patch
+          patch --binary -l -p 1 < ../patches/lima/0002-Improve-Subsystem-paths-handling-on-Windows-hosts.patch
+          patch --binary -l -p 1 < ../patches/lima/0003-Fix-mount-support-in-QEMU-on-Windows-hosts.patch
+          patch --binary -l -p 1 < ../patches/lima/0004-Add-additional-PATH-env-var-for-tooling-on-Windows.patch
+          patch --binary -l -p 1 < ../patches/lima/0005-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
+          patch --binary -l -p 1 < ../patches/lima/0006-Add-QEMU-driver-support-on-Windows-hosts.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}
@@ -107,7 +111,21 @@ jobs:
           export LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
           export HOME_HOST=$(cygpath $USERPROFILE)
           export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
-          PATH=/c/Program\ Files/Git/usr/bin:$PATH cmd.exe //C "bash -c './hack/test-templates.sh templates/experimental/wsl2.yaml'"
+          export GITBASHEXE=$(cygpath -w -s /c/Program\ Files/Git/bin/bash.exe)
+          cmd.exe //C "$GITBASHEXE -c './hack/test-templates.sh templates/experimental/wsl2.yaml'"
+      - name: "🧪 Test Lima WSL2 machine Git tools WSL2 (NAT)"
+        working-directory: lima-release
+        shell: msys2 {0}
+        run: |
+          rm -f "$(cygpath $USERPROFILE)/.lima/_config/user"* || true
+          rm -f "$(cygpath $USERPROFILE)/.lima/_config/wsl2" || true
+          wsl -d lima-infra -u root bash -c "ip link delete nerdctl0 || true"
+          export PATH=$PWD/_output/bin:$PATH
+          export MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
+          export LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
+          export HOME_HOST=$(cygpath $USERPROFILE)
+          export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
+          LIMA_WINDOWS_EXTRA_PATH=/c/Program\ Files/Git/usr/bin ./hack/test-templates.sh templates/experimental/wsl2.yaml
       - name: "🧪 Test Lima WSL2 machine Git bundle WSL2 (NAT)"
         working-directory: lima-release
         shell: msys2 {0}
@@ -120,7 +138,7 @@ jobs:
           export LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
           export HOME_HOST=$(cygpath $USERPROFILE)
           export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
-          LIMA_BUNDLED_TOOLS_DIR=bundle-git ./hack/test-templates.sh templates/experimental/wsl2.yaml
+          LIMA_WINDOWS_EXTRA_PATH=$PWD/_output/bin/bundle-git ./hack/test-templates.sh templates/experimental/wsl2.yaml
       - name: "🧪 Test Lima QEMU machine WSL2 bundle WSL2 (NAT)"
         working-directory: lima-release
         shell: msys2 {0}
@@ -133,7 +151,7 @@ jobs:
           export LIMACTL_CREATE_ARGS='--vm-type=qemu'
           export HOME_HOST=$(cygpath $USERPROFILE)
           export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
-          LIMA_BUNDLED_TOOLS_DIR=bundle-wsl ./hack/test-templates.sh templates/default.yaml
+          LIMA_WINDOWS_EXTRA_PATH=$PWD/_output/bin/bundle-wsl ./hack/test-templates.sh templates/default.yaml
       - name: "🧪 Test Lima WSL2 machine WSL2 bundle WSL2 (NAT)"
         working-directory: lima-release
         shell: msys2 {0}
@@ -146,7 +164,7 @@ jobs:
           export LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
           export HOME_HOST=$(cygpath $USERPROFILE)
           export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
-          LIMA_BUNDLED_TOOLS_DIR=bundle-wsl ./hack/test-templates.sh templates/experimental/wsl2.yaml
+          LIMA_WINDOWS_EXTRA_PATH=$PWD/_output/bin/bundle-wsl ./hack/test-templates.sh templates/experimental/wsl2.yaml
       # - name: "⚙️ Configure WSL2 networking mode mirrored"
       #   shell: msys2 {0}
       #   run: |
