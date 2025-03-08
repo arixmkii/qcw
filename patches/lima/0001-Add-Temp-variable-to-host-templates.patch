@@ -1,0 +1,108 @@
+From 1f6fd20ef7ada5e6a85af3c6a0b9879e760c5b24 Mon Sep 17 00:00:00 2001
+From: Jan Dubois <jan.dubois@suse.com>
+Date: Fri, 7 Mar 2025 18:31:47 -0800
+Subject: [PATCH] Add {{.Temp}} variable to host templates
+
+Allows writing the temp mount as
+
+mounts:
+- location: "{{.Temp}}/lima"
+  mountPoint: /tmp/lima
+
+Note that on macOS this would use $TMPDIR and not /tmp, so would be a change
+in behaviour. It would not affect existing instances though.
+
+Signed-off-by: Jan Dubois <jan.dubois@suse.com>
+---
+ pkg/limayaml/defaults.go      |  3 ++-
+ pkg/limayaml/defaults_test.go | 13 +++++++------
+ templates/default.yaml        |  3 ++-
+ 3 files changed, 11 insertions(+), 8 deletions(-)
+
+diff --git a/pkg/limayaml/defaults.go b/pkg/limayaml/defaults.go
+index 342ec2e48d3..8b9735ab383 100644
+--- a/pkg/limayaml/defaults.go
++++ b/pkg/limayaml/defaults.go
+@@ -703,7 +703,7 @@ func FillDefault(y, d, o *LimaYAML, filePath string, warn bool) {
+ 	location := make(map[string]int)
+ 	for _, mount := range slices.Concat(d.Mounts, y.Mounts, o.Mounts) {
+ 		if out, err := executeHostTemplate(mount.Location, instDir, y.Param); err == nil {
+-			mount.Location = out.String()
++			mount.Location = filepath.Clean(out.String())
+ 		} else {
+ 			logrus.WithError(err).Warnf("Couldn't process mount location %q as a template", mount.Location)
+ 		}
+@@ -927,6 +927,7 @@ func executeHostTemplate(format, instDir string, param map[string]string) (bytes
+ 			"User":  currentUser.Username,
+ 			"Home":  userHomeDir,
+ 			"Param": param,
++			"Temp":  os.TempDir(),
+ 
+ 			"Instance": filepath.Base(instDir), // DEPRECATED, use `{{.Name}}`
+ 			"LimaHome": limaHome,               // DEPRECATED, use `{{.Dir}}` instead of `{{.LimaHome}}/{{.Instance}}`
+diff --git a/pkg/limayaml/defaults_test.go b/pkg/limayaml/defaults_test.go
+index 81d40dbeb1b..bf562d31c0d 100644
+--- a/pkg/limayaml/defaults_test.go
++++ b/pkg/limayaml/defaults_test.go
+@@ -7,6 +7,7 @@ import (
+ 	"fmt"
+ 	"net"
+ 	"os"
++	"path"
+ 	"path/filepath"
+ 	"runtime"
+ 	"slices"
+@@ -146,8 +147,8 @@ func TestFillDefault(t *testing.T) {
+ 			},
+ 		},
+ 		Mounts: []Mount{
+-			{Location: "/tmp"},
+-			{Location: "{{.Dir}}/{{.Param.ONE}}", MountPoint: ptr.Of("/mnt/{{.Param.ONE}}")},
++			{Location: filepath.Clean(os.TempDir())},
++			{Location: filepath.Clean("{{.Dir}}/{{.Param.ONE}}"), MountPoint: ptr.Of("/mnt/{{.Param.ONE}}")},
+ 		},
+ 		MountType: ptr.Of(NINEP),
+ 		Provision: []Provision{
+@@ -231,8 +232,8 @@ func TestFillDefault(t *testing.T) {
+ 	expect.Mounts[0].NineP.Cache = ptr.Of(Default9pCacheForRO)
+ 	expect.Mounts[0].Virtiofs.QueueSize = nil
+ 	// Only missing Mounts field is Writable, and the default value is also the null value: false
+-	expect.Mounts[1].Location = fmt.Sprintf("%s/%s", instDir, y.Param["ONE"])
+-	expect.Mounts[1].MountPoint = ptr.Of(fmt.Sprintf("/mnt/%s", y.Param["ONE"]))
++	expect.Mounts[1].Location = filepath.Join(instDir, y.Param["ONE"])
++	expect.Mounts[1].MountPoint = ptr.Of(path.Join("/mnt", y.Param["ONE"]))
+ 	expect.Mounts[1].Writable = ptr.Of(false)
+ 	expect.Mounts[1].SSHFS.Cache = ptr.Of(true)
+ 	expect.Mounts[1].SSHFS.FollowSymlinks = ptr.Of(false)
+@@ -385,7 +386,7 @@ func TestFillDefault(t *testing.T) {
+ 
+ 		Mounts: []Mount{
+ 			{
+-				Location: "/var/log",
++				Location: filepath.Clean("/var/log"),
+ 				Writable: ptr.Of(false),
+ 			},
+ 		},
+@@ -593,7 +594,7 @@ func TestFillDefault(t *testing.T) {
+ 
+ 		Mounts: []Mount{
+ 			{
+-				Location: "/var/log",
++				Location: filepath.Clean("/var/log"),
+ 				Writable: ptr.Of(true),
+ 				SSHFS: SSHFS{
+ 					Cache:          ptr.Of(false),
+diff --git a/templates/default.yaml b/templates/default.yaml
+index 2275e4ecacf..46a3b853f43 100644
+--- a/templates/default.yaml
++++ b/templates/default.yaml
+@@ -99,7 +99,8 @@ mounts:
+     # See https://www.kernel.org/doc/Documentation/filesystems/9p.txt
+     # 🟢 Builtin default: "fscache" for non-writable mounts, "mmap" for writable mounts
+     cache: null
+-- location: "/tmp/lima"
++- location: "{{.Temp}}/lima"
++  mountPoint: /tmp/lima
+   # 🟢 Builtin default: false
+   # 🔵 This file: true (only for "/tmp/lima")
+   writable: true

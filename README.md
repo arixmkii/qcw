@@ -89,11 +89,13 @@ Version `v0.0.6`. Rebuilt for Windows amd64 platform.
 
 #### `Lima`
 
-Development main branch from revision `3b14bee3dadba6985c9804b95434b1b0c60d6d84` with 4 patch sets:
-* Enable QEMU support in Lima
-* Check WSL2 networking mode for connection
-* Load UEFI via BIOS in QEMU
-* Update integration tests to support WSL2
+Development main branch from revision `88f350be30e395b2f4ca54c48d4ca0760e273a4c` with 6 patch sets:
+* Add Temp placeholder support to templates
+* Improve subsystem path handling in SHELL and USER processing
+* Fix mounts to support Windows
+* Customizadle additional PATH for Windows builds
+* Support WSL2 as a replacement for msys2/cygwin
+* Enable QEMU support in Lima for Windows
 
 #### `Podman`
 
