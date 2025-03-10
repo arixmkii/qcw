@@ -55,7 +55,7 @@ jobs:
         working-directory: qemu-release
         shell: msys2 {0}
         run: |
-          ./configure --enable-gtk --enable-sdl --disable-debug-info
+          ./configure --enable-gtk --enable-sdl --disable-debug-info --extra-cflags="-D_FORTIFY_SOURCE=2"
           make
           make installer
       - name: "📦 Pack QEMU"
