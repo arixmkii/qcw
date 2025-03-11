@@ -7,7 +7,7 @@ on:
         description: QEMU version"
         value: ${{ jobs.build.outputs.qemu_version }}
 env:
-  QEMU_VERSION: 9.2.2
+  QEMU_VERSION: 10.0.0
   MSYS: "winsymlinks:native"
 jobs:
   build:
@@ -50,7 +50,6 @@ jobs:
           cd qemu-release
           patch --binary -l -p 1 < ../patches/qemu/0001-9pfs-Add-9pfs-support-for-Windows-host.patch
           patch --binary -l -p 1 < ../patches/qemu/0002-WHPX-Add-support-for-device-backed-memory-regions.patch
-          patch --binary -l -p 1 < ../patches/qemu/0003-Windows-installer-keep-dependency-cache.patch
       - name: "🛠️ Build QEMU"
         working-directory: qemu-release
         shell: msys2 {0}
