@@ -511,7 +511,7 @@ index c314cf381d..90420a7578 100644
   * close_if_special_file() - Close @fd if neither regular file nor directory.
   *
 @@ -193,6 +222,7 @@ again:
-     errno = serrno;
+     }
      return fd;
  }
 +#endif
