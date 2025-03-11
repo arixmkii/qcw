@@ -125,7 +125,7 @@ jobs:
           export LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
           export HOME_HOST=$(cygpath $USERPROFILE)
           export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
-          LIMA_WINDOWS_EXTRA_PATH=/c/Program\ Files/Git/usr/bin ./hack/test-templates.sh templates/experimental/wsl2.yaml
+          _LIMA_WINDOWS_EXTRA_PATH=/c/Program\ Files/Git/usr/bin ./hack/test-templates.sh templates/experimental/wsl2.yaml
       - name: "🧪 Test Lima WSL2 machine Git bundle WSL2 (NAT)"
         working-directory: lima-release
         shell: msys2 {0}
@@ -138,7 +138,7 @@ jobs:
           export LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
           export HOME_HOST=$(cygpath $USERPROFILE)
           export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
-          LIMA_WINDOWS_EXTRA_PATH=$PWD/_output/bin/bundle-git ./hack/test-templates.sh templates/experimental/wsl2.yaml
+          _LIMA_WINDOWS_EXTRA_PATH=$PWD/_output/bin/bundle-git ./hack/test-templates.sh templates/experimental/wsl2.yaml
       - name: "🧪 Test Lima QEMU machine WSL2 bundle WSL2 (NAT)"
         working-directory: lima-release
         shell: msys2 {0}
@@ -151,7 +151,7 @@ jobs:
           export LIMACTL_CREATE_ARGS='--vm-type=qemu'
           export HOME_HOST=$(cygpath $USERPROFILE)
           export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
-          LIMA_WINDOWS_EXTRA_PATH=$PWD/_output/bin/bundle-wsl ./hack/test-templates.sh templates/default.yaml
+          _LIMA_WINDOWS_EXTRA_PATH=$PWD/_output/bin/bundle-wsl ./hack/test-templates.sh templates/default.yaml
       - name: "🧪 Test Lima WSL2 machine WSL2 bundle WSL2 (NAT)"
         working-directory: lima-release
         shell: msys2 {0}
@@ -164,7 +164,7 @@ jobs:
           export LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
           export HOME_HOST=$(cygpath $USERPROFILE)
           export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
-          LIMA_WINDOWS_EXTRA_PATH=$PWD/_output/bin/bundle-wsl ./hack/test-templates.sh templates/experimental/wsl2.yaml
+          _LIMA_WINDOWS_EXTRA_PATH=$PWD/_output/bin/bundle-wsl ./hack/test-templates.sh templates/experimental/wsl2.yaml
       # - name: "⚙️ Configure WSL2 networking mode mirrored"
       #   shell: msys2 {0}
       #   run: |
