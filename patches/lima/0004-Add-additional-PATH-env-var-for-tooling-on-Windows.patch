@@ -1,15 +1,21 @@
-From b05bb1a70b1dcf2c82cf91da4b88bc19ec6693aa Mon Sep 17 00:00:00 2001
+From fc2c5f1474e9b4c7c490ebeed27adcaf9fdc8409 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Sat, 8 Mar 2025 23:29:38 +0200
-Subject: [PATCH 3/4] Add additional PATH env var for tooling on Windows
+Subject: [PATCH] Support setting extra entries for PATH env variable on
+ Windows hosts
+
+During startup `limactl.exe` will check new experimental
+`_LIMA_WINDOWS_EXTRA_PATH` environment variable and when found it
+will be added to PATH environment variable for the running process.
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
- cmd/limactl/main.go | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+ cmd/limactl/main.go                                  | 10 ++++++++++
+ .../content/en/docs/config/environment-variables.md  | 12 ++++++++++++
+ 2 files changed, 22 insertions(+)
 
 diff --git a/cmd/limactl/main.go b/cmd/limactl/main.go
-index 268fad0d..576489c3 100644
+index 268fad0dcf3..d475f902810 100644
 --- a/cmd/limactl/main.go
 +++ b/cmd/limactl/main.go
 @@ -28,6 +28,16 @@ const (
@@ -22,13 +28,30 @@ index 268fad0d..576489c3 100644
 +			p := os.Getenv("PATH")
 +			err := os.Setenv("PATH", strings.TrimSpace(extras)+string(filepath.ListSeparator)+p)
 +			if err != nil {
-+				logrus.Warning("Can't add extras to PATH, relying fully on system PATH")
++				logrus.Warning("Can't add extras to PATH, relying entirely on system PATH")
 +			}
 +		}
 +	}
  	if err := newApp().Execute(); err != nil {
  		handleExitCoder(err)
  		logrus.Fatal(err)
--- 
-2.48.1
-
+diff --git a/website/content/en/docs/config/environment-variables.md b/website/content/en/docs/config/environment-variables.md
+index b769e95a632..d767e28ada1 100644
+--- a/website/content/en/docs/config/environment-variables.md
++++ b/website/content/en/docs/config/environment-variables.md
+@@ -77,3 +77,15 @@ This page documents the environment variables used in Lima.
+   ```
+ - **Note**: It is expected that this variable will be set to `false` by default in future
+   when QEMU supports `pflash` UEFI for accelerated guests on Windows.
++
++### `_LIMA_WINDOWS_EXTRA_PATH`
++
++- **Description**: Additional directories which will be added to PATH by `limactl.exe` process to search for
++  tools. Is is Windows specific and does nothing for other platforms.
++- **Default**: unset
++- **Usage**:
++  ```bat
++  set _LIMA_WINDOWS_EXTRA_PATH=C:\Program Files\Git\usr\bin
++  ```
++- **Note**: It is an experimental setting and has no guarantees being ever promoted to stable. It may be removed
++  or changed at any stage of project development.

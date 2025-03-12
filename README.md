@@ -80,10 +80,10 @@ Version `v0.0.6`. Rebuilt for Windows amd64 platform.
 #### `Lima`
 
 Development main branch from revision `88f350be30e395b2f4ca54c48d4ca0760e273a4c` with 6 patch sets:
-* Add Temp placeholder support to templates
-* Improve subsystem path handling in SHELL and USER processing
+* Add Temp placeholder support to templates from https://github.com/lima-vm/lima/pull/3318
+* Improve subsystem path handling in SHELL and USER processing from https://github.com/lima-vm/lima/pull/3304
 * Fix mounts to support Windows
-* Customizadle additional PATH for Windows builds
+* Customizadle additional PATH for Windows builds from https://github.com/lima-vm/lima/pull/3347
 * Support WSL2 as a replacement for msys2/cygwin
 * Enable QEMU support in Lima for Windows
 

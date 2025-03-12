@@ -6,15 +6,20 @@ on:
       gowsllinks_version:
         description: go-wsllinks version"
         value: ${{ jobs.build.outputs.gowsllinks_version }}
+      bundles_version:
+        description: bundles version"
+        value: ${{ jobs.build.outputs.bundles_version }}
 env:
   GOWSLLINKS_GITURL: https://github.com/arixmkii/go-wsllinks.git
   GOWSLLINKS_SHA: a2b50fd156e35cea31399ed199f3c297838f02fc # v0.0.6
   GOWSLLINKS_VERSION: 0.0.6
+  BUNDLES_VERSION: 0.0.1
 jobs:
   build:
     runs-on: windows-latest
     outputs:
       gowsllinks_version: ${{ steps.make_versions.outputs.gowsllinks }}
+      bundles_version: ${{ steps.make_versions.outputs.bundles }}
     steps:
       - name: "🏗️ Install msys2"
         uses: msys2/setup-msys2@v2
@@ -38,16 +43,25 @@ jobs:
           git remote add origin $GOWSLLINKS_GITURL
           git fetch --depth 1 origin $GOWSLLINKS_SHA
           git checkout FETCH_HEAD
+          patch --binary -l -p 1 < ../patches/go-wsllinks/0001-Create-Lima-dependency-bundles.patch
       - name: "🛠️ Build go-wsllinks"
         working-directory: go-wsllinks-release
         shell: msys2 {0}
         run: |
           go build -ldflags="-s -w"
+          cp go-wsllinks.exe ./bundle-git
+          cp go-wsllinks.exe ./bundle-wsl
       - name: "📦 Pack go-wsllinks"
         shell: msys2 {0}
         run: |
           mkdir -p qcw
           cp "go-wsllinks-release/go-wsllinks.exe" qcw/
+          mkdir -p qcw-tmp
+          cp -r "go-wsllinks-release/bundle-git" qcw-tmp/bundle-git
+          cp -r "go-wsllinks-release/bundle-wsl" qcw-tmp/bundle-wsl
+          pushd qcw-tmp/
+          zip -9 -r ../qcw/bundles.zip .
+          popd
           cd qcw
           find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
           find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
@@ -57,6 +71,7 @@ jobs:
         shell: msys2 {0}
         run: |
           echo "gowsllinks=$GOWSLLINKS_VERSION" >> "$GITHUB_OUTPUT"
+          echo "bundles=$BUNDLES_VERSION" >> "$GITHUB_OUTPUT"
       - name: "🚀 Upload artifact"
         uses: actions/upload-artifact@v4
         with:

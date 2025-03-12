@@ -9,6 +9,9 @@ on:
       gowsllinks_version:
         description: "go-wsllinks version"
         value: ${{ jobs.build.outputs.gowsllinks_version }}
+      bundles_version:
+        description: "bundles version"
+        value: ${{ jobs.build.outputs.bundles_version }}
       alpine_version:
         description: "Alpine version"
         value: ${{ jobs.build.outputs.alpine_version }}
@@ -30,6 +33,7 @@ jobs:
     outputs:
       lima_version: ${{ steps.make_versions.outputs.lima }}
       gowsllinks_version: ${{ steps.make_versions.outputs.gowsllinks }}
+      bundles_version: ${{ steps.make_versions.outputs.bundles }}
       alpine_version: ${{ steps.make_versions.outputs.alpine }}
       alpine_wsl_version: ${{ steps.make_versions.outputs.alpine_wsl }}
     steps:
@@ -97,8 +101,12 @@ jobs:
         working-directory: lima-release
         shell: msys2 {0}
         run: |
-          cp -f ../qcw-art/qcw-go-wsllinks/go-wsllinks.exe ./contrib/go-wsllinks.exe
-          make binaries add-bundles
+          pushd ../qcw-art/qcw-go-wsllinks/
+          unzip bundles.zip
+          ./bundle-git/install-tools.bat
+          ./bundle-wsl/install-tools.bat
+          popd
+          make binaries
       - name: "🧪 Test Lima WSL2 machine Git shell WSL2 (NAT)"
         working-directory: lima-release
         shell: msys2 {0}
@@ -138,7 +146,7 @@ jobs:
           export LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
           export HOME_HOST=$(cygpath $USERPROFILE)
           export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
-          _LIMA_WINDOWS_EXTRA_PATH=$PWD/_output/bin/bundle-git ./hack/test-templates.sh templates/experimental/wsl2.yaml
+          _LIMA_WINDOWS_EXTRA_PATH=$PWD/../qcw-art/qcw-go-wsllinks/bundle-git ./hack/test-templates.sh templates/experimental/wsl2.yaml
       - name: "🧪 Test Lima QEMU machine WSL2 bundle WSL2 (NAT)"
         working-directory: lima-release
         shell: msys2 {0}
@@ -151,7 +159,7 @@ jobs:
           export LIMACTL_CREATE_ARGS='--vm-type=qemu'
           export HOME_HOST=$(cygpath $USERPROFILE)
           export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
-          _LIMA_WINDOWS_EXTRA_PATH=$PWD/_output/bin/bundle-wsl ./hack/test-templates.sh templates/default.yaml
+          _LIMA_WINDOWS_EXTRA_PATH=$PWD/../qcw-art/qcw-go-wsllinks/bundle-wsl ./hack/test-templates.sh templates/default.yaml
       - name: "🧪 Test Lima WSL2 machine WSL2 bundle WSL2 (NAT)"
         working-directory: lima-release
         shell: msys2 {0}
@@ -164,7 +172,7 @@ jobs:
           export LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
           export HOME_HOST=$(cygpath $USERPROFILE)
           export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
-          _LIMA_WINDOWS_EXTRA_PATH=$PWD/_output/bin/bundle-wsl ./hack/test-templates.sh templates/experimental/wsl2.yaml
+          _LIMA_WINDOWS_EXTRA_PATH=$PWD/../qcw-art/qcw-go-wsllinks/bundle-wsl ./hack/test-templates.sh templates/experimental/wsl2.yaml
       # - name: "⚙️ Configure WSL2 networking mode mirrored"
       #   shell: msys2 {0}
       #   run: |
@@ -194,12 +202,14 @@ jobs:
         name: "📌 Export versions"
         env:
           GOWSLLINKS_VERSION: ${{ needs.call-prepare-go-wsllinks.outputs.gowsllinks_version }}
+          BUNDLES_VERSION: ${{ needs.call-prepare-go-wsllinks.outputs.bundles_version }}
           ALPINE_VERSION: ${{ needs.call-prepare-alpine-wsl.outputs.alpine_version }}
           ALPINEWSL_VERSION: ${{ needs.call-prepare-alpine-wsl.outputs.alpine_wsl_version }}
         shell: msys2 {0}
         run: |
           echo "lima=$LIMA_VERSION-$LIMA_SHA" >> "$GITHUB_OUTPUT"
           echo "gowsllinks=$GOWSLLINKS_VERSION" >> "$GITHUB_OUTPUT"
+          echo "bundles=$BUNDLES_VERSION" >> "$GITHUB_OUTPUT"
           echo "alpine=$ALPINE_VERSION" >> "$GITHUB_OUTPUT"
           echo "alpine_wsl=$ALPINEWSL_VERSION" >> "$GITHUB_OUTPUT"
       - name: "🚀 Upload artifact"

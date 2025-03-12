@@ -3,11 +3,11 @@ on:
   workflow_dispatch:
     inputs:
       release_name:
-        description: 'Release name'
+        description: 'Release name (noramlly X.Y.Z)'
         required: true
         type: string
       release_tag:
-        description: 'Release tag'
+        description: 'Release tag (normally vX.Y.Z)'
         required: true
         type: string
       release_highlights:
@@ -15,6 +15,11 @@ on:
         default: 'TBD.'
         required: true
         type: string
+      dry_run:
+        description: "Skip publishing to releases (dry run)"
+        default: false
+        required: true
+        type: boolean
 jobs:
   call-prepare-docker:
     uses: ./.github/workflows/prepare-docker-release.yml
@@ -45,6 +50,7 @@ jobs:
           DOCKER_VERSION: ${{ needs.call-prepare-docker.outputs.cli_version }}
           DOCKER_COMPOSE_VERSION: ${{ needs.call-prepare-docker.outputs.compose_version }}
           GOWSLLINKS_VERSION: ${{ needs.call-prepare-lima.outputs.gowsllinks_version }}
+          BUNDLES_VERSION: ${{ needs.call-prepare-lima.outputs.bundles_version }}
           LIMA_VERSION: ${{ needs.call-prepare-lima.outputs.lima_version }}
           PODMAN_VERSION: ${{ needs.call-prepare-podman.outputs.podman_version }}
           QEMU_VERSION: ${{ needs.call-prepare-qemu.outputs.qemu_version }}
@@ -64,6 +70,7 @@ jobs:
           sed "s/<<DOCKER_VERSION>>/$DOCKER_VERSION/g" -i release.template.md
           sed "s/<<DOCKER_COMPOSE_VERSION>>/$DOCKER_COMPOSE_VERSION/g" -i release.template.md
           sed "s/<<GOWSLLINKS_VERSION>>/$GOWSLLINKS_VERSION/g" -i release.template.md
+          sed "s/<<BUNDLES_VERSION>>/$BUNDLES_VERSION/g" -i release.template.md
           sed "s/<<LIMA_VERSION>>/$LIMA_VERSION/g" -i release.template.md
           sed "s/<<PODMAN_VERSION>>/$PODMAN_VERSION/g" -i release.template.md
           sed "s/<<QEMU_VERSION>>/$QEMU_VERSION/g" -i release.template.md
@@ -72,6 +79,7 @@ jobs:
           cat qcw/checksums.sha256
           cat qcw/checksums.sha512
       - name: "🏷️ Publish release"
+        if: ${{ !inputs.dry_run }}
         uses: ncipollo/release-action@v1
         with:
           name: ${{ inputs.release_name }}

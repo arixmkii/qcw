@@ -1,0 +1,96 @@
+From 9fd60e1d97ce5facbc15d6422bad929ef2fe86f9 Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Wed, 12 Mar 2025 20:11:22 +0200
+Subject: [PATCH] Create Lima dependency bundles
+
+---
+ bundle-git/install-tools.bat | 10 ++++++++++
+ bundle-git/sftp-server.ini   |  1 +
+ bundle-git/wsllinks.ini      |  2 ++
+ bundle-wsl/install-tools.bat | 12 ++++++++++++
+ bundle-wsl/sftp-server.ini   |  1 +
+ bundle-wsl/ssh-keygen.ini    |  1 +
+ bundle-wsl/wsllinks.ini      |  2 ++
+ 7 files changed, 29 insertions(+)
+ create mode 100644 bundle-git/install-tools.bat
+ create mode 100644 bundle-git/sftp-server.ini
+ create mode 100644 bundle-git/wsllinks.ini
+ create mode 100644 bundle-wsl/install-tools.bat
+ create mode 100644 bundle-wsl/sftp-server.ini
+ create mode 100644 bundle-wsl/ssh-keygen.ini
+ create mode 100644 bundle-wsl/wsllinks.ini
+
+diff --git a/bundle-git/install-tools.bat b/bundle-git/install-tools.bat
+new file mode 100644
+index 0000000..710ebf6
+--- /dev/null
++++ b/bundle-git/install-tools.bat
+@@ -0,0 +1,10 @@
++@ECHO OFF
++
++copy /Y "%~dp0\go-wsllinks.exe" "%~dp0\bzip2.exe" 1>nul
++copy /Y "%~dp0\go-wsllinks.exe" "%~dp0\cygpath.exe" 1>nul
++copy /Y "%~dp0\go-wsllinks.exe" "%~dp0\gzip.exe" 1>nul
++copy /Y "%~dp0\go-wsllinks.exe" "%~dp0\id.exe" 1>nul
++copy /Y "%~dp0\go-wsllinks.exe" "%~dp0\scp.exe" 1>nul
++copy /Y "%~dp0\go-wsllinks.exe" "%~dp0\sftp-server.exe" 1>nul
++copy /Y "%~dp0\go-wsllinks.exe" "%~dp0\ssh-keygen.exe" 1>nul
++copy /Y "%~dp0\go-wsllinks.exe" "%~dp0\ssh.exe" 1>nul
+diff --git a/bundle-git/sftp-server.ini b/bundle-git/sftp-server.ini
+new file mode 100644
+index 0000000..79cf2da
+--- /dev/null
++++ b/bundle-git/sftp-server.ini
+@@ -0,0 +1 @@
++baseDir = C:\Program Files\Git\usr\lib\ssh
+diff --git a/bundle-git/wsllinks.ini b/bundle-git/wsllinks.ini
+new file mode 100644
+index 0000000..eece20f
+--- /dev/null
++++ b/bundle-git/wsllinks.ini
+@@ -0,0 +1,2 @@
++mode = direct
++baseDir = C:\Program Files\Git\usr\bin
+diff --git a/bundle-wsl/install-tools.bat b/bundle-wsl/install-tools.bat
+new file mode 100644
+index 0000000..351856a
+--- /dev/null
++++ b/bundle-wsl/install-tools.bat
+@@ -0,0 +1,12 @@
++@ECHO OFF
++
++copy /Y "%~dp0\go-wsllinks.exe" "%~dp0\bzip2.exe" 1>nul
++copy /Y "%~dp0\go-wsllinks.exe" "%~dp0\cygpath.exe" 1>nul
++copy /Y "%~dp0\go-wsllinks.exe" "%~dp0\gzip.exe" 1>nul
++copy /Y "%~dp0\go-wsllinks.exe" "%~dp0\id.exe" 1>nul
++copy /Y "%~dp0\go-wsllinks.exe" "%~dp0\scp.exe" 1>nul
++copy /Y "%~dp0\go-wsllinks.exe" "%~dp0\sftp-server.exe" 1>nul
++copy /Y "%~dp0\go-wsllinks.exe" "%~dp0\ssh-keygen.exe" 1>nul
++copy /Y "%~dp0\go-wsllinks.exe" "%~dp0\ssh.exe" 1>nul
++copy /Y "%~dp0\go-wsllinks.exe" "%~dp0\xz.exe" 1>nul
++copy /Y "%~dp0\go-wsllinks.exe" "%~dp0\zstd.exe" 1>nul
+diff --git a/bundle-wsl/sftp-server.ini b/bundle-wsl/sftp-server.ini
+new file mode 100644
+index 0000000..4ad96ac
+--- /dev/null
++++ b/bundle-wsl/sftp-server.ini
+@@ -0,0 +1 @@
++binary = /usr/lib/ssh/sftp-server
+diff --git a/bundle-wsl/ssh-keygen.ini b/bundle-wsl/ssh-keygen.ini
+new file mode 100644
+index 0000000..0e29002
+--- /dev/null
++++ b/bundle-wsl/ssh-keygen.ini
+@@ -0,0 +1 @@
++shellType = standard
+diff --git a/bundle-wsl/wsllinks.ini b/bundle-wsl/wsllinks.ini
+new file mode 100644
+index 0000000..6f27450
+--- /dev/null
++++ b/bundle-wsl/wsllinks.ini
+@@ -0,0 +1,2 @@
++distro = lima-infra
++user = lima
+-- 
+2.48.1
+

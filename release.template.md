@@ -2,6 +2,7 @@
 <<RELEASE_HIGHLIGHTS>>
 
 #### Included in this release
+* Bundles `<<BUNDLES_VERSION>>`
 * Docker CLI `<<DOCKER_VERSION>>`
 * Docker Compose `<<DOCKER_COMPOSE_VERSION>>`
 * go-wsllinks `<<GOWSLLINKS_VERSION>>`
