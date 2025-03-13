@@ -27,7 +27,7 @@ It will also require [Hyper-V](https://docs.microsoft.com/en-us/virtualization/h
 default.
 
 Some features require even more fresh Windows systems. To use `Lima` WSL2 release newer than
-[`2.4.10`](https://github.com/microsoft/WSL/releases/tag/2.4.10) is a hard requirement.
+[`2.5.4`](https://github.com/microsoft/WSL/releases/tag/2.5.4) is a hard requirement.
 
 It is also recommended to allow inbound connections in Hyper-V firewall to not interfere with port forwarding from inside Lima
 ```powershell

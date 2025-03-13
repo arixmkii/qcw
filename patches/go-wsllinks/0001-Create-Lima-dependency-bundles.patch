@@ -76,13 +76,6 @@ index 0000000..4ad96ac
 +++ b/bundle-wsl/sftp-server.ini
 @@ -0,0 +1 @@
 +binary = /usr/lib/ssh/sftp-server
-diff --git a/bundle-wsl/ssh-keygen.ini b/bundle-wsl/ssh-keygen.ini
-new file mode 100644
-index 0000000..0e29002
---- /dev/null
-+++ b/bundle-wsl/ssh-keygen.ini
-@@ -0,0 +1 @@
-+shellType = standard
 diff --git a/bundle-wsl/wsllinks.ini b/bundle-wsl/wsllinks.ini
 new file mode 100644
 index 0000000..6f27450

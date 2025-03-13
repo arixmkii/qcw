@@ -69,6 +69,7 @@ jobs:
         run: |
           wsl --set-default-version 2
           wsl --shutdown
+          wsl --update --pre-release
           wsl --version
           wsl --install -n --from-file qcw-art/qcw-alpine/lima-infra.wsl
           wsl -l -v
