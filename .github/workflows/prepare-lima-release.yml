@@ -20,7 +20,7 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: 9fd85199673d46188be880fb921442bc8f9134d2
+  LIMA_SHA: 5bf53200e23559beef070d788ef3ae719194d6a3
   LIMA_VERSION: dev
 jobs:
   call-prepare-alpine-wsl:
@@ -93,10 +93,11 @@ jobs:
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/lima/0001-Add-Temp-variable-to-host-templates.patch
           patch --binary -l -p 1 < ../patches/lima/0002-Improve-Subsystem-paths-handling-on-Windows-hosts.patch
-          patch --binary -l -p 1 < ../patches/lima/0003-Fix-mount-support-in-QEMU-on-Windows-hosts.patch
-          patch --binary -l -p 1 < ../patches/lima/0004-Add-additional-PATH-env-var-for-tooling-on-Windows.patch
-          patch --binary -l -p 1 < ../patches/lima/0005-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
-          patch --binary -l -p 1 < ../patches/lima/0006-Add-QEMU-driver-support-on-Windows-hosts.patch
+          patch --binary -l -p 1 < ../patches/lima/0003-Add-additional-PATH-env-var-for-tooling-on-Windows.patch
+          patch --binary -l -p 1 < ../patches/lima/0004-Fix-mount-support-in-QEMU-on-Windows-hosts.patch
+          patch --binary -l -p 1 < ../patches/lima/0005-Start-QEMU-binary-as-a-background-process.patch
+          patch --binary -l -p 1 < ../patches/lima/0006-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
+          patch --binary -l -p 1 < ../patches/lima/0007-Add-QEMU-driver-support-on-Windows-hosts.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}
@@ -109,70 +110,78 @@ jobs:
           make binaries
       - name: "🧪 Test Lima WSL2 machine Git shell WSL2 (NAT)"
         working-directory: lima-release
-        shell: msys2 {0}
+        shell: pwsh
         run: |
-          rm -f "$(cygpath $USERPROFILE)/.lima/_config/user"* || true
-          rm -f "$(cygpath $USERPROFILE)/.lima/_config/wsl2" || true
+          Remove-Item "$env:USERPROFILE\.lima\_config\user*" -Recurse -Force -ErrorAction SilentlyContinue || $true
+          Remove-Item "$env:USERPROFILE\.lima\_config\wsl2*" -Recurse -Force -ErrorAction SilentlyContinue || $true
           wsl -d lima-infra -u root bash -c "ip link delete nerdctl0 || true"
-          export PATH=$PWD/_output/bin:$PATH
-          export MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
-          export LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
-          export HOME_HOST=$(cygpath $USERPROFILE)
-          export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
-          export GITBASHEXE=$(cygpath -w -s /c/Program\ Files/Git/bin/bash.exe)
-          cmd.exe //C "$GITBASHEXE -c './hack/test-templates.sh templates/experimental/wsl2.yaml'"
+          $env:Path = "$pwd\_output\bin;D:\a\_temp\msys64\ucrt64\bin;" + $env:Path
+          $env:MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
+          $env:HOME_HOST=$(& 'C:\Program Files\Git\usr\bin\cygpath.exe' "$env:USERPROFILE")
+          $env:HOME_HOST_ALT=$(& 'C:\Program Files\Git\usr\bin\cygpath.exe' -m "$env:USERPROFILE")
+          $env:HOME_GUEST=$(wsl -d lima-infra wslpath "$env:HOME_HOST_ALT")
+          $env:LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
+          & 'C:\Program Files\Git\bin\bash.exe' -c './hack/test-templates.sh templates/experimental/wsl2.yaml'
       - name: "🧪 Test Lima WSL2 machine Git tools WSL2 (NAT)"
         working-directory: lima-release
-        shell: msys2 {0}
+        shell: pwsh
         run: |
-          rm -f "$(cygpath $USERPROFILE)/.lima/_config/user"* || true
-          rm -f "$(cygpath $USERPROFILE)/.lima/_config/wsl2" || true
+          Remove-Item "$env:USERPROFILE\.lima\_config\user*" -Recurse -Force -ErrorAction SilentlyContinue || $true
+          Remove-Item "$env:USERPROFILE\.lima\_config\wsl2*" -Recurse -Force -ErrorAction SilentlyContinue || $true
           wsl -d lima-infra -u root bash -c "ip link delete nerdctl0 || true"
-          export PATH=$PWD/_output/bin:$PATH
-          export MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
-          export LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
-          export HOME_HOST=$(cygpath $USERPROFILE)
-          export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
-          _LIMA_WINDOWS_EXTRA_PATH=/c/Program\ Files/Git/usr/bin ./hack/test-templates.sh templates/experimental/wsl2.yaml
+          $env:Path = "$pwd\_output\bin;D:\a\_temp\msys64\ucrt64\bin;" + $env:Path
+          $env:MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
+          $env:HOME_HOST=$(& 'C:\Program Files\Git\usr\bin\cygpath.exe' "$env:USERPROFILE")
+          $env:HOME_HOST_ALT=$(& 'C:\Program Files\Git\usr\bin\cygpath.exe' -m "$env:USERPROFILE")
+          $env:HOME_GUEST=$(wsl -d lima-infra wslpath "$env:HOME_HOST_ALT")
+          $env:LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
+          $env:_LIMA_WINDOWS_EXTRA_PATH='C:\Program Files\Git\usr\bin'
+          & 'C:\Program Files\Git\bin\bash.exe' -c './hack/test-templates.sh templates/experimental/wsl2.yaml'
       - name: "🧪 Test Lima WSL2 machine Git bundle WSL2 (NAT)"
         working-directory: lima-release
-        shell: msys2 {0}
+        shell: pwsh
         run: |
-          rm -f "$(cygpath $USERPROFILE)/.lima/_config/user"* || true
-          rm -f "$(cygpath $USERPROFILE)/.lima/_config/wsl2" || true
+          Remove-Item "$env:USERPROFILE\.lima\_config\user*" -Recurse -Force -ErrorAction SilentlyContinue || $true
+          Remove-Item "$env:USERPROFILE\.lima\_config\wsl2*" -Recurse -Force -ErrorAction SilentlyContinue || $true
           wsl -d lima-infra -u root bash -c "ip link delete nerdctl0 || true"
-          export PATH=$PWD/_output/bin:$PATH
-          export MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
-          export LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
-          export HOME_HOST=$(cygpath $USERPROFILE)
-          export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
-          _LIMA_WINDOWS_EXTRA_PATH=$PWD/../qcw-art/qcw-go-wsllinks/bundle-git ./hack/test-templates.sh templates/experimental/wsl2.yaml
+          $env:Path = "$pwd\_output\bin;D:\a\_temp\msys64\ucrt64\bin;" + $env:Path
+          $env:MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
+          $env:HOME_HOST=$(& 'C:\Program Files\Git\usr\bin\cygpath.exe' "$env:USERPROFILE")
+          $env:HOME_HOST_ALT=$(& 'C:\Program Files\Git\usr\bin\cygpath.exe' -m "$env:USERPROFILE")
+          $env:HOME_GUEST=$(wsl -d lima-infra wslpath "$env:HOME_HOST_ALT")
+          $env:LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
+          $env:_LIMA_WINDOWS_EXTRA_PATH="$pwd\..\qcw-art\qcw-go-wsllinks\bundle-git"
+          & 'C:\Program Files\Git\bin\bash.exe' -c './hack/test-templates.sh templates/experimental/wsl2.yaml'
       - name: "🧪 Test Lima QEMU machine WSL2 bundle WSL2 (NAT)"
         working-directory: lima-release
-        shell: msys2 {0}
+        shell: pwsh
         run: |
-          rm -f "$(cygpath $USERPROFILE)/.lima/_config/user"* || true
-          rm -f "$(cygpath $USERPROFILE)/.lima/_config/default" || true
+          Remove-Item "$env:USERPROFILE\.lima\_config\user*" -Recurse -Force -ErrorAction SilentlyContinue || $true
+          Remove-Item "$env:USERPROFILE\.lima\_config\default*" -Recurse -Force -ErrorAction SilentlyContinue || $true
           wsl -d lima-infra -u root bash -c "ip link delete nerdctl0 || true"
-          export PATH=$PWD/_output/bin:$PATH
-          export MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
-          export LIMACTL_CREATE_ARGS='--vm-type=qemu'
-          export HOME_HOST=$(cygpath $USERPROFILE)
-          export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
-          _LIMA_WINDOWS_EXTRA_PATH=$PWD/../qcw-art/qcw-go-wsllinks/bundle-wsl ./hack/test-templates.sh templates/default.yaml
+          $env:Path = "$pwd\_output\bin;D:\a\_temp\msys64\ucrt64\bin;" + $env:Path
+          $env:MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
+          $env:HOME_HOST=$(& 'C:\Program Files\Git\usr\bin\cygpath.exe' "$env:USERPROFILE")
+          $env:HOME_HOST_ALT=$(& 'C:\Program Files\Git\usr\bin\cygpath.exe' -m "$env:USERPROFILE")
+          $env:HOME_GUEST=$(wsl -d lima-infra wslpath "$env:HOME_HOST_ALT")
+          $env:LIMACTL_CREATE_ARGS='--vm-type=qemu'
+          $env:_LIMA_WINDOWS_EXTRA_PATH="$pwd\..\qcw-art\qcw-go-wsllinks\bundle-wsl"
+          & 'C:\Program Files\Git\bin\bash.exe' -c './hack/test-templates.sh templates/default.yaml'
       - name: "🧪 Test Lima WSL2 machine WSL2 bundle WSL2 (NAT)"
         working-directory: lima-release
-        shell: msys2 {0}
+        shell: pwsh
         run: |
-          rm -f "$(cygpath $USERPROFILE)/.lima/_config/user"* || true
-          rm -f "$(cygpath $USERPROFILE)/.lima/_config/wsl2" || true
+          Remove-Item "$env:USERPROFILE\.lima\_config\user*" -Recurse -Force -ErrorAction SilentlyContinue || $true
+          Remove-Item "$env:USERPROFILE\.lima\_config\wsl2*" -Recurse -Force -ErrorAction SilentlyContinue || $true
           wsl -d lima-infra -u root bash -c "ip link delete nerdctl0 || true"
-          export PATH=$PWD/_output/bin:$PATH
-          export MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
-          export LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
-          export HOME_HOST=$(cygpath $USERPROFILE)
-          export HOME_GUEST=$(wsl -d lima-infra wslpath $(cygpath -m $USERPROFILE))
-          _LIMA_WINDOWS_EXTRA_PATH=$PWD/../qcw-art/qcw-go-wsllinks/bundle-wsl ./hack/test-templates.sh templates/experimental/wsl2.yaml
+          $env:Path = "$pwd\_output\bin;D:\a\_temp\msys64\ucrt64\bin;" + $env:Path
+          $env:MSYS2_ENV_CONV_EXCL='HOME_HOST;HOME_GUEST'
+          $env:HOME_HOST=$(& 'C:\Program Files\Git\usr\bin\cygpath.exe' "$env:USERPROFILE")
+          $env:HOME_HOST_ALT=$(& 'C:\Program Files\Git\usr\bin\cygpath.exe' -m "$env:USERPROFILE")
+          $env:HOME_GUEST=$(wsl -d lima-infra wslpath "$env:HOME_HOST_ALT")
+          $env:LIMACTL_CREATE_ARGS='--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
+          $env:_LIMA_WINDOWS_EXTRA_PATH="$pwd\..\qcw-art\qcw-go-wsllinks\bundle-wsl"
+          & 'C:\Program Files\Git\bin\bash.exe' -c './hack/test-templates.sh templates/experimental/wsl2.yaml'
       # - name: "⚙️ Configure WSL2 networking mode mirrored"
       #   shell: msys2 {0}
       #   run: |
