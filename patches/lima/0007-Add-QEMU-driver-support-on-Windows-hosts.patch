@@ -1,17 +1,16 @@
-From 8f560b7bf52788b6fa696b5bc6a7455ed6de74ee Mon Sep 17 00:00:00 2001
+From 6e41ae16aa3d32e5ac012cd8e66761ad4557b3f9 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Thu, 6 Mar 2025 22:02:13 +0200
-Subject: [PATCH 1/4] Add QEMU driver support on Windows hosts
+Subject: [PATCH] Add QEMU driver support on Windows hosts
 
 ---
- hack/test-port-forwarding.pl       | 33 ++++++++++++++++++++++--
- hack/test-templates.sh             |  3 +++
- pkg/hostagent/hostagent.go         |  7 +++++-
- pkg/qemu/qemu.go                   |  2 +-
- 4 files changed, 31 insertions(+), 4 deletions(-)
+ hack/test-port-forwarding.pl | 33 +++++++++++++++++++++++++++++++--
+ hack/test-templates.sh       |  3 +++
+ pkg/hostagent/hostagent.go   |  7 ++++++-
+ 3 files changed, 40 insertions(+), 3 deletions(-)
 
 diff --git a/hack/test-port-forwarding.pl b/hack/test-port-forwarding.pl
-index b812060c..2ca38472 100755
+index b812060c..ac325b60 100755
 --- a/hack/test-port-forwarding.pl
 +++ b/hack/test-port-forwarding.pl
 @@ -27,12 +27,19 @@ my $addr = scalar gethostbyname(hostname());
@@ -26,7 +25,7 @@ index b812060c..2ca38472 100755
      chomp $ipv4;
  }
  
-+if ($Config{osname} eq "cygwin" && "$ENV{LIMA_SSH_PORT_FORWARDER}" ne "false") {
++if ($Config{osname} eq "msys" && "$ENV{LIMA_SSH_PORT_FORWARDER}" ne "false") {
 +  $ipv4 = qx(wsl -d lima-infra ip -4 -o addr show eth0 | awk '{print \$4}' | cut -d/ -f1);
 +  chomp $ipv4;
 +}
@@ -48,7 +47,7 @@ index b812060c..2ca38472 100755
      }
 -    $test{host_ip} ||= "127.0.0.1";
 -    $test{host_port} ||= $test{guest_port};
-+    if ($test{mode} eq "forward" && $test{host_ip} eq "::" && $Config{osname} eq "cygwin" && "$ENV{LIMA_SSH_PORT_FORWARDER}" ne "false") {
++    if ($test{mode} eq "forward" && $test{host_ip} eq "::" && $Config{osname} eq "msys" && "$ENV{LIMA_SSH_PORT_FORWARDER}" ne "false") {
 +        printf "🚧 Not supported on $Config{osname}: # $_\n";
 +        next;
 +    }
@@ -72,10 +71,10 @@ index b812060c..2ca38472 100755
      my $remote = JoinHostPort($test{guest_ip},$test{guest_port});
      my $local = JoinHostPort($test{host_ip},$test{host_port});
 diff --git a/hack/test-templates.sh b/hack/test-templates.sh
-index 0c32d762..5f1baee1 100755
+index 487608b0..9242e692 100755
 --- a/hack/test-templates.sh
 +++ b/hack/test-templates.sh
-@@ -349,6 +349,9 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
+@@ -344,6 +344,9 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
  		else
  			hostip=$(perl -MSocket -MSys::Hostname -E 'say inet_ntoa(scalar gethostbyname(hostname()))')
  		fi
@@ -110,19 +109,6 @@ index 248e76bd..3e39c7d8 100644
  	}
  
  	if err := cidata.GenerateCloudConfig(inst.Dir, instName, inst.Config); err != nil {
-diff --git a/pkg/qemu/qemu.go b/pkg/qemu/qemu.go
-index ede6686c..06172198 100644
---- a/pkg/qemu/qemu.go
-+++ b/pkg/qemu/qemu.go
-@@ -1101,7 +1101,7 @@ func qemuEdk2Arch(arch limayaml.Arch) string {
- }
- 
- func Exe(arch limayaml.Arch) (exe string, args []string, err error) {
--	exeBase := "qemu-system-" + qemuArch(arch)
-+	exeBase := "qemu-system-" + qemuArch(arch) + "w"
- 	envK := "QEMU_SYSTEM_" + strings.ToUpper(qemuArch(arch))
- 	if envV := os.Getenv(envK); envV != "" {
- 		ss, err := shellwords.Parse(envV)
 -- 
 2.48.1
 

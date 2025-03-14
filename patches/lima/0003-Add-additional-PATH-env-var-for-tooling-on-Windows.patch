@@ -1,0 +1,90 @@
+From 0705db11e710560e96ad60de981ddfa6bdd2cafa Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Sat, 8 Mar 2025 23:29:38 +0200
+Subject: [PATCH] Support setting extra entries for PATH env variable on
+ Windows hosts
+
+During startup `limactl.exe` will check new experimental
+`_LIMA_WINDOWS_EXTRA_PATH` environment variable and when found it
+will be added to PATH environment variable for the running process.
+
+Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+---
+ cmd/limactl/main.go                            | 10 ++++++++++
+ pkg/qemu/qemu.go                               |  6 +++---
+ .../en/docs/config/environment-variables.md    | 18 ++++++++++++++++--
+ 3 files changed, 29 insertions(+), 5 deletions(-)
+
+diff --git a/cmd/limactl/main.go b/cmd/limactl/main.go
+index 268fad0dcf3..d475f902810 100644
+--- a/cmd/limactl/main.go
++++ b/cmd/limactl/main.go
+@@ -28,6 +28,16 @@ const (
+ )
+ 
+ func main() {
++	if runtime.GOOS == "windows" {
++		extras, hasExtra := os.LookupEnv("_LIMA_WINDOWS_EXTRA_PATH")
++		if hasExtra && strings.TrimSpace(extras) != "" {
++			p := os.Getenv("PATH")
++			err := os.Setenv("PATH", strings.TrimSpace(extras)+string(filepath.ListSeparator)+p)
++			if err != nil {
++				logrus.Warning("Can't add extras to PATH, relying entirely on system PATH")
++			}
++		}
++	}
+ 	if err := newApp().Execute(); err != nil {
+ 		handleExitCoder(err)
+ 		logrus.Fatal(err)
+diff --git a/pkg/qemu/qemu.go b/pkg/qemu/qemu.go
+index adc75222d78..b618b8e52b3 100644
+--- a/pkg/qemu/qemu.go
++++ b/pkg/qemu/qemu.go
+@@ -602,10 +602,10 @@ func Cmdline(ctx context.Context, cfg Config) (exe string, args []string, err er
+ 	if !legacyBIOS {
+ 		var firmware string
+ 		firmwareInBios := runtime.GOOS == "windows"
+-		if envVar := os.Getenv("LIMA_QEMU_UEFI_IN_BIOS"); envVar != "" {
+-			b, err := strconv.ParseBool(os.Getenv("LIMA_QEMU_UEFI_IN_BIOS"))
++		if envVar := os.Getenv("_LIMA_QEMU_UEFI_IN_BIOS"); envVar != "" {
++			b, err := strconv.ParseBool(os.Getenv("_LIMA_QEMU_UEFI_IN_BIOS"))
+ 			if err != nil {
+-				logrus.WithError(err).Warnf("invalid LIMA_QEMU_UEFI_IN_BIOS value %q", envVar)
++				logrus.WithError(err).Warnf("invalid _LIMA_QEMU_UEFI_IN_BIOS value %q", envVar)
+ 			} else {
+ 				firmwareInBios = b
+ 			}
+diff --git a/website/content/en/docs/config/environment-variables.md b/website/content/en/docs/config/environment-variables.md
+index b769e95a632..90e01c802c0 100644
+--- a/website/content/en/docs/config/environment-variables.md
++++ b/website/content/en/docs/config/environment-variables.md
+@@ -67,13 +67,27 @@ This page documents the environment variables used in Lima.
+   export LIMA_USERNET_RESOLVE_IP_ADDRESS_TIMEOUT=5
+   ```
+ 
+-### `LIMA_QEMU_UEFI_IN_BIOS`
++### `_LIMA_QEMU_UEFI_IN_BIOS`
+ 
+ - **Description**: Commands QEMU to load x86_64 UEFI images using `-bios` instead of `pflash` drives.
+ - **Default**: `false` on Unix like hosts and `true` on Windows hosts
+ - **Usage**: 
+   ```sh
+-  export LIMA_QEMU_UEFI_IN_BIOS=true
++  export _LIMA_QEMU_UEFI_IN_BIOS=true
+   ```
+ - **Note**: It is expected that this variable will be set to `false` by default in future
+   when QEMU supports `pflash` UEFI for accelerated guests on Windows.
++
++### `_LIMA_WINDOWS_EXTRA_PATH`
++
++- **Description**: Additional directories which will be added to PATH by `limactl.exe` process to search for tools.
++  It is useful, when there is a need to prevent collisions between binaries available in active shell and ones
++  used by `limactl.exe` - injecting them only for the running process w/o altering PATH observed by user shell.
++  Is is Windows specific and does nothing for other platforms.
++- **Default**: unset
++- **Usage**:
++  ```bat
++  set _LIMA_WINDOWS_EXTRA_PATH=C:\Program Files\Git\usr\bin
++  ```
++- **Note**: It is an experimental setting and has no guarantees being ever promoted to stable. It may be removed
++  or changed at any stage of project development.

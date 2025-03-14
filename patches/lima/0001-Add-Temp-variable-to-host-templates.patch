@@ -1,4 +1,4 @@
-From 1f6fd20ef7ada5e6a85af3c6a0b9879e760c5b24 Mon Sep 17 00:00:00 2001
+From 764284f842ded52fbe458164449c71f45c34c809 Mon Sep 17 00:00:00 2001
 From: Jan Dubois <jan.dubois@suse.com>
 Date: Fri, 7 Mar 2025 18:31:47 -0800
 Subject: [PATCH] Add {{.Temp}} variable to host templates
@@ -14,16 +14,16 @@ in behaviour. It would not affect existing instances though.
 
 Signed-off-by: Jan Dubois <jan.dubois@suse.com>
 ---
- pkg/limayaml/defaults.go      |  3 ++-
- pkg/limayaml/defaults_test.go | 13 +++++++------
- templates/default.yaml        |  3 ++-
- 3 files changed, 11 insertions(+), 8 deletions(-)
+ pkg/limayaml/defaults.go      | 3 ++-
+ pkg/limayaml/defaults_test.go | 9 +++++----
+ templates/default.yaml        | 3 ++-
+ 3 files changed, 9 insertions(+), 6 deletions(-)
 
 diff --git a/pkg/limayaml/defaults.go b/pkg/limayaml/defaults.go
-index 342ec2e48d3..8b9735ab383 100644
+index 177f80a7..6a9e89ac 100644
 --- a/pkg/limayaml/defaults.go
 +++ b/pkg/limayaml/defaults.go
-@@ -703,7 +703,7 @@ func FillDefault(y, d, o *LimaYAML, filePath string, warn bool) {
+@@ -741,7 +741,7 @@ func FillDefault(y, d, o *LimaYAML, filePath string, warn bool) {
  	location := make(map[string]int)
  	for _, mount := range slices.Concat(d.Mounts, y.Mounts, o.Mounts) {
  		if out, err := executeHostTemplate(mount.Location, instDir, y.Param); err == nil {
@@ -32,7 +32,7 @@ index 342ec2e48d3..8b9735ab383 100644
  		} else {
  			logrus.WithError(err).Warnf("Couldn't process mount location %q as a template", mount.Location)
  		}
-@@ -927,6 +927,7 @@ func executeHostTemplate(format, instDir string, param map[string]string) (bytes
+@@ -970,6 +970,7 @@ func executeHostTemplate(format, instDir string, param map[string]string) (bytes
  			"User":  currentUser.Username,
  			"Home":  userHomeDir,
  			"Param": param,
@@ -41,7 +41,7 @@ index 342ec2e48d3..8b9735ab383 100644
  			"Instance": filepath.Base(instDir), // DEPRECATED, use `{{.Name}}`
  			"LimaHome": limaHome,               // DEPRECATED, use `{{.Dir}}` instead of `{{.LimaHome}}/{{.Instance}}`
 diff --git a/pkg/limayaml/defaults_test.go b/pkg/limayaml/defaults_test.go
-index 81d40dbeb1b..bf562d31c0d 100644
+index 71f7e981..59bf9685 100644
 --- a/pkg/limayaml/defaults_test.go
 +++ b/pkg/limayaml/defaults_test.go
 @@ -7,6 +7,7 @@ import (
@@ -52,48 +52,52 @@ index 81d40dbeb1b..bf562d31c0d 100644
  	"path/filepath"
  	"runtime"
  	"slices"
-@@ -146,8 +147,8 @@ func TestFillDefault(t *testing.T) {
- 			},
- 		},
- 		Mounts: []Mount{
--			{Location: "/tmp"},
+@@ -149,7 +150,7 @@ func TestFillDefault(t *testing.T) {
+ 			// Location will be passed through localpathutil.Expand() which will normalize the name
+ 			// (add a drive letter). So we must start with a valid local path to match it again later.
+ 			{Location: filepath.Clean(os.TempDir())},
 -			{Location: "{{.Dir}}/{{.Param.ONE}}", MountPoint: ptr.Of("/mnt/{{.Param.ONE}}")},
-+			{Location: filepath.Clean(os.TempDir())},
 +			{Location: filepath.Clean("{{.Dir}}/{{.Param.ONE}}"), MountPoint: ptr.Of("/mnt/{{.Param.ONE}}")},
  		},
  		MountType: ptr.Of(NINEP),
  		Provision: []Provision{
-@@ -231,8 +232,8 @@ func TestFillDefault(t *testing.T) {
- 	expect.Mounts[0].NineP.Cache = ptr.Of(Default9pCacheForRO)
+@@ -234,7 +235,7 @@ func TestFillDefault(t *testing.T) {
  	expect.Mounts[0].Virtiofs.QueueSize = nil
  	// Only missing Mounts field is Writable, and the default value is also the null value: false
--	expect.Mounts[1].Location = fmt.Sprintf("%s/%s", instDir, y.Param["ONE"])
+ 	expect.Mounts[1].Location = filepath.Join(instDir, y.Param["ONE"])
 -	expect.Mounts[1].MountPoint = ptr.Of(fmt.Sprintf("/mnt/%s", y.Param["ONE"]))
-+	expect.Mounts[1].Location = filepath.Join(instDir, y.Param["ONE"])
 +	expect.Mounts[1].MountPoint = ptr.Of(path.Join("/mnt", y.Param["ONE"]))
  	expect.Mounts[1].Writable = ptr.Of(false)
  	expect.Mounts[1].SSHFS.Cache = ptr.Of(true)
  	expect.Mounts[1].SSHFS.FollowSymlinks = ptr.Of(false)
-@@ -385,7 +386,7 @@ func TestFillDefault(t *testing.T) {
+@@ -326,7 +326,6 @@ func TestFillDefault(t *testing.T) {
+ 	// Choose values that are different from the "builtin" defaults
+ 
+ 	// Calling filepath.Abs() to add a drive letter on Windows
+-	varLog, _ := filepath.Abs("/var/log")
+ 	d = LimaYAML{
+ 		VMType: ptr.Of("vz"),
+ 		OS:     ptr.Of("unknown"),
+@@ -390,7 +391,7 @@ func TestFillDefault(t *testing.T) {
  
  		Mounts: []Mount{
  			{
--				Location: "/var/log",
+-				Location: varLog,
 +				Location: filepath.Clean("/var/log"),
  				Writable: ptr.Of(false),
  			},
  		},
-@@ -593,7 +594,7 @@ func TestFillDefault(t *testing.T) {
+@@ -598,7 +599,7 @@ func TestFillDefault(t *testing.T) {
  
  		Mounts: []Mount{
  			{
--				Location: "/var/log",
+-				Location: varLog,
 +				Location: filepath.Clean("/var/log"),
  				Writable: ptr.Of(true),
  				SSHFS: SSHFS{
  					Cache:          ptr.Of(false),
 diff --git a/templates/default.yaml b/templates/default.yaml
-index 2275e4ecacf..46a3b853f43 100644
+index 181b66e7..6140695c 100644
 --- a/templates/default.yaml
 +++ b/templates/default.yaml
 @@ -99,7 +99,8 @@ mounts:
@@ -106,3 +110,6 @@ index 2275e4ecacf..46a3b853f43 100644
    # 🟢 Builtin default: false
    # 🔵 This file: true (only for "/tmp/lima")
    writable: true
+-- 
+2.48.1
+
