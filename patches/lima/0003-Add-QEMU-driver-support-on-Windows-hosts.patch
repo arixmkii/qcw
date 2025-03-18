@@ -1,0 +1,53 @@
+From 6e41ae16aa3d32e5ac012cd8e66761ad4557b3f9 Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Thu, 6 Mar 2025 22:02:13 +0200
+Subject: [PATCH] Add QEMU driver support on Windows hosts
+
+---
+ hack/test-port-forwarding.pl | 33 +++++++++++++++++++++++++++++++--
+ hack/test-templates.sh       |  3 +++
+ pkg/hostagent/hostagent.go   |  7 ++++++-
+ 3 files changed, 40 insertions(+), 3 deletions(-)
+
+diff --git a/hack/test-templates.sh b/hack/test-templates.sh
+index 487608b0..9242e692 100755
+--- a/hack/test-templates.sh
++++ b/hack/test-templates.sh
+@@ -344,6 +344,9 @@ if [[ -n ${CHECKS["port-forwards"]} ]]; then
+ 		else
+ 			hostip=$(perl -MSocket -MSys::Hostname -E 'say inet_ntoa(scalar gethostbyname(hostname()))')
+ 		fi
++		if [[ "$(uname -o)" = "Msys" && "${LIMA_SSH_PORT_FORWARDER-true}" != "false" ]]; then
++			hostip=$(wsl -d lima-infra ip -4 -o addr show eth0 | awk '{print $4}' | cut -d/ -f1)
++		fi
+ 		if [ -n "${hostip}" ]; then
+ 			sudo=""
+ 			if [[ ${NAME} == "alpine"* ]]; then
+diff --git a/pkg/hostagent/hostagent.go b/pkg/hostagent/hostagent.go
+index 248e76bd..3e39c7d8 100644
+--- a/pkg/hostagent/hostagent.go
++++ b/pkg/hostagent/hostagent.go
+@@ -14,6 +14,7 @@ import (
+ 	"os"
+ 	"os/exec"
+ 	"path/filepath"
++	"runtime"
+ 	"strconv"
+ 	"strings"
+ 	"sync"
+@@ -135,7 +136,11 @@ func New(instName string, stdout io.Writer, signalCh chan os.Signal, opts ...Opt
+ 		vSockPort = port
+ 	} else if *inst.Config.VMType == limayaml.QEMU {
+ 		// virtserialport doesn't seem to work reliably: https://github.com/lima-vm/lima/issues/2064
+-		virtioPort = "" // filenames.VirtioPort
++		if runtime.GOOS != "windows" {
++			virtioPort = "" // filenames.VirtioPort
++		} else {
++			virtioPort = filenames.VirtioPort
++		}
+ 	}
+ 
+ 	if err := cidata.GenerateCloudConfig(inst.Dir, instName, inst.Config); err != nil {
+-- 
+2.48.1
+

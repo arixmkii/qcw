@@ -27,7 +27,7 @@ jobs:
           msystem: UCRT64
           update: true
           install: >-
-            make git unzip base-devel mingw-w64-ucrt-x86_64-toolchain zip mingw-w64-ucrt-x86_64-go
+            git mingw-w64-ucrt-x86_64-go patch zip
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
       - name: "📝 Checkout"
