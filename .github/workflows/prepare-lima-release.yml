@@ -72,10 +72,11 @@ jobs:
       #     wsl --version
       #     wsl --install -n --from-file qcw-art/qcw-alpine/lima-infra.wsl
       #     wsl -l -v
-      # - name: "⚙️ Configure firewalls"
-      #   shell: pwsh
-      #   run: |
-      #     Import-Module -Name NetSecurity -UseWindowsPowerShell
+      - name: "⚙️ Configure firewalls"
+        shell: pwsh
+        run: |
+          Import-Module -Name NetSecurity -UseWindowsPowerShell
+          Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
       #     Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
       #     New-NetFirewallRule -DisplayName "Allow QEMU x86_64" -Direction Inbound -Program "C:\msys64\clang64\bin\qemu-system-x86_64.exe" -Action Allow
       #     New-NetFirewallRule -DisplayName "Allow QEMU x86_64w" -Direction Inbound -Program "C:\msys64\clang64\bin\qemu-system-x86_64w.exe" -Action Allow
@@ -113,7 +114,6 @@ jobs:
         run: |
           Remove-Item "$env:USERPROFILE\.lima\_config\user*" -Recurse -Force -ErrorAction SilentlyContinue || $true
           Remove-Item "$env:USERPROFILE\.lima\_config\wsl2*" -Recurse -Force -ErrorAction SilentlyContinue || $true
-          wsl -d lima-infra -u root bash -c "ip link delete nerdctl0 || true"
           $env:PATH = "$pwd\..\qcw-deps;$pwd\_output\bin;C:\msys64\usr\bin;C:\msys64\clang64\bin;" + $env:PATH
           $env:MSYS2_ENV_CONV_EXCL = 'HOME_HOST;HOME_GUEST;_LIMA_WINDOWS_EXTRA_PATH'
           $env:HOME_HOST = $(cygpath.exe "$env:USERPROFILE")
