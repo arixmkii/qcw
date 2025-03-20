@@ -100,7 +100,7 @@ jobs:
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/lima/0001-Add-Temp-variable-to-host-templates.patch
           patch --binary -l -p 1 < ../patches/lima/0002-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
-          patch --binary -l -p 1 < ../patches/lima/0003-Add-QEMU-driver-support-on-Windows-hosts.patch
+          patch --binary -l -p 1 < ../patches/lima/0003-Implement-feature-toggle-for-GA-forwarding-mode-in-Q.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}
