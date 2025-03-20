@@ -61,7 +61,7 @@ index 7db24c6c..2b18120a 100644
 +	}
 +	if y.VMOpts.QEMU.VirtioGA == nil {
 +		// virtserialport doesn't seem to work reliably, so, default to false: https://github.com/lima-vm/lima/issues/2064
-+		y.VMOpts.QEMU.VirtioGA = ptr.Of(false)
++		y.VMOpts.QEMU.VirtioGA = ptr.Of(runtime.GOOS == "windows")
 +	}
 +
  	if runtime.GOOS == "darwin" && IsNativeArch(AARCH64) {
