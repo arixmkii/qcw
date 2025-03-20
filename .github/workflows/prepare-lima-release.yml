@@ -173,6 +173,7 @@ jobs:
           $env:_LIMA_WINDOWS_EXTRA_PATH = "$pwd\..\qcw-art\qcw-go-wsllinks\bundle-wsl"
           $env:LIMA_SSH_PORT_FORWARDER = 'false'
           bash.exe -c './hack/test-templates.sh templates/experimental/wsl2.yaml'
+      # - name: "⚙️ Configure WSL2 networking mode mirrored"
       #   shell: msys2 {0}
       #   run: |
       #     cat /c/Users/runneradmin/.wslconfig || true
@@ -186,8 +187,6 @@ jobs:
       #     wsl --shutdown
       #     sleep 8
       - name: "📦 Pack Lima"
-        # - name: "⚙️ Configure WSL2 networking mode mirrored"
-
         shell: msys2 {0}
         run: |
           mkdir -p qcw
