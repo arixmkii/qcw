@@ -20,7 +20,7 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: 786c1f5f3c6e8ff276c0c5d6789cdd9243d70f49
+  LIMA_SHA: 0625d0b084450e874869dcbc9f63d4312797c3fe
   LIMA_VERSION: dev
 jobs:
   call-prepare-alpine-wsl:
@@ -43,7 +43,7 @@ jobs:
           msystem: UCRT64
           update: true
           install: >-
-            diffutils git make mingw-w64-ucrt-x86_64-go openbsd-netcat patch unzip zip
+            git make mingw-w64-ucrt-x86_64-go patch unzip zip
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
       - name: "📝 Checkout"
@@ -100,7 +100,8 @@ jobs:
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/lima/0001-Add-Temp-variable-to-host-templates.patch
           patch --binary -l -p 1 < ../patches/lima/0002-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
-          patch --binary -l -p 1 < ../patches/lima/0003-Add-QEMU-driver-support-on-Windows-hosts.patch
+          patch --binary -l -p 1 < ../patches/lima/0003-Implement-feature-toggle-for-GA-forwarding-mode-in-Q.patch
+          patch --binary -l -p 1 < ../patches/lima/0004-Switch-to-forked-sshocker.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}
@@ -111,21 +112,20 @@ jobs:
           ./bundle-wsl/install-tools.bat
           popd
           make binaries
-      - name: "🧪 Test Lima WSL2 machine Git tools WSL2 (NAT)"
+      - name: "🧪 Test Lima QEMU machine Git tools WSL2 (NAT)"
         working-directory: lima-release
         shell: pwsh
         run: |
           Remove-Item "$env:USERPROFILE\.lima\_config\user*" -Recurse -Force -ErrorAction SilentlyContinue || $true
           Remove-Item "$env:USERPROFILE\.lima\_config\wsl2*" -Recurse -Force -ErrorAction SilentlyContinue || $true
           wsl -d lima-infra -u root bash -c "ip link delete nerdctl0 || true"
-          $env:PATH = "$pwd\..\qcw-deps;$pwd\_output\bin;C:\msys64\usr\bin;" + $env:PATH
+          $env:PATH = "$pwd\..\qcw-deps;$pwd\_output\bin;C:\msys64\usr\bin;C:\msys64\clang64\bin;" + $env:PATH
           $env:MSYS2_ENV_CONV_EXCL = 'HOME_HOST;HOME_GUEST;_LIMA_WINDOWS_EXTRA_PATH'
           $env:HOME_HOST = $(cygpath.exe "$env:USERPROFILE")
-          $env:HOME_HOST_ALT = $(cygpath.exe -m "$env:USERPROFILE")
-          $env:HOME_GUEST = $(wsl -d lima-infra wslpath "$env:HOME_HOST_ALT")
-          $env:LIMACTL_CREATE_ARGS = '--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
-          $env:_LIMA_WINDOWS_EXTRA_PATH = 'C:\Program Files\Git\usr\bin'
-          bash.exe -c './hack/test-templates.sh templates/experimental/wsl2.yaml'
+          $env:HOME_GUEST = $(cygpath.exe "$env:USERPROFILE")
+          $env:LIMACTL_CREATE_ARGS = '--vm-type=qemu'
+          $env:_LIMA_WINDOWS_EXTRA_PATH = "$pwd\..\qcw-art\qcw-go-wsllinks\bundle-git"
+          bash.exe -c "./hack/test-templates.sh templates/experimental/default-windows.yaml"
       - name: "🧪 Test Lima WSL2 machine Git bundle WSL2 (NAT)"
         working-directory: lima-release
         shell: pwsh

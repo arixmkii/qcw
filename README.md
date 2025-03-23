@@ -51,6 +51,7 @@ container runtime;
 GUI companion to Podman;
 * `QEMU` - [home page](https://www.qemu.org/) and [GitHub (mirror)](https://github.com/qemu/qemu) free and open source
 feature rich machine emulator;
+* `sshocker` - [GitHub](https://github.com/lima-vm/sshocker) ssh + reverse sshfs + port forwarder, in Docker-like CLI;
 * `WinSocat` - [GitHub](https://github.com/firejox/WinSocat) socat-like windows-specific program;
 
 ### Versions and patches
@@ -80,10 +81,11 @@ Version `v0.0.6`. Rebuilt for Windows amd64 platform with 1 patch set:
 
 #### `Lima`
 
-Development main branch from revision `786c1f5f3c6e8ff276c0c5d6789cdd9243d70f49` with 3 patch sets:
+Development main branch from revision `0625d0b084450e874869dcbc9f63d4312797c3fe` with 4 patch sets:
 * Add Temp placeholder support to templates from https://github.com/lima-vm/lima/pull/3318
 * Support WSL2 as a replacement for msys2/cygwin
-* Enable QEMU support in Lima for Windows
+* Implement feature toggle for GA https://github.com/lima-vm/lima/pull/3255
+* Bump version of sshocker to a patched one
 
 #### `Podman`
 
@@ -104,6 +106,11 @@ Version `9.2.2` with 3 patch sets from QEMU mailing list:
 * hw/9pfs: Add 9pfs support for Windows https://lists.gnu.org/archive/html/qemu-devel/2023-02/msg05533.html;
 * WHPX: Add support for device backed memory regions https://lists.gnu.org/archive/html/qemu-devel/2022-07/msg04837.html;
 * Windows installer: keep dependency cache https://lists.gnu.org/archive/html/qemu-devel/2023-01/msg03125.html.
+
+#### `sshocker`
+
+Development main branch from revision `1bfe5159eb45cf2786b73504ac2a11dc72366b1a` with 1 patch set:
+* Make argument quotation compatible with cygwin/msys2/gitbash on Windows https://github.com/lima-vm/sshocker/pull/97
 
 #### `WinSocat`
 
