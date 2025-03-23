@@ -104,6 +104,7 @@ jobs:
           patch --binary -l -p 1 < ../patches/lima/0004-Switch-to-forked-sshocker.patch
           patch --binary -l -p 1 < ../patches/lima/0005-Disable-ControlPersist-for-sshfs-connections-on-Wind.patch
           patch --binary -l -p 1 < ../patches/lima/0006-Enable-ControlPersist-for-WSL2-tooling.patch
+          patch --binary -l -p 1 < ../patches/lima/0007-Unify-Lima-user-home-inside-guest-for-all-platforms.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}

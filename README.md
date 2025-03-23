@@ -81,11 +81,14 @@ Version `v0.0.6`. Rebuilt for Windows amd64 platform with 1 patch set:
 
 #### `Lima`
 
-Development main branch from revision `0625d0b084450e874869dcbc9f63d4312797c3fe` with 4 patch sets:
+Development main branch from revision `0625d0b084450e874869dcbc9f63d4312797c3fe` with 7 patch sets:
 * Add Temp placeholder support to templates from https://github.com/lima-vm/lima/pull/3318
 * Support WSL2 as a replacement for msys2/cygwin
 * Implement feature toggle for GA https://github.com/lima-vm/lima/pull/3255
 * Bump version of sshocker to a patched one
+* Disable ControlPersist for sshfs on Windows https://github.com/lima-vm/lima/pull/3376
+* Re-enable ContolPersist for sshfs inside WSL2
+* Use unified Home dir inside guest for all platforms
 
 #### `Podman`
 
@@ -232,8 +235,6 @@ Then one has to decide on the tooling, which has different level of supported fe
 * for WSL2 based tools - `<path-to-extract>\lima\bin\bundle-wsl`
 * for Git packaged tools (assuming default installation) - `C:\Program Files\Git\usr\bin`
 
-Git tools support only WSL2 template. For QEMU support it is mandatory to use WSL2 tooling.
-
 Only 2 templates - `default` and `experimental/wsl2` has been tested to work. Others are considered unsupported.
 
 #### QEMU machine `default`
@@ -309,7 +310,6 @@ Containers, which require v3 and more modern hardware will not run at all (it do
 There could be leftovers in `%TEMP%\podman`, which prevents `QEMU` or `gvproxy` startup. Solution is to shutdown machine
 and then clean up this location manually before starting again.
 
-
 ### 2. File system mounts are unsupported
 
 There is no way to use file system mounts in Podman with QEMU on Windows hosts.
@@ -323,7 +323,3 @@ Additional work is required to bring AF_UNIX port forwarding (same applied to Un
 ### 2. Key pairs created with Windows tools will lack Unix permissions and will be rejected by WSL2 tools
 
 To use such key pairs one would need to manually adjust their persmissions from `wsl` shell of `lima-infra` distribution.
-
-### 3. QEMU machines doesn't work with Git packaged tools
-
-Current limitation is that it is mandatory to use WSL2 tools for QEMU machines
