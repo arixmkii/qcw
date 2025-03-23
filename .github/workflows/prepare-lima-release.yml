@@ -102,6 +102,8 @@ jobs:
           patch --binary -l -p 1 < ../patches/lima/0002-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
           patch --binary -l -p 1 < ../patches/lima/0003-Implement-feature-toggle-for-GA-forwarding-mode-in-Q.patch
           patch --binary -l -p 1 < ../patches/lima/0004-Switch-to-forked-sshocker.patch
+          patch --binary -l -p 1 < ../patches/lima/0005-Disable-ControlPersist-for-sshfs-connections-on-Wind.patch
+          patch --binary -l -p 1 < ../patches/lima/0006-Enable-ControlPersist-for-WSL2-tooling.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}
@@ -112,7 +114,7 @@ jobs:
           ./bundle-wsl/install-tools.bat
           popd
           make binaries
-      - name: "🧪 Test Lima QEMU machine Git tools WSL2 (NAT)"
+      - name: "🧪 Test Lima QEMU machine Git bundle WSL2 (NAT)"
         working-directory: lima-release
         shell: pwsh
         run: |
@@ -125,7 +127,7 @@ jobs:
           $env:HOME_GUEST = $(cygpath.exe "$env:USERPROFILE")
           $env:LIMACTL_CREATE_ARGS = '--vm-type=qemu'
           $env:_LIMA_WINDOWS_EXTRA_PATH = "$pwd\..\qcw-art\qcw-go-wsllinks\bundle-git"
-          bash.exe -c "./hack/test-templates.sh templates/experimental/default-windows.yaml"
+          bash.exe -c "./hack/test-templates.sh templates/default.yaml"
       - name: "🧪 Test Lima WSL2 machine Git bundle WSL2 (NAT)"
         working-directory: lima-release
         shell: pwsh
