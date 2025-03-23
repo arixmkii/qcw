@@ -206,7 +206,7 @@ index 52d1435baa9..2d16897346e 100644
  		Arch:               ptr.Of(arch),
  		CPUType:            defaultCPUType(),
 @@ -337,8 +342,13 @@ func TestFillDefault(t *testing.T) {
- 	varLog, _ := filepath.Abs("/var/log")
+ 	// Calling filepath.Abs() to add a drive letter on Windows
  	d = LimaYAML{
  		VMType: ptr.Of("vz"),
 -		OS:     ptr.Of("unknown"),
