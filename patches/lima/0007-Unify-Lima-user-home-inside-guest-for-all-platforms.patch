@@ -1,15 +1,32 @@
-From 3185091ed5e0dad94746d35d72418e477da3ba6e Mon Sep 17 00:00:00 2001
+From b30505b1da675a736931129fde1671f66c6015f5 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Sun, 23 Mar 2025 22:44:13 +0200
 Subject: [PATCH] Unify Lima user home inside guest for all platforms
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
- pkg/osutil/user.go | 40 ++--------------------------------------
- 1 file changed, 2 insertions(+), 38 deletions(-)
+ pkg/limayaml/defaults_test.go |  5 +---
+ pkg/osutil/user.go            | 43 ++---------------------------------
+ 2 files changed, 3 insertions(+), 45 deletions(-)
 
+diff --git a/pkg/limayaml/defaults_test.go b/pkg/limayaml/defaults_test.go
+index 52d1435baa9..b8f203838dd 100644
+--- a/pkg/limayaml/defaults_test.go
++++ b/pkg/limayaml/defaults_test.go
+@@ -62,10 +62,7 @@ func TestFillDefault(t *testing.T) {
+ 	limaHome, err := dirnames.LimaDir()
+ 	assert.NilError(t, err)
+ 	user := osutil.LimaUser("0.0.0", false)
+-	if runtime.GOOS != "windows" {
+-		// manual template expansion for "/home/{{.User}}.linux" (done by FillDefault)
+-		user.HomeDir = fmt.Sprintf("/home/%s.linux", user.Username)
+-	}
++	user.HomeDir = fmt.Sprintf("/home/%s.linux", user.Username)
+ 	uid, err := strconv.ParseUint(user.Uid, 10, 32)
+ 	assert.NilError(t, err)
+ 
 diff --git a/pkg/osutil/user.go b/pkg/osutil/user.go
-index 8a47ffee..ca084f9e 100644
+index 8a47ffee58d..8b09091f069 100644
 --- a/pkg/osutil/user.go
 +++ b/pkg/osutil/user.go
 @@ -7,15 +7,12 @@ import (
@@ -28,7 +45,17 @@ index 8a47ffee..ca084f9e 100644
  	. "github.com/lima-vm/lima/pkg/must"
  	"github.com/lima-vm/lima/pkg/version/versionutil"
  	"github.com/sirupsen/logrus"
-@@ -115,9 +112,8 @@ func LimaUser(limaVersion string, warn bool) *user.User {
+@@ -45,9 +42,6 @@ var (
+ // names to the fallback user as well, so the regex does not allow them.
+ var regexUsername = regexp.MustCompile("^[a-z_][a-z0-9_-]*$")
+ 
+-// regexPath detects valid Linux path.
+-var regexPath = regexp.MustCompile("^[/a-zA-Z0-9_-]+$")
+-
+ func LookupUser(name string) (User, error) {
+ 	if users == nil {
+ 		users = make(map[string]User)
+@@ -115,9 +109,8 @@ func LimaUser(limaVersion string, warn bool) *user.User {
  			warnings = append(warnings, warning)
  			limaUser.Username = fallbackUser
  		}
@@ -40,7 +67,7 @@ index 8a47ffee..ca084f9e 100644
  			idu, err := call([]string{"id", "-u"})
  			if err != nil {
  				logrus.Debug(err)
-@@ -146,38 +142,6 @@ func LimaUser(limaVersion string, warn bool) *user.User {
+@@ -146,38 +139,6 @@ func LimaUser(limaVersion string, warn bool) *user.User {
  				warnings = append(warnings, warning)
  				limaUser.Gid = formatUidGid(gid)
  			}
@@ -79,6 +106,3 @@ index 8a47ffee..ca084f9e 100644
  		}
  	})
  	if warn {
--- 
-2.49.0
-

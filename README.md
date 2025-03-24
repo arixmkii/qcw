@@ -88,7 +88,7 @@ Development main branch from revision `0625d0b084450e874869dcbc9f63d4312797c3fe`
 * Bump version of sshocker to a patched one
 * Disable ControlPersist for sshfs on Windows https://github.com/lima-vm/lima/pull/3376
 * Re-enable ContolPersist for sshfs inside WSL2
-* Use unified Home dir inside guest for all platforms
+* Use unified Home dir inside guest for all platforms https://github.com/lima-vm/lima/pull/3378
 
 #### `Podman`
 
