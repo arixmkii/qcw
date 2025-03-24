@@ -7,21 +7,34 @@ on:
         description: QEMU version"
         value: ${{ jobs.build.outputs.qemu_version }}
 env:
-  QEMU_VERSION: 9.2.2
+  QEMU_VERSION: 9.2.3
   MSYS: "winsymlinks:native"
 jobs:
   build:
+    strategy:
+      fail-fast: false
+      matrix:
+        msystem: [mingw64]
     runs-on: windows-latest
     outputs:
       qemu_version: ${{ steps.make_versions.outputs.qemu }}
     steps:
-      - name: "🏗️ Install msys2"
+      - name: "🏗️ Install msys2 MINGW64"
+        if: "${{ matrix.msystem == 'mingw64' }}"
         uses: msys2/setup-msys2@v2
         with:
-          msystem: UCRT64
+          msystem: ${{ matrix.msystem }}
           update: true
           install: >-
-            base-devel bison diffutils flex git grep make sed unzip mingw-w64-ucrt-x86_64-binutils mingw-w64-ucrt-x86_64-capstone mingw-w64-ucrt-x86_64-ccache mingw-w64-ucrt-x86_64-curl-gnutls mingw-w64-ucrt-x86_64-cyrus-sasl mingw-w64-ucrt-x86_64-dtc mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-glib2 mingw-w64-ucrt-x86_64-gnutls mingw-w64-ucrt-x86_64-gtk3 mingw-w64-ucrt-x86_64-libgcrypt mingw-w64-ucrt-x86_64-libjpeg-turbo mingw-w64-ucrt-x86_64-libnfs mingw-w64-ucrt-x86_64-libpng mingw-w64-ucrt-x86_64-libslirp mingw-w64-ucrt-x86_64-libssh mingw-w64-ucrt-x86_64-libtasn1 mingw-w64-ucrt-x86_64-libusb mingw-w64-ucrt-x86_64-lzo2 mingw-w64-ucrt-x86_64-meson mingw-w64-ucrt-x86_64-nettle mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-nsis mingw-w64-ucrt-x86_64-pixman mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-SDL2 mingw-w64-ucrt-x86_64-SDL2_image mingw-w64-ucrt-x86_64-snappy mingw-w64-ucrt-x86_64-spice mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-usbredir mingw-w64-ucrt-x86_64-virglrenderer mingw-w64-ucrt-x86_64-zstd
+            base-devel cmake git make mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_image mingw-w64-x86_64-binutils mingw-w64-x86_64-capstone mingw-w64-x86_64-cc mingw-w64-x86_64-curl-gnutls mingw-w64-x86_64-cyrus-sasl mingw-w64-x86_64-gtk-vnc mingw-w64-x86_64-gtk3 mingw-w64-x86_64-libcbor mingw-w64-x86_64-libnfs mingw-w64-x86_64-libslirp mingw-w64-x86_64-libssh mingw-w64-x86_64-libxml2 mingw-w64-x86_64-lzo2 mingw-w64-x86_64-ncurses mingw-w64-x86_64-ninja mingw-w64-x86_64-nsis mingw-w64-x86_64-pixman mingw-w64-x86_64-pkgconf  mingw-w64-x86_64-python mingw-w64-x86_64-sccache mingw-w64-x86_64-snappy mingw-w64-x86_64-spice mingw-w64-x86_64-spice-protocol mingw-w64-x86_64-toolchain mingw-w64-x86_64-usbredir mingw-w64-x86_64-virglrenderer mingw-w64-x86_64-zlib mingw-w64-x86_64-zstd patch zip
+      - name: "🏗️ Install msys2 CLANG64"
+        if: "${{ matrix.msystem == 'clang64' }}"
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+          update: true
+          install: >-
+            base-devel cmake git make mingw-w64-clang-x86_64-SDL2 mingw-w64-clang-x86_64-SDL2_image mingw-w64-clang-x86_64-binutils mingw-w64-clang-x86_64-capstone mingw-w64-clang-x86_64-cc mingw-w64-clang-x86_64-curl-gnutls mingw-w64-clang-x86_64-cyrus-sasl mingw-w64-clang-x86_64-gtk-vnc mingw-w64-clang-x86_64-gtk3 mingw-w64-clang-x86_64-libcbor mingw-w64-clang-x86_64-libnfs mingw-w64-clang-x86_64-libslirp mingw-w64-clang-x86_64-libssh mingw-w64-clang-x86_64-libxml2 mingw-w64-clang-x86_64-lzo2 mingw-w64-clang-x86_64-ncurses mingw-w64-clang-x86_64-ninja mingw-w64-clang-x86_64-nsis mingw-w64-clang-x86_64-pixman mingw-w64-clang-x86_64-pkgconf  mingw-w64-clang-x86_64-python mingw-w64-clang-x86_64-sccache mingw-w64-clang-x86_64-snappy mingw-w64-clang-x86_64-spice mingw-w64-clang-x86_64-spice-protocol mingw-w64-clang-x86_64-toolchain mingw-w64-clang-x86_64-usbredir mingw-w64-clang-x86_64-zlib mingw-w64-clang-x86_64-zstd patch zip
       - name: "🏗️ Install tools"
         uses: crazy-max/ghaction-chocolatey@v3
         with:
@@ -42,7 +55,7 @@ jobs:
         run: |
           wget -q "https://download.qemu.org/qemu-$QEMU_VERSION.tar.xz"
           wget -q "https://download.qemu.org/qemu-$QEMU_VERSION.tar.xz.sig"
-          gpg --keyserver keys.openpgp.org --recv-key CEACC9E15534EBABB82D3FA03353C9CEF108B584
+          gpg --keyserver hkps://keys.openpgp.org:443 --recv-key CEACC9E15534EBABB82D3FA03353C9CEF108B584
           gpg "qemu-$QEMU_VERSION.tar.xz.sig"
           7z x "qemu-$QEMU_VERSION.tar.xz"
           7z x "qemu-$QEMU_VERSION.tar"
@@ -55,7 +68,7 @@ jobs:
         working-directory: qemu-release
         shell: msys2 {0}
         run: |
-          ./configure --enable-gtk --enable-sdl --disable-debug-info --extra-cflags="-D_FORTIFY_SOURCE=2"
+          ./configure --enable-gtk --enable-sdl --enable-lto --disable-user --disable-debug-info --extra-cflags="-D_FORTIFY_SOURCE=2"
           make
           make installer
       - name: "📦 Pack QEMU"
@@ -64,6 +77,7 @@ jobs:
           mkdir -p qcw
           cp qemu-release/build/qemu-setup-*.exe qcw/
           cd qcw
+          ls | xargs -I fn mv fn ${{ matrix.msystem }}-fn
           find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
           find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
           cat sha.checksums
@@ -75,5 +89,5 @@ jobs:
       - name: "🚀 Upload artifact"
         uses: actions/upload-artifact@v4
         with:
-          name: qcw-qemu
+          name: qcw-qemu-${{ matrix.msystem }}
           path: qcw
