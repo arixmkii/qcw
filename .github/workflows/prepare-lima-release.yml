@@ -20,7 +20,7 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: 0625d0b084450e874869dcbc9f63d4312797c3fe
+  LIMA_SHA: 377c1f7fe7cb705358ba92bcca61dca27a31f116
   LIMA_VERSION: dev
 jobs:
   call-prepare-alpine-wsl:
@@ -101,7 +101,7 @@ jobs:
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/lima/0001-Add-Temp-variable-to-host-templates.patch
           patch --binary -l -p 1 < ../patches/lima/0002-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
-          patch --binary -l -p 1 < ../patches/lima/0003-Implement-feature-toggle-for-GA-forwarding-mode-in-Q.patch
+          patch --binary -l -p 1 < ../patches/lima/0003-Add-Guest-Agent-transport-setting.patch
           patch --binary -l -p 1 < ../patches/lima/0004-Switch-to-forked-sshocker.patch
           patch --binary -l -p 1 < ../patches/lima/0005-Disable-ControlPersist-for-sshfs-connections-on-Wind.patch
           patch --binary -l -p 1 < ../patches/lima/0006-Enable-ControlPersist-for-WSL2-tooling.patch
