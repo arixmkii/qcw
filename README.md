@@ -92,7 +92,7 @@ Development main branch from revision `0625d0b084450e874869dcbc9f63d4312797c3fe`
 
 #### `Podman`
 
-Version `5.4.1` with 2 patch sets:
+Version `5.4.2` with 2 patch sets:
 * Implement QEMU Podman machine on Windows
 * Change CPU HW baseline to x86_64v2 + AES (also known as v2.5)
 
