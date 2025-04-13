@@ -20,7 +20,7 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: 377c1f7fe7cb705358ba92bcca61dca27a31f116
+  LIMA_SHA: c560e0e991cbe66bcbc5a22dbe05995d79f10c10
   LIMA_VERSION: dev
 jobs:
   call-prepare-alpine-wsl:
@@ -64,9 +64,6 @@ jobs:
           patch --binary -l -p 1 < ../patches/lima/0002-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
           patch --binary -l -p 1 < ../patches/lima/0003-Add-Guest-Agent-transport-setting.patch
           patch --binary -l -p 1 < ../patches/lima/0004-Switch-to-forked-sshocker.patch
-          patch --binary -l -p 1 < ../patches/lima/0005-Disable-ControlPersist-for-sshfs-connections-on-Wind.patch
-          patch --binary -l -p 1 < ../patches/lima/0006-Enable-ControlPersist-for-WSL2-tooling.patch
-          patch --binary -l -p 1 < ../patches/lima/0007-Unify-Lima-user-home-inside-guest-for-all-platforms.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}
@@ -178,9 +175,6 @@ jobs:
           patch --binary -l -p 1 < ../patches/lima/0002-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
           patch --binary -l -p 1 < ../patches/lima/0003-Add-Guest-Agent-transport-setting.patch
           patch --binary -l -p 1 < ../patches/lima/0004-Switch-to-forked-sshocker.patch
-          patch --binary -l -p 1 < ../patches/lima/0005-Disable-ControlPersist-for-sshfs-connections-on-Wind.patch
-          patch --binary -l -p 1 < ../patches/lima/0006-Enable-ControlPersist-for-WSL2-tooling.patch
-          patch --binary -l -p 1 < ../patches/lima/0007-Unify-Lima-user-home-inside-guest-for-all-platforms.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}

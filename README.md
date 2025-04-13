@@ -81,14 +81,11 @@ Version `v0.0.6`. Rebuilt for Windows amd64 platform with 1 patch set:
 
 #### `Lima`
 
-Development main branch from revision `0625d0b084450e874869dcbc9f63d4312797c3fe` with 7 patch sets:
+Development main branch from revision `c560e0e991cbe66bcbc5a22dbe05995d79f10c10` with 4 patch sets:
 * Add Temp placeholder support to templates from https://github.com/lima-vm/lima/pull/3318
 * Support WSL2 as a replacement for msys2/cygwin
 * Implement feature toggle for GA https://github.com/lima-vm/lima/pull/3255
 * Bump version of sshocker to a patched one
-* Disable ControlPersist for sshfs on Windows https://github.com/lima-vm/lima/pull/3376
-* Re-enable ContolPersist for sshfs inside WSL2
-* Use unified Home dir inside guest for all platforms https://github.com/lima-vm/lima/pull/3378
 
 #### `Podman`
 
