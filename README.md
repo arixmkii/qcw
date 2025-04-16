@@ -81,10 +81,9 @@ Version `v0.0.6`. Rebuilt for Windows amd64 platform with 1 patch set:
 
 #### `Lima`
 
-Development main branch from revision `c560e0e991cbe66bcbc5a22dbe05995d79f10c10` with 4 patch sets:
+Development main branch from revision `a2adc818ae930b2dc20383514777459e90c44dd1` with 4 patch sets:
 * Add Temp placeholder support to templates from https://github.com/lima-vm/lima/pull/3318
 * Support WSL2 as a replacement for msys2/cygwin
-* Implement feature toggle for GA https://github.com/lima-vm/lima/pull/3255
 * Bump version of sshocker to a patched one
 
 #### `Podman`
