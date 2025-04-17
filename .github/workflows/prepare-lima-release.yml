@@ -20,7 +20,7 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: a2adc818ae930b2dc20383514777459e90c44dd1
+  LIMA_SHA: 6a2fd5ad5fee0e7c3e102fbaabc5fc31386bc25f
   LIMA_VERSION: dev
 jobs:
   call-prepare-alpine-wsl:
@@ -197,7 +197,6 @@ jobs:
           $env:HOME_GUEST = ('wsl' -eq '${{ matrix.bundle }}') ? $(wsl -d lima-infra wslpath "$env:HOME_ALT") : $(cygpath.exe "$env:HOME_ALT")
           $env:LIMACTL_CREATE_ARGS = '--vm-type=qemu'
           $env:_LIMA_WINDOWS_EXTRA_PATH = "$pwd\..\qcw-art\qcw-go-wsllinks\bundle-${{ matrix.bundle }}"
-          $env:LIMA_SSH_PORT_FORWARDER = ('wsl' -eq '${{ matrix.bundle }}') ? 'false' : ''
           bash.exe -c "./hack/test-templates.sh templates/default.yaml"
       - name: "🧪 Test Lima WSL2 machine '${{ matrix.bundle }}' bundle WSL2 (NAT)"
         working-directory: lima-release
@@ -212,5 +211,4 @@ jobs:
           $env:HOME_GUEST = $(wsl -d lima-infra wslpath "$env:HOME_ALT")
           $env:LIMACTL_CREATE_ARGS = '--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
           $env:_LIMA_WINDOWS_EXTRA_PATH = "$pwd\..\qcw-art\qcw-go-wsllinks\bundle-${{ matrix.bundle }}"
-          $env:LIMA_SSH_PORT_FORWARDER = ('wsl' -eq '${{ matrix.bundle }}') ? 'false' : ''
           bash.exe -c './hack/test-templates.sh templates/experimental/wsl2.yaml'
