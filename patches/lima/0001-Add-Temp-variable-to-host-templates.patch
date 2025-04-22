@@ -1,4 +1,4 @@
-From 764284f842ded52fbe458164449c71f45c34c809 Mon Sep 17 00:00:00 2001
+From 4b8ae54559f6a7b8a8fac56d8e83a84f0cd8c769 Mon Sep 17 00:00:00 2001
 From: Jan Dubois <jan.dubois@suse.com>
 Date: Fri, 7 Mar 2025 18:31:47 -0800
 Subject: [PATCH] Add {{.Temp}} variable to host templates
@@ -14,16 +14,16 @@ in behaviour. It would not affect existing instances though.
 
 Signed-off-by: Jan Dubois <jan.dubois@suse.com>
 ---
- pkg/limayaml/defaults.go      | 3 ++-
- pkg/limayaml/defaults_test.go | 9 +++++----
- templates/default.yaml        | 3 ++-
- 3 files changed, 9 insertions(+), 6 deletions(-)
+ pkg/limayaml/defaults.go       |  3 ++-
+ pkg/limayaml/defaults_test.go  | 10 +++++-----
+ templates/_default/mounts.yaml |  3 ++-
+ 3 files changed, 9 insertions(+), 7 deletions(-)
 
 diff --git a/pkg/limayaml/defaults.go b/pkg/limayaml/defaults.go
-index 177f80a7..6a9e89ac 100644
+index 7b55a1ed..54cb6460 100644
 --- a/pkg/limayaml/defaults.go
 +++ b/pkg/limayaml/defaults.go
-@@ -741,7 +741,7 @@ func FillDefault(y, d, o *LimaYAML, filePath string, warn bool) {
+@@ -738,7 +738,7 @@ func FillDefault(y, d, o *LimaYAML, filePath string, warn bool) {
  	location := make(map[string]int)
  	for _, mount := range slices.Concat(d.Mounts, y.Mounts, o.Mounts) {
  		if out, err := executeHostTemplate(mount.Location, instDir, y.Param); err == nil {
@@ -32,7 +32,7 @@ index 177f80a7..6a9e89ac 100644
  		} else {
  			logrus.WithError(err).Warnf("Couldn't process mount location %q as a template", mount.Location)
  		}
-@@ -970,6 +970,7 @@ func executeHostTemplate(format, instDir string, param map[string]string) (bytes
+@@ -963,6 +963,7 @@ func executeHostTemplate(format, instDir string, param map[string]string) (bytes
  			"User":  currentUser.Username,
  			"Home":  userHomeDir,
  			"Param": param,
@@ -41,7 +41,7 @@ index 177f80a7..6a9e89ac 100644
  			"Instance": filepath.Base(instDir), // DEPRECATED, use `{{.Name}}`
  			"LimaHome": limaHome,               // DEPRECATED, use `{{.Dir}}` instead of `{{.LimaHome}}/{{.Instance}}`
 diff --git a/pkg/limayaml/defaults_test.go b/pkg/limayaml/defaults_test.go
-index 71f7e981..59bf9685 100644
+index b8f20383..99e36bca 100644
 --- a/pkg/limayaml/defaults_test.go
 +++ b/pkg/limayaml/defaults_test.go
 @@ -7,6 +7,7 @@ import (
@@ -55,13 +55,13 @@ index 71f7e981..59bf9685 100644
 @@ -149,7 +150,7 @@ func TestFillDefault(t *testing.T) {
  			// Location will be passed through localpathutil.Expand() which will normalize the name
  			// (add a drive letter). So we must start with a valid local path to match it again later.
- 			{Location: filepath.Clean(os.TempDir())},
+ 			{Location: filepath.Clean(t.TempDir())},
 -			{Location: "{{.Dir}}/{{.Param.ONE}}", MountPoint: ptr.Of("/mnt/{{.Param.ONE}}")},
 +			{Location: filepath.Clean("{{.Dir}}/{{.Param.ONE}}"), MountPoint: ptr.Of("/mnt/{{.Param.ONE}}")},
  		},
  		MountType: ptr.Of(NINEP),
  		Provision: []Provision{
-@@ -234,7 +235,7 @@ func TestFillDefault(t *testing.T) {
+@@ -240,7 +241,7 @@ func TestFillDefault(t *testing.T) {
  	expect.Mounts[0].Virtiofs.QueueSize = nil
  	// Only missing Mounts field is Writable, and the default value is also the null value: false
  	expect.Mounts[1].Location = filepath.Join(instDir, y.Param["ONE"])
@@ -70,7 +70,7 @@ index 71f7e981..59bf9685 100644
  	expect.Mounts[1].Writable = ptr.Of(false)
  	expect.Mounts[1].SSHFS.Cache = ptr.Of(true)
  	expect.Mounts[1].SSHFS.FollowSymlinks = ptr.Of(false)
-@@ -326,7 +326,6 @@ func TestFillDefault(t *testing.T) {
+@@ -331,7 +332,6 @@ func TestFillDefault(t *testing.T) {
  	// Choose values that are different from the "builtin" defaults
  
  	// Calling filepath.Abs() to add a drive letter on Windows
@@ -78,7 +78,7 @@ index 71f7e981..59bf9685 100644
  	d = LimaYAML{
  		VMType: ptr.Of("vz"),
  		OS:     ptr.Of("unknown"),
-@@ -390,7 +391,7 @@ func TestFillDefault(t *testing.T) {
+@@ -397,7 +397,7 @@ func TestFillDefault(t *testing.T) {
  
  		Mounts: []Mount{
  			{
@@ -87,7 +87,7 @@ index 71f7e981..59bf9685 100644
  				Writable: ptr.Of(false),
  			},
  		},
-@@ -598,7 +599,7 @@ func TestFillDefault(t *testing.T) {
+@@ -612,7 +612,7 @@ func TestFillDefault(t *testing.T) {
  
  		Mounts: []Mount{
  			{
@@ -96,20 +96,17 @@ index 71f7e981..59bf9685 100644
  				Writable: ptr.Of(true),
  				SSHFS: SSHFS{
  					Cache:          ptr.Of(false),
-diff --git a/templates/default.yaml b/templates/default.yaml
-index 181b66e7..6140695c 100644
---- a/templates/default.yaml
-+++ b/templates/default.yaml
-@@ -99,7 +99,8 @@ mounts:
-     # See https://www.kernel.org/doc/Documentation/filesystems/9p.txt
-     # 🟢 Builtin default: "fscache" for non-writable mounts, "mmap" for writable mounts
-     cache: null
+diff --git a/templates/_default/mounts.yaml b/templates/_default/mounts.yaml
+index a695c293..4367c8da 100644
+--- a/templates/_default/mounts.yaml
++++ b/templates/_default/mounts.yaml
+@@ -1,4 +1,5 @@
+ mounts:
+ - location: "~"
 -- location: "/tmp/lima"
 +- location: "{{.Temp}}/lima"
 +  mountPoint: /tmp/lima
-   # 🟢 Builtin default: false
-   # 🔵 This file: true (only for "/tmp/lima")
    writable: true
 -- 
-2.48.1
+2.49.0
 

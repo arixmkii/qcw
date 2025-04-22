@@ -64,11 +64,11 @@ Version `3.18.4-0` with 2 patch sets:
 
 #### `docker-cli`
 
-Version `v28.1.1`. Rebuilt for Windows amd64 platform.
+Version `28.1.1`. Rebuilt for Windows amd64 platform.
 
 #### `docker-compose`
 
-Version `v2.35.1`. Rebuilt for Windows amd64 platform.
+Version `2.35.1`. Rebuilt for Windows amd64 platform.
 
 #### `gvisor-tap-vsock`
 
@@ -76,15 +76,14 @@ Version bundled with Podman is used
 
 #### `go-wsllinks`
 
-Version `v0.0.6`. Rebuilt for Windows amd64 platform with 1 patch set:
+Version `0.0.6`. Rebuilt for Windows amd64 platform with 1 patch set:
 * Package as Lima dependcies
 
 #### `Lima`
 
-Development main branch from revision `56702e0e525207e808e6d79bcf7296b6c400f050` with 4 patch sets:
+Development main branch from revision `d851c78bdd974f80ed90f6f66ad15fc160711ffe` with 2 patch sets:
 * Add Temp placeholder support to templates from https://github.com/lima-vm/lima/pull/3318
 * Support WSL2 as a replacement for msys2/cygwin
-* Bump version of sshocker to a patched one
 
 #### `Podman`
 
@@ -108,8 +107,7 @@ Version `10.0.0` with 3 patch sets:
 
 #### `sshocker`
 
-Development main branch from revision `1bfe5159eb45cf2786b73504ac2a11dc72366b1a` with 1 patch set:
-* Make argument quotation compatible with cygwin/msys2/gitbash on Windows https://github.com/lima-vm/sshocker/pull/97
+Version bundled with Lima is used
 
 #### `WinSocat`
 

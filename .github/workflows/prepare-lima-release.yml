@@ -20,7 +20,7 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: 56702e0e525207e808e6d79bcf7296b6c400f050
+  LIMA_SHA: d851c78bdd974f80ed90f6f66ad15fc160711ffe
   LIMA_VERSION: dev
 jobs:
   call-prepare-alpine-wsl:
@@ -57,12 +57,12 @@ jobs:
           mkdir lima-release
           cd lima-release
           git init
+          git config --local core.symlinks true
           git remote add origin $LIMA_GITURL
-          git fetch --depth 1 origin $LIMA_SHA
+          git fetch --tags origin $LIMA_SHA
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/lima/0001-Add-Temp-variable-to-host-templates.patch
           patch --binary -l -p 1 < ../patches/lima/0002-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
-          patch --binary -l -p 1 < ../patches/lima/0003-Switch-to-forked-sshocker.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}
@@ -167,12 +167,12 @@ jobs:
           mkdir lima-release
           cd lima-release
           git init
+          git config --local core.symlinks true
           git remote add origin $LIMA_GITURL
-          git fetch --depth 1 origin $LIMA_SHA
+          git fetch --tags origin $LIMA_SHA
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/lima/0001-Add-Temp-variable-to-host-templates.patch
           patch --binary -l -p 1 < ../patches/lima/0002-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
-          patch --binary -l -p 1 < ../patches/lima/0003-Switch-to-forked-sshocker.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}
