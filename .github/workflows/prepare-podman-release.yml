@@ -8,8 +8,8 @@ on:
         value: ${{ jobs.build.outputs.podman_version }}
 env:
   PODMAN_GITURL: https://github.com/containers/podman.git
-  PODMAN_SHA: be85287fcf4590961614ee37be65eeb315e5d9ff # v5.4.2
-  PODMAN_VERSION: 5.4.2
+  PODMAN_SHA: 3c4cf521428ce11906976ddd08a5a6e8626cd50e # v5.5.0-rc2
+  PODMAN_VERSION: 5.5.0-rc2
   PODMAN_REVISION_KIND: prod # prod|dev
 jobs:
   build:
@@ -24,24 +24,12 @@ jobs:
           update: true
           install: >-
             make git unzip base-devel man-db mingw-w64-ucrt-x86_64-toolchain zip mingw-w64-ucrt-x86_64-go
-      - name: "🏗️ Install tools"
-        run: |
-          winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
-          winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity JohnMacFarlane.Pandoc
-          dotnet tool install --global wix
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
       - name: "📝 Checkout"
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-      - name: "🔗 Link tools"
-        shell: msys2 {0}
-        run: |
-          mkdir -p /usr/local/bin
-          ln -sf "$LOCALAPPDATA\\Programs\\Pandoc\\pandoc.exe" "/usr/local/bin/pandoc.exe"
-          ln -sf "$USERPROFILE\\.dotnet\\tools\\wix.exe" "/usr/local/bin/wix.exe"
-          ln -sf "$USERPROFILE\\.dotnet\\tools\\.store" "/usr/local/bin/.store"
       - name: "📝 Fetch sources"
         shell: msys2 {0}
         run: |
@@ -51,9 +39,6 @@ jobs:
           git remote add origin $PODMAN_GITURL
           git fetch --depth 1 origin $PODMAN_SHA
           git checkout FETCH_HEAD
-          patch --binary -l -p 1 < ../patches/podman/0001-Implement-QEMU-Podman-machine-on-Windows.patch
-          patch --binary -l -p 1 < ../patches/podman/0002-Update-QEMU-CPU-baseline-to-x86-64v2.5.patch
-          patch --binary -l -p 1 < ../patches/podman/0003-Update-checkc-to-be-C23-compliant.patch
       - name: "⚗️ Prepare Test Podman"
         working-directory: podman-release
         shell: msys2 {0}
@@ -63,38 +48,7 @@ jobs:
         working-directory: podman-release
         shell: pwsh
         env:
-          CONTAINERS_MACHINE_PROVIDER: qemu
+          CONTAINERS_MACHINE_PROVIDER: hyperv
           MACHINE_TEST_TIMEOUT: 360
         run: |
-          $env:PATH="$env:PROGRAMFILES\QEMU;$env:PATH"
-          ./winmake localmachine
-      - name: "🛠️ Build Podman"
-        working-directory: podman-release
-        shell: msys2 {0}
-        run: |
-          make clean podman-remote-release-windows_amd64.zip
-          export BUILD_PODMAN_VERSION=$(test/version/version | sed 's/-.*//')
-          mkdir -p contrib/win-installer/current
-          cp *.zip contrib/win-installer/current/
-          cd contrib/win-installer
-          powershell -ExecutionPolicy Bypass -File build.ps1 $BUILD_PODMAN_VERSION $PODMAN_REVISION_KIND current
-      - name: "📦 Pack Podman"
-        shell: msys2 {0}
-        run: |
-          mkdir -p qcw
-          export BUILD_PODMAN_VERSION=$(podman-release/test/version/version | sed 's/-.*//')
-          cp "podman-release/contrib/win-installer/podman-$BUILD_PODMAN_VERSION-"*"setup.exe" qcw/
-          cd qcw
-          find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
-          find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
-          cat sha.checksums
-      - id: make_versions
-        name: "📌 Export versions"
-        shell: msys2 {0}
-        run: |
-          echo "podman=$PODMAN_VERSION" >> "$GITHUB_OUTPUT"
-      - name: "🚀 Upload artifact"
-        uses: actions/upload-artifact@v4
-        with:
-          name: qcw-podman
-          path: qcw
+          ./winmake localmachine "cp_test.go"

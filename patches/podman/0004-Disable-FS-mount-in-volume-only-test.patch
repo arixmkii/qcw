@@ -1,0 +1,37 @@
+From 29786158cfc690c25feea801c26d2ed71a71e2b0 Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Sat, 26 Apr 2025 12:42:50 +0300
+Subject: [PATCH] Disable FS mount in volume only test
+
+The test is checking that named volumes could be used. FS mount is not
+needed and there is no code testing anything around it.
+
+Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+---
+ pkg/machine/e2e/basic_test.go | 7 -------
+ 1 file changed, 7 deletions(-)
+
+diff --git a/pkg/machine/e2e/basic_test.go b/pkg/machine/e2e/basic_test.go
+index 1a74ce21cd..cf984de14f 100644
+--- a/pkg/machine/e2e/basic_test.go
++++ b/pkg/machine/e2e/basic_test.go
+@@ -104,16 +104,9 @@ var _ = Describe("run basic podman commands", func() {
+ 	})
+ 
+ 	It("Single character volume mount", func() {
+-		// Get a tmp directory
+-		tDir, err := filepath.Abs(GinkgoT().TempDir())
+-		Expect(err).ToNot(HaveOccurred())
+ 		name := randomString()
+ 		i := new(initMachine).withImage(mb.imagePath).withNow()
+ 
+-		// All other platforms have an implicit mount for the temp area
+-		if isVmtype(define.QemuVirt) {
+-			i.withVolume(tDir)
+-		}
+ 		session, err := mb.setName(name).setCmd(i).run()
+ 		Expect(err).ToNot(HaveOccurred())
+ 		Expect(session).To(Exit(0))
+-- 
+2.49.0
+
