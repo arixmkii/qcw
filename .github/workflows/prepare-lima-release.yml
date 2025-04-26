@@ -20,7 +20,7 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/arixmkii/lima.git
-  LIMA_SHA: 3c924f1b95d38aee392c25989e530b7563283df6
+  LIMA_SHA: 47fd012da2b223fd721adfc75f0976375311aa08
   LIMA_VERSION: dev
 jobs:
   # call-prepare-alpine-wsl:
@@ -68,31 +68,14 @@ jobs:
         working-directory: lima-release
         run: |
           make
-      - name: Enable WSL2
-        run: |
-          wsl --set-default-version 2
-          wsl --shutdown
-          wsl --update
-          wsl --status
-          wsl --version
-          wsl --list --online
-      - name: Install WSL2 distro
-        run: |
-          # FIXME: At least one distro has to be installed here,
-          # otherwise `wsl --list --verbose` (called from Lima) fails:
-          # https://github.com/lima-vm/lima/pull/1826#issuecomment-1729993334
-          # The distro image itself is not consumed by Lima.
-          # ------------------------------------------------------------------
-          wsl --import dummy $env:TEMP nul
-          wsl --list --verbose
       - name: Integration tests (WSL2, Windows host)
         working-directory: lima-release
         run: |
-          $env:PATH = "$pwd\_output\bin;" + 'C:\msys64\usr\bin;' + $env:PATH
-          pacman -Sy --noconfirm openbsd-netcat diffutils
+          $env:PATH = "$pwd\_output\bin;" + 'C:\msys64\usr\bin;' + 'C:\msys64\clang64\bin;' + $env:PATH
+          pacman -Sy --noconfirm openbsd-netcat diffutils mingw-w64-clang-x86_64-qemu
           $env:MSYS2_ENV_CONV_EXCL = 'HOME_HOST;HOME_GUEST;_LIMA_WINDOWS_EXTRA_PATH'
           $env:HOME_HOST = $(cygpath.exe "$env:USERPROFILE")
-          $env:HOME_GUEST = "/mnt$env:HOME_HOST"
-          $env:LIMACTL_CREATE_ARGS = '--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
+          $env:HOME_GUEST = "$env:HOME_HOST"
+          $env:LIMACTL_CREATE_ARGS = '--vm-type=qemu'
           $env:_LIMA_WINDOWS_EXTRA_PATH = 'C:\Program Files\Git\usr\bin'
-          bash.exe -c "./hack/test-templates.sh templates/experimental/wsl2.yaml"
+          bash.exe -c "./hack/test-templates.sh templates/experimental/default-windows.yaml"
