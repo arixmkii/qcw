@@ -40,7 +40,7 @@ index fd681e67d..f256d0591 100644
              <RadioButtons Name="MachineProvider">
                  <RadioButton Name="WSLRadioButton" Value="wsl" VisibleCondition="NOT PreviousInstallFolder" X="185" Y="260" Width="-11" Height="17" TabStop="yes" FontId="3" HideWhenDisabled="yes" EnableCondition="" >Windows Linux Subsystem (WSLv2)</RadioButton>
                  <RadioButton Name="HyperVRadioButton"  Value="hyperv" VisibleCondition="NOT PreviousInstallFolder" X="185" Y="285" Width="-11" Height="17" TabStop="yes" FontId="3" HideWhenDisabled="yes">Windows Hyper-V</RadioButton>
-+                <RadioButton Name="QemuRadioButton" Value="qemu" VisibleCondition="NOT PreviousInstallFolder" X="185" Y="310" Width="-11" Height="17" TabStop="yes" FontId="3" HideWhenDisabled="yes">QEMU (distribution of QEMU not bundled)</RadioButton>
++                <RadioButton Name="QemuRadioButton" Value="qemu" VisibleCondition="NOT PreviousInstallFolder" X="185" Y="310" Width="-11" Height="17" TabStop="yes" FontId="3" HideWhenDisabled="yes">QEMU</RadioButton>
              </RadioButtons>
              <Hypertext Name="EulaHyperlink" X="185" Y="-111" Width="-11" Height="17" TabStop="yes" FontId="3" HideWhenDisabled="yes">#(loc.InstallLicenseLinkText)</Hypertext>
              <Label Name="InstallVersion" X="510" Y="-50" Width="-11" Height="17" FontId="3" DisablePrefix="yes" VisibleCondition="WixStdBAShowVersion">#(loc.InstallVersion)</Label>
@@ -85,9 +85,9 @@ index c060479cd..aa3626a79 100644
  	"path"
  	"path/filepath"
 +	"runtime"
+ 	"strings"
  	"time"
  
- 	"github.com/containers/podman/v5/pkg/machine/define"
 @@ -60,6 +61,9 @@ var _ = Describe("run basic podman commands", func() {
  	})
  
