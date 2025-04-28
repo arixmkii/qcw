@@ -20,7 +20,7 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/arixmkii/lima.git
-  LIMA_SHA: 1d050087e5f3c7323a613e28dfca66241425019f
+  LIMA_SHA: 44acf99e46ff21132184b30f7c1da6541d706cab
   LIMA_VERSION: dev
 jobs:
   # call-prepare-alpine-wsl:
@@ -30,7 +30,7 @@ jobs:
 
   build:
     # needs: [call-prepare-go-wsllinks, call-prepare-alpine-wsl]
-    runs-on: windows-latest
+    runs-on: windows-2025
     outputs:
       lima_version: ${{ steps.make_versions.outputs.lima }}
       gowsllinks_version: ${{ steps.make_versions.outputs.gowsllinks }}
@@ -38,10 +38,6 @@ jobs:
       alpine_version: ${{ steps.make_versions.outputs.alpine }}
       alpine_wsl_version: ${{ steps.make_versions.outputs.alpine_wsl }}
     steps:
-      - name: Install winget
-      # TODO remove this step for Windows Server 2025 based runners
-      # Do not update as not all tags are working!
-        uses: Cyberboss/install-winget@1c6f189175e9f015bf1aa113cd1cc6c73efb9d47 # v1
       - name: Install QEMU
         run: |
           winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
@@ -93,4 +89,4 @@ jobs:
           $env:HOME_GUEST = "$env:HOME_HOST"
           $env:LIMACTL_CREATE_ARGS = '--vm-type=qemu'
           $env:_LIMA_WINDOWS_EXTRA_PATH = 'C:\Program Files\Git\usr\bin'
-          bash.exe -c "./hack/test-templates.sh templates/experimental/default-windows.yaml"
+          bash.exe -c "./hack/test-templates.sh templates/default.yaml"

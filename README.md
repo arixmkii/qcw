@@ -81,7 +81,7 @@ Version `0.0.6`. Rebuilt for Windows amd64 platform with 1 patch set:
 
 #### `Lima`
 
-Development main branch from revision `d851c78bdd974f80ed90f6f66ad15fc160711ffe` with 2 patch sets:
+Development main branch from revision `44acf99e46ff21132184b30f7c1da6541d706cab` with 2 patch sets:
 * Add Temp placeholder support to templates from https://github.com/lima-vm/lima/pull/3318
 * Support WSL2 as a replacement for msys2/cygwin
 
