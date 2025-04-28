@@ -19,8 +19,8 @@ on:
         description: "Alpine-WSL version"
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
-  LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: d851c78bdd974f80ed90f6f66ad15fc160711ffe
+  LIMA_GITURL: https://github.com/arixmkii/lima.git
+  LIMA_SHA: 1d050087e5f3c7323a613e28dfca66241425019f
   LIMA_VERSION: dev
 jobs:
   # call-prepare-alpine-wsl:
@@ -71,6 +71,7 @@ jobs:
           git remote add origin $LIMA_GITURL
           git fetch --tags origin $LIMA_SHA
           git checkout FETCH_HEAD
+          git tag v1.2.0
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         run: |
