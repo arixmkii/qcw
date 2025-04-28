@@ -60,6 +60,8 @@ jobs:
         with:
           fetch-depth: 1
       - name: "📝 Fetch sources"
+        env:
+          MSYS: winsymlinks:nativestrict
         shell: msys2 {0}
         run: |
           mkdir lima-release
@@ -72,6 +74,7 @@ jobs:
           git fetch --tags origin $LIMA_SHA
           git checkout FETCH_HEAD
           git tag v1.2.0
+          describe --match 'v[0-9]*' --dirty='.m' --always --tags
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         run: |
