@@ -13,7 +13,7 @@ env:
   PODMAN_REVISION_KIND: prod # prod|dev
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2025
     outputs:
       podman_version: ${{ steps.make_versions.outputs.podman }}
     steps:
@@ -23,13 +23,12 @@ jobs:
           msystem: UCRT64
           update: true
           install: >-
-            make git unzip base-devel man-db mingw-w64-ucrt-x86_64-toolchain zip mingw-w64-ucrt-x86_64-go mingw-w64-ucrt-x86_64-qemu
-      - name: "🏗️ Install Pandoc"
-        uses: crazy-max/ghaction-chocolatey@v3
-        with:
-          args: install pandoc -y --force
-      - name: "🏗️ Install WiX toolset"
-        run: dotnet tool install --global wix
+            make git unzip base-devel man-db mingw-w64-ucrt-x86_64-toolchain zip mingw-w64-ucrt-x86_64-go
+      - name: "🏗️ Install tools"
+        run: |
+          winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
+          winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity JohnMacFarlane.Pandoc
+          dotnet tool install --global wix
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
       - name: "📝 Checkout"
@@ -40,7 +39,7 @@ jobs:
         shell: msys2 {0}
         run: |
           mkdir -p /usr/local/bin
-          ln -sf "$PROGRAMFILES\\Pandoc\\pandoc.exe" "/usr/local/bin/pandoc.exe"
+          ln -sf "$LOCALAPPDATA\\Programs\\Pandoc\\pandoc.exe" "/usr/local/bin/pandoc.exe"
           ln -sf "$USERPROFILE\\.dotnet\\tools\\wix.exe" "/usr/local/bin/wix.exe"
           ln -sf "$USERPROFILE\\.dotnet\\tools\\.store" "/usr/local/bin/.store"
       - name: "📝 Fetch sources"
@@ -54,6 +53,7 @@ jobs:
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/podman/0001-Implement-QEMU-Podman-machine-on-Windows.patch
           patch --binary -l -p 1 < ../patches/podman/0002-Update-QEMU-CPU-baseline-to-x86-64v2.5.patch
+          patch --binary -l -p 1 < ../patches/podman/0003-Update-checkc-to-be-C23-compliant.patch
       - name: "⚗️ Prepare Test Podman"
         working-directory: podman-release
         shell: msys2 {0}
@@ -66,7 +66,7 @@ jobs:
           CONTAINERS_MACHINE_PROVIDER: qemu
           MACHINE_TEST_TIMEOUT: 360
         run: |
-          $env:PATH="$env:PATH;D:\a\_temp\msys64\ucrt64\bin"
+          $env:PATH="$env:PROGRAMFILES\QEMU;$env:PATH"
           ./winmake localmachine
       - name: "🛠️ Build Podman"
         working-directory: podman-release

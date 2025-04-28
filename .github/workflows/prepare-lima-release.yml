@@ -20,7 +20,7 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: d851c78bdd974f80ed90f6f66ad15fc160711ffe
+  LIMA_SHA: f999afa4c365f742fbd5b2c3cef07ba9242cb895
   LIMA_VERSION: dev
 jobs:
   call-prepare-alpine-wsl:
@@ -127,14 +127,11 @@ jobs:
           path: qcw-art
       - name: "🏗️ Install msys2 (system)"
         shell: pwsh
-        run: "$env:PATH = 'C:\\msys64\\usr\\bin;' + $env:PATH\npacman -Sy --noconfirm openbsd-netcat diffutils mingw-w64-clang-x86_64-qemu \n"
-      - name: "🏗️ Install deps"
-        shell: msys2 {0}
+        run: "$env:PATH = 'C:\\msys64\\usr\\bin;' + $env:PATH\npacman -Sy --noconfirm openbsd-netcat diffutils \n"
+      - name: "🏗️ Install tools"
         run: |
-          mkdir -p qcw-deps
-          pushd qcw-deps
-          curl -o yq.exe -L https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_windows_amd64.exe
-          popd
+          winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
+          winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity MikeFarah.yq
       - name: "🏗️ Install lima-infra"
         shell: pwsh
         run: |
@@ -157,10 +154,8 @@ jobs:
         run: |
           Import-Module -Name NetSecurity -UseWindowsPowerShell
           Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
-          New-NetFirewallRule -DisplayName "Allow QEMU x86_64" -Direction Inbound -Program "C:\msys64\clang64\bin\qemu-system-x86_64.exe" -Action Allow
-          New-NetFirewallRule -DisplayName "Allow QEMU x86_64w" -Direction Inbound -Program "C:\msys64\clang64\bin\qemu-system-x86_64w.exe" -Action Allow
-          New-NetFirewallRule -DisplayName "Allow QEMU x86_64" -Direction Inbound -Program "C:\msys64\ucrt64\bin\qemu-system-x86_64.exe" -Action Allow
-          New-NetFirewallRule -DisplayName "Allow QEMU x86_64w" -Direction Inbound -Program "C:\msys64\ucrt64\bin\qemu-system-x86_64w.exe" -Action Allow
+          New-NetFirewallRule -DisplayName "Allow QEMU x86_64" -Direction Inbound -Program "$env:PROGRAMFILES\QEMU\qemu-system-x86_64.exe" -Action Allow
+          New-NetFirewallRule -DisplayName "Allow QEMU x86_64w" -Direction Inbound -Program "$env:PROGRAMFILES\QEMU\qemu-system-x86_64w.exe" -Action Allow
       - name: "📝 Fetch sources"
         shell: msys2 {0}
         run: |
@@ -190,7 +185,7 @@ jobs:
         run: |
           Remove-Item "$env:USERPROFILE\.lima\_config\user*" -Recurse -Force -ErrorAction SilentlyContinue || $true
           Remove-Item "$env:USERPROFILE\.lima\_config\wsl2*" -Recurse -Force -ErrorAction SilentlyContinue || $true
-          $env:PATH = "$pwd\..\qcw-deps;$pwd\..\qcw-art\qcw-lima\lima\bin;C:\msys64\usr\bin;C:\msys64\clang64\bin;" + $env:PATH
+          $env:PATH = "$env:PROGRAMFILES\QEMU;$env:LOCALAPPDATA\Microsoft\WinGet\Links;$pwd\..\qcw-art\qcw-lima\lima\bin;C:\msys64\usr\bin;" + $env:PATH
           $env:MSYS2_ENV_CONV_EXCL = 'HOME_HOST;HOME_GUEST;_LIMA_WINDOWS_EXTRA_PATH'
           $env:HOME_ALT = $(cygpath.exe -m "$env:USERPROFILE")
           $env:HOME_HOST = $(cygpath.exe "$env:HOME_ALT")
@@ -204,7 +199,7 @@ jobs:
         run: |
           Remove-Item "$env:USERPROFILE\.lima\_config\user*" -Recurse -Force -ErrorAction SilentlyContinue || $true
           Remove-Item "$env:USERPROFILE\.lima\_config\wsl2*" -Recurse -Force -ErrorAction SilentlyContinue || $true
-          $env:PATH = "$pwd\..\qcw-deps;$pwd\..\qcw-art\qcw-lima\lima\bin;C:\msys64\usr\bin;C:\msys64\clang64\bin;" + $env:PATH
+          $env:PATH = "$env:LOCALAPPDATA\Microsoft\WinGet\Links;$pwd\..\qcw-art\qcw-lima\lima\bin;C:\msys64\usr\bin;" + $env:PATH
           $env:MSYS2_ENV_CONV_EXCL = 'HOME_HOST;HOME_GUEST;_LIMA_WINDOWS_EXTRA_PATH'
           $env:HOME_ALT = $(cygpath.exe -m "$env:USERPROFILE")
           $env:HOME_HOST = $(cygpath.exe "$env:HOME_ALT")
