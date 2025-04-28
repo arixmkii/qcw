@@ -44,7 +44,7 @@ jobs:
         uses: Cyberboss/install-winget@1c6f189175e9f015bf1aa113cd1cc6c73efb9d47 # v1
       - name: Install QEMU
         run: |
-          winget install --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
+          winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
       - name: "🏗️ Install msys2 (user)"
         uses: msys2/setup-msys2@v2
         with:
