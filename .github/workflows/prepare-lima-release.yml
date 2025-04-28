@@ -19,8 +19,8 @@ on:
         description: "Alpine-WSL version"
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
-  LIMA_GITURL: https://github.com/arixmkii/lima.git
-  LIMA_SHA: 835b9ac557cc1c228ca02823ab4fa2f73ca53cef
+  LIMA_GITURL: https://github.com/lima-vm/lima.git
+  LIMA_SHA: d851c78bdd974f80ed90f6f66ad15fc160711ffe
   LIMA_VERSION: dev
 jobs:
   # call-prepare-alpine-wsl:
@@ -38,6 +38,13 @@ jobs:
       alpine_version: ${{ steps.make_versions.outputs.alpine }}
       alpine_wsl_version: ${{ steps.make_versions.outputs.alpine_wsl }}
     steps:
+      - name: Install winget
+      # TODO remove this step for Windows Server 2025 based runners
+      # Do not update as not all tags are working!
+        uses: Cyberboss/install-winget@1c6f189175e9f015bf1aa113cd1cc6c73efb9d47 # v1
+      - name: Install QEMU
+        run: |
+          winget install --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
       - name: "🏗️ Install msys2 (user)"
         uses: msys2/setup-msys2@v2
         with:
@@ -45,11 +52,6 @@ jobs:
           update: true
           install: >-
             git make
-      - name: Install winget
-        uses: Cyberboss/install-winget@v1
-      - name: Install QEMU
-        run: |
-          winget install --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
       - name: "📝 Configure checkout"
         run: |
           git config --global core.autocrlf input
@@ -76,7 +78,6 @@ jobs:
       - name: Integration tests (WSL2, Windows host)
         working-directory: lima-release
         run: |
-          ls 'C:\Program Files\QEMU'
           $env:PATH = "$pwd\_output\bin;" + 'C:\msys64\usr\bin;' + 'C:\Program Files\QEMU;' + $env:PATH
           pacman -Sy --noconfirm openbsd-netcat diffutils
           $env:MSYS2_ENV_CONV_EXCL = 'HOME_HOST;HOME_GUEST;_LIMA_WINDOWS_EXTRA_PATH'
