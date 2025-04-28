@@ -73,6 +73,10 @@ jobs:
           git remote add origin $LIMA_GITURL
           git fetch --tags origin $LIMA_SHA
           git checkout FETCH_HEAD
+          git add .
+          git config --local user.name ci
+          git config --local user.email ci@example.com
+          git commit -m "Fake commit"
           git tag v1.1.0
           git describe --match 'v[0-9]*' --dirty='.m' --always --tags
       - name: "🛠️ Build Lima"
