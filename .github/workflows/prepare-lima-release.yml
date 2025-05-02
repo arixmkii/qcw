@@ -20,7 +20,7 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: f999afa4c365f742fbd5b2c3cef07ba9242cb895
+  LIMA_SHA: 353be898ff96553f1222897aa175c14262bbefed
   LIMA_VERSION: dev
 jobs:
   call-prepare-alpine-wsl:
@@ -61,8 +61,7 @@ jobs:
           git remote add origin $LIMA_GITURL
           git fetch --tags origin $LIMA_SHA
           git checkout FETCH_HEAD
-          patch --binary -l -p 1 < ../patches/lima/0001-Add-Temp-variable-to-host-templates.patch
-          patch --binary -l -p 1 < ../patches/lima/0002-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
+          patch --binary -l -p 1 < ../patches/lima/0001-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}
@@ -166,8 +165,7 @@ jobs:
           git remote add origin $LIMA_GITURL
           git fetch --tags origin $LIMA_SHA
           git checkout FETCH_HEAD
-          patch --binary -l -p 1 < ../patches/lima/0001-Add-Temp-variable-to-host-templates.patch
-          patch --binary -l -p 1 < ../patches/lima/0002-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
+          patch --binary -l -p 1 < ../patches/lima/0001-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}
