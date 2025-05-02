@@ -79,7 +79,7 @@ jobs:
         working-directory: lima-release
         run: |
           make
-      - name: Integration tests (WSL2, Windows host)
+      - name: Integration tests (QEMU, Windows host)
         working-directory: lima-release
         run: |
           $env:PATH = "$pwd\_output\bin;" + 'C:\msys64\usr\bin;' + 'C:\Program Files\QEMU;' + $env:PATH
