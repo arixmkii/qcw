@@ -13,7 +13,7 @@ env:
   PODMAN_REVISION_KIND: prod # prod|dev
 jobs:
   build:
-    runs-on: windows-2025
+    runs-on: windows-2022
     outputs:
       podman_version: ${{ steps.make_versions.outputs.podman }}
     steps:
@@ -24,6 +24,8 @@ jobs:
           update: true
           install: >-
             make git unzip base-devel man-db mingw-w64-ucrt-x86_64-toolchain zip mingw-w64-ucrt-x86_64-go
+      - name: Install winget
+        uses: Cyberboss/install-winget@1c6f189175e9f015bf1aa113cd1cc6c73efb9d47 # v1
       - name: "🏗️ Install tools"
         run: |
           winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
