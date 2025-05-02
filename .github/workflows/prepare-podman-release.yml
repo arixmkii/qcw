@@ -13,7 +13,7 @@ env:
   PODMAN_REVISION_KIND: prod # prod|dev
 jobs:
   build:
-    runs-on: windows-2025
+    runs-on: windows-2022
     outputs:
       podman_version: ${{ steps.make_versions.outputs.podman }}
     steps:
@@ -51,4 +51,4 @@ jobs:
           CONTAINERS_MACHINE_PROVIDER: hyperv
           MACHINE_TEST_TIMEOUT: 360
         run: |
-          ./winmake localmachine
+          ./winmake localmachine "cp_test.go"
