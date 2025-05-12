@@ -14,8 +14,8 @@ env:
   CLI_SHA: 4eba3773274f9d21ba90ae5bc719c3f1e4bb07a1 # v28.1.1
   CLI_VERSION: 28.1.1
   COMPOSE_GITURL: https://github.com/docker/compose.git
-  COMPOSE_SHA: 2d7cd2a999461ddb740fbdd935921648bdff1414 # v2.35.1
-  COMPOSE_VERSION: 2.35.1
+  COMPOSE_SHA: 559a51e5902c0d6e3b24df771c92d65ec5dda3d3 # v2.36.0
+  COMPOSE_VERSION: 2.36.0
 jobs:
   build:
     runs-on: ubuntu-latest
