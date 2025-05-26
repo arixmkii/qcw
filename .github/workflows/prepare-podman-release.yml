@@ -13,7 +13,7 @@ env:
   PODMAN_REVISION_KIND: prod # prod|dev
 jobs:
   build:
-    runs-on: windows-2022
+    runs-on: windows-2025
     outputs:
       podman_version: ${{ steps.make_versions.outputs.podman }}
     steps:
@@ -24,8 +24,6 @@ jobs:
           update: true
           install: >-
             make git unzip base-devel man-db zip mingw-w64-ucrt-x86_64-go python
-      - name: Install winget
-        uses: Cyberboss/install-winget@1c6f189175e9f015bf1aa113cd1cc6c73efb9d47 # v1
       - name: "🏗️ Install tools"
         run: |
           winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
@@ -56,6 +54,7 @@ jobs:
           patch --binary -l -p 1 < ../patches/podman/0001-Implement-QEMU-Podman-machine-on-Windows.patch
           patch --binary -l -p 1 < ../patches/podman/0002-Update-QEMU-CPU-baseline-to-x86-64v2.5.patch
           patch --binary -l -p 1 < ../patches/podman/0003-Disable-FS-mount-in-volume-only-test.patch
+          patch --binary -l -p 1 < ../patches/podman/0004-podman-e2e-tests-new-windows.patch
       - name: "⚗️ Prepare Test Podman"
         working-directory: podman-release
         shell: msys2 {0}
