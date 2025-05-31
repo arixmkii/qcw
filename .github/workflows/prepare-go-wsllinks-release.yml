@@ -16,7 +16,7 @@ env:
   BUNDLES_VERSION: 0.0.1
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2025
     outputs:
       gowsllinks_version: ${{ steps.make_versions.outputs.gowsllinks }}
       bundles_version: ${{ steps.make_versions.outputs.bundles }}
