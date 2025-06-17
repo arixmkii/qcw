@@ -19,17 +19,17 @@ on:
         description: "Alpine-WSL version"
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
-  LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: 44f3da4a6a734730a663612661b851be1ece60cd
-  LIMA_VERSION: 1.1.1
+  LIMA_GITURL: https://github.com/arixmkii/lima.git
+  LIMA_SHA: c75e8b4d0397a9b129ff9dc8ab5e7a98e01f32f5
+  LIMA_VERSION: dev
 jobs:
-  call-prepare-alpine-wsl:
-    uses: ./.github/workflows/prepare-alpine-wsl-release.yml
-  call-prepare-go-wsllinks:
-    uses: ./.github/workflows/prepare-go-wsllinks-release.yml
+  # call-prepare-alpine-wsl:
+  #   uses: ./.github/workflows/prepare-alpine-wsl-release.yml
+  # call-prepare-go-wsllinks:
+  #   uses: ./.github/workflows/prepare-go-wsllinks-release.yml
 
   build:
-    needs: [call-prepare-go-wsllinks, call-prepare-alpine-wsl]
+    # needs: [call-prepare-go-wsllinks, call-prepare-alpine-wsl]
     runs-on: windows-2025
     outputs:
       lima_version: ${{ steps.make_versions.outputs.lima }}
@@ -38,170 +38,64 @@ jobs:
       alpine_version: ${{ steps.make_versions.outputs.alpine }}
       alpine_wsl_version: ${{ steps.make_versions.outputs.alpine_wsl }}
     steps:
-      - name: "🏗️ Install msys2 (user)"
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          install: >-
-            git make mingw-w64-ucrt-x86_64-go patch unzip zip
-      - name: "📝 Configure checkout"
-        run: git config --global core.autocrlf input
-      - name: "📝 Checkout"
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-      - name: "📝 Fetch sources"
-        shell: msys2 {0}
-        run: |
-          mkdir lima-release
-          cd lima-release
-          git init
-          git config --local core.symlinks true
-          git remote add origin $LIMA_GITURL
-          git fetch --tags origin $LIMA_SHA
-          git checkout FETCH_HEAD
-          patch --binary -l -p 1 < ../patches/lima/0001-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
-      - name: "🛠️ Build Lima"
-        working-directory: lima-release
-        shell: msys2 {0}
-        run: |
-          make binaries
-      - name: "📦 Pack Lima"
-        shell: msys2 {0}
-        run: |
-          mkdir -p qcw
-          mkdir -p qcw-tmp
-          cp -r "lima-release/_output" qcw-tmp/lima
-          cd qcw-tmp/
-          zip -9 -r ../qcw/lima.zip .
-          cd ../qcw
-          find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
-          find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
-          cat sha.checksums
-      - id: make_versions
-        name: "📌 Export versions"
-        env:
-          GOWSLLINKS_VERSION: ${{ needs.call-prepare-go-wsllinks.outputs.gowsllinks_version }}
-          BUNDLES_VERSION: ${{ needs.call-prepare-go-wsllinks.outputs.bundles_version }}
-          ALPINE_VERSION: ${{ needs.call-prepare-alpine-wsl.outputs.alpine_version }}
-          ALPINEWSL_VERSION: ${{ needs.call-prepare-alpine-wsl.outputs.alpine_wsl_version }}
-        shell: msys2 {0}
-        run: |
-          echo "lima=$LIMA_VERSION-$LIMA_SHA" >> "$GITHUB_OUTPUT"
-          echo "gowsllinks=$GOWSLLINKS_VERSION" >> "$GITHUB_OUTPUT"
-          echo "bundles=$BUNDLES_VERSION" >> "$GITHUB_OUTPUT"
-          echo "alpine=$ALPINE_VERSION" >> "$GITHUB_OUTPUT"
-          echo "alpine_wsl=$ALPINEWSL_VERSION" >> "$GITHUB_OUTPUT"
-      - name: "🚀 Upload artifact"
-        uses: actions/upload-artifact@v4
-        with:
-          name: qcw-lima
-          path: qcw
-
-  test:
-    needs: [build]
-    strategy:
-      fail-fast: false
-      matrix:
-        bundle: [wsl, git]
-    runs-on: windows-2025
-    steps:
-      - name: "🏗️ Install msys2 (user)"
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          install: >-
-            git patch unzip
-      - name: "📝 Configure checkout"
-        run: git config --global core.autocrlf input
-      - name: "📝 Checkout"
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-      - name: "🛻 Donwload artifacts"
-        uses: actions/download-artifact@v4
-        with:
-          path: qcw-art
-      - name: "🏗️ Install msys2 (system)"
-        shell: pwsh
-        run: "$env:PATH = 'C:\\msys64\\usr\\bin;' + $env:PATH\npacman -Sy --noconfirm openbsd-netcat diffutils \n"
-      - name: "🏗️ Install tools"
+      - name: Install QEMU
         run: |
           winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
-          winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity MikeFarah.yq
-      - name: "🏗️ Install lima-infra"
-        shell: pwsh
+          winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity Microsoft.Sysinternals.PsTools
+      - name: "🏗️ Install msys2 (user)"
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            git make
+      - name: "📝 Configure checkout"
         run: |
-          wsl --set-default-version 2
-          wsl --shutdown
-          wsl --update
-          wsl --version
-          wsl --install -n --from-file qcw-art/qcw-alpine/lima-infra.wsl
-          wsl -l -v
-      - name: "✅ Check user"
-        shell: pwsh
-        run: |
-          cmd /c "start wsl -d lima-infra -u root bash -c `"until pkill -KILL -u 1000; do sleep 1; done`""
-          wsl -d lima-infra
-          wsl -d lima-infra whoami
-          wsl -d lima-infra -u lima whoami
-          wsl -d lima-infra wslinfo --networking-mode
-      - name: "⚙️ Configure firewalls"
-        shell: pwsh
-        run: |
-          Import-Module -Name NetSecurity -UseWindowsPowerShell
-          Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
-          New-NetFirewallRule -DisplayName "Allow QEMU x86_64" -Direction Inbound -Program "$env:PROGRAMFILES\QEMU\qemu-system-x86_64.exe" -Action Allow
-          New-NetFirewallRule -DisplayName "Allow QEMU x86_64w" -Direction Inbound -Program "$env:PROGRAMFILES\QEMU\qemu-system-x86_64w.exe" -Action Allow
+          git config --global core.autocrlf input
+      - name: "📝 Checkout"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
       - name: "📝 Fetch sources"
+        env:
+          MSYS: winsymlinks:nativestrict
         shell: msys2 {0}
         run: |
           mkdir lima-release
           cd lima-release
           git init
           git config --local core.symlinks true
+          git config --local core.autocrlf false
+          git config --local core.eol lf
           git remote add origin $LIMA_GITURL
           git fetch --tags origin $LIMA_SHA
           git checkout FETCH_HEAD
-          patch --binary -l -p 1 < ../patches/lima/0001-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
+          git add .
+          git config --local user.name ci
+          git config --local user.email ci@example.com
+          git commit -m "Fake commit"
+          git tag v1.1.0
+          git describe --match 'v[0-9]*' --dirty='.m' --always --tags
       - name: "🛠️ Build Lima"
         working-directory: lima-release
-        shell: msys2 {0}
         run: |
-          pushd ../qcw-art/qcw-go-wsllinks/
-          unzip bundles.zip
-          ./bundle-${{ matrix.bundle }}/install-tools.bat
-          popd
-          pushd ../qcw-art/qcw-lima/
-          unzip lima.zip
-          popd
-      - name: "🧪 Test Lima QEMU machine '${{ matrix.bundle }}' bundle WSL2 (NAT)"
+          make
+      - name: Integration tests (QEMU, Windows host)
         working-directory: lima-release
-        shell: pwsh
         run: |
-          Remove-Item "$env:USERPROFILE\.lima\_config\user*" -Recurse -Force -ErrorAction SilentlyContinue || $true
-          Remove-Item "$env:USERPROFILE\.lima\_config\wsl2*" -Recurse -Force -ErrorAction SilentlyContinue || $true
-          $env:PATH = "$env:PROGRAMFILES\QEMU;$env:LOCALAPPDATA\Microsoft\WinGet\Links;$pwd\..\qcw-art\qcw-lima\lima\bin;C:\msys64\usr\bin;" + $env:PATH
+          $env:PATH = "$pwd\_output\bin;" + 'C:\msys64\usr\bin;' + "$env:PROGRAMFILES\QEMU;" + "$env:LOCALAPPDATA\Microsoft\WinGet\Links;" + $env:PATH
+          pacman -Sy --noconfirm openbsd-netcat diffutils
+          $newuser = 'testrunner'
+          $newpass = 'VEq7BDPKX8%Jde4H'
+          net user $newuser $newpass /add /y
+          psexec -accepteula -nobanner -u $newuser -p $newpass pwsh -c "echo `$env:USERPROFILE > $pwd\userprofile.out"
+          psexec -accepteula -nobanner -u $newuser -p $newpass pwsh -c "echo `$env:TEMP > $pwd\temp.out"
+          $env:USERPROFILE = Get-Content "$pwd\userprofile.out"
+          $env:TMP = Get-Content "$pwd\temp.out"
+          $env:TEMP = Get-Content "$pwd\temp.out"
           $env:MSYS2_ENV_CONV_EXCL = 'HOME_HOST;HOME_GUEST;_LIMA_WINDOWS_EXTRA_PATH'
-          $env:HOME_ALT = $(cygpath.exe -m "$env:USERPROFILE")
-          $env:HOME_HOST = $(cygpath.exe "$env:HOME_ALT")
-          $env:HOME_GUEST = ('wsl' -eq '${{ matrix.bundle }}') ? $(wsl -d lima-infra wslpath "$env:HOME_ALT") : $(cygpath.exe "$env:HOME_ALT")
+          $env:HOME_HOST = $(cygpath.exe "$env:USERPROFILE")
+          $env:HOME_GUEST = "$env:HOME_HOST"
           $env:LIMACTL_CREATE_ARGS = '--vm-type=qemu'
-          $env:_LIMA_WINDOWS_EXTRA_PATH = "$pwd\..\qcw-art\qcw-go-wsllinks\bundle-${{ matrix.bundle }}"
+          $env:_LIMA_WINDOWS_EXTRA_PATH = "$env:PROGRAMFILES\Git\usr\bin"
           bash.exe -c "./hack/test-templates.sh templates/default.yaml"
-      - name: "🧪 Test Lima WSL2 machine '${{ matrix.bundle }}' bundle WSL2 (NAT)"
-        working-directory: lima-release
-        shell: pwsh
-        run: |
-          Remove-Item "$env:USERPROFILE\.lima\_config\user*" -Recurse -Force -ErrorAction SilentlyContinue || $true
-          Remove-Item "$env:USERPROFILE\.lima\_config\wsl2*" -Recurse -Force -ErrorAction SilentlyContinue || $true
-          $env:PATH = "$env:LOCALAPPDATA\Microsoft\WinGet\Links;$pwd\..\qcw-art\qcw-lima\lima\bin;C:\msys64\usr\bin;" + $env:PATH
-          $env:MSYS2_ENV_CONV_EXCL = 'HOME_HOST;HOME_GUEST;_LIMA_WINDOWS_EXTRA_PATH'
-          $env:HOME_ALT = $(cygpath.exe -m "$env:USERPROFILE")
-          $env:HOME_HOST = $(cygpath.exe "$env:HOME_ALT")
-          $env:HOME_GUEST = $(wsl -d lima-infra wslpath "$env:HOME_ALT")
-          $env:LIMACTL_CREATE_ARGS = '--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
-          $env:_LIMA_WINDOWS_EXTRA_PATH = "$pwd\..\qcw-art\qcw-go-wsllinks\bundle-${{ matrix.bundle }}"
-          bash.exe -c './hack/test-templates.sh templates/experimental/wsl2.yaml'
