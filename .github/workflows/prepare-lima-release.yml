@@ -85,8 +85,8 @@ jobs:
         run: |
           $env:PATH = "$pwd\_output\bin;" + 'C:\msys64\usr\bin;' + "$env:PROGRAMFILES\QEMU;" + "$env:LOCALAPPDATA\Microsoft\WinGet\Links;" + $env:PATH
           pacman -Sy --noconfirm openbsd-netcat diffutils
-          $runnerhome = 'D:\a\Users\testrunner'
-          $runnertemp = 'D:\a\Users\testrunner\AppData\Local\Temp'
+          $runnerhome = 'D:\a\_temp\Users\testrunner'
+          $runnertemp = 'D:\a\_temp\Users\testrunner\AppData\Local\Temp'
           New-Item -Path $runnerhome -ItemType Directory -Force
           New-Item -Path $runnertemp -ItemType Directory -Force
           $env:USERPROFILE = $runnerhome
