@@ -89,7 +89,7 @@ jobs:
           $runnertemp = 'D:\a\_temp\Users\testrunner\AppData\Local\Temp'
           New-Item -Path $runnerhome -ItemType Directory -Force
           New-Item -Path $runnertemp -ItemType Directory -Force
-          $env:USERPROFILE = $runnerhome
+          $env:USERPROFILEFAKE = $runnerhome
           $env:TMP = $runnertemp
           $env:TEMP = $runnertemp
           $env:MSYS2_ENV_CONV_EXCL = 'HOME_HOST;HOME_GUEST;_LIMA_WINDOWS_EXTRA_PATH'
