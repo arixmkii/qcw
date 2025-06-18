@@ -20,7 +20,7 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/arixmkii/lima.git
-  LIMA_SHA: c75e8b4d0397a9b129ff9dc8ab5e7a98e01f32f5
+  LIMA_SHA: 9f7b9a884e3f6ffe8bbc0228f0b564ec736495e6
   LIMA_VERSION: dev
 jobs:
   # call-prepare-alpine-wsl:
@@ -41,7 +41,6 @@ jobs:
       - name: Install QEMU
         run: |
           winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
-          winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity Microsoft.Sysinternals.PsTools
       - name: "🏗️ Install msys2 (user)"
         uses: msys2/setup-msys2@v2
         with:
@@ -83,15 +82,8 @@ jobs:
       - name: Integration tests (QEMU, Windows host)
         working-directory: lima-release
         run: |
-          $env:PATH = "$pwd\_output\bin;" + 'C:\msys64\usr\bin;' + "$env:PROGRAMFILES\QEMU;" + "$env:LOCALAPPDATA\Microsoft\WinGet\Links;" + $env:PATH
+          $env:PATH = "$pwd\_output\bin;" + 'C:\msys64\usr\bin;' + "$env:PROGRAMFILES\QEMU;" + $env:PATH
           pacman -Sy --noconfirm openbsd-netcat diffutils
-          $runnerhome = 'D:\a\_temp\Users\testrunner'
-          $runnertemp = 'D:\a\_temp\Users\testrunner\AppData\Local\Temp'
-          New-Item -Path $runnerhome -ItemType Directory -Force
-          New-Item -Path $runnertemp -ItemType Directory -Force
-          $env:USERPROFILEFAKE = $runnerhome
-          $env:TMP = $runnertemp
-          $env:TEMP = $runnertemp
           $env:MSYS2_ENV_CONV_EXCL = 'HOME_HOST;HOME_GUEST;_LIMA_WINDOWS_EXTRA_PATH'
           $env:HOME_HOST = $(cygpath.exe "$env:USERPROFILE")
           $env:HOME_GUEST = "$env:HOME_HOST"
