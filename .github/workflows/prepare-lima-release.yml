@@ -19,9 +19,9 @@ on:
         description: "Alpine-WSL version"
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
-  LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: 44f3da4a6a734730a663612661b851be1ece60cd
-  LIMA_VERSION: 1.1.1
+  LIMA_GITURL: https://github.com/AkihiroSuda/lima-vm-lima.git
+  LIMA_SHA: 2dfcc08d759f72bd23d973a8b195aecf1e02f040
+  LIMA_VERSION: dev
 jobs:
   call-prepare-alpine-wsl:
     uses: ./.github/workflows/prepare-alpine-wsl-release.yml
@@ -61,6 +61,7 @@ jobs:
           git remote add origin $LIMA_GITURL
           git fetch --tags origin $LIMA_SHA
           git checkout FETCH_HEAD
+          git tag v1.1.1
           patch --binary -l -p 1 < ../patches/lima/0001-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
@@ -165,6 +166,7 @@ jobs:
           git remote add origin $LIMA_GITURL
           git fetch --tags origin $LIMA_SHA
           git checkout FETCH_HEAD
+          git tag v1.1.1
           patch --binary -l -p 1 < ../patches/lima/0001-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release

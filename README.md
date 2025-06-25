@@ -81,7 +81,7 @@ Version `0.0.6`. Rebuilt for Windows amd64 platform with 1 patch set:
 
 #### `Lima`
 
-Development main branch from revision `44f3da4a6a734730a663612661b851be1ece60cd` with 1 patch set:
+Feature branch from revision `2dfcc08d759f72bd23d973a8b195aecf1e02f040` with 1 patch set:
 * Support WSL2 as a replacement for msys2/cygwin
 
 #### `Podman`
