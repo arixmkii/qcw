@@ -86,7 +86,7 @@ Development main branch from revision `44f3da4a6a734730a663612661b851be1ece60cd`
 
 #### `Podman`
 
-Version `5.5.1` with 3 patch sets:
+Version `5.5.2` with 3 patch sets:
 * Implement QEMU Podman machine on Windows
 * Change CPU HW baseline to x86_64v2 + AES (also known as v2.5)
 * Unlock an additional named volume test for QEMU on Windows
