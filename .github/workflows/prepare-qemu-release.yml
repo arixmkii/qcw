@@ -62,8 +62,8 @@ jobs:
           wget -q "https://download.qemu.org/qemu-$QEMU_VERSION.tar.xz.sig"
           gpg --keyserver hkps://keys.openpgp.org:443 --recv-key CEACC9E15534EBABB82D3FA03353C9CEF108B584
           gpg "qemu-$QEMU_VERSION.tar.xz.sig"
-          7z x "qemu-$QEMU_VERSION.tar.xz"
-          7z x "qemu-$QEMU_VERSION.tar"
+          7z x -sdel -snld "qemu-$QEMU_VERSION.tar.xz"
+          7z x -sdel -snld "qemu-$QEMU_VERSION.tar"
           mv "qemu-$QEMU_VERSION" qemu-release
           cd qemu-release
           patch --binary -l -p 1 < ../patches/qemu/0001-9pfs-Add-9pfs-support-for-Windows-host.patch
