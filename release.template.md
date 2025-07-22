@@ -6,7 +6,7 @@
 * Docker CLI `<<DOCKER_VERSION>>`
 * Docker Compose `<<DOCKER_COMPOSE_VERSION>>`
 * go-wsllinks `<<GOWSLLINKS_VERSION>>`
-* Lima `<<LIMA_VERSION>>` with patches to enable QEMU support on Windows
+* Lima `<<LIMA_VERSION>>` with patches to enable WSL userland tools support
 * lima-infra Alpine WSL image `<<ALPINE_VERSION>>` based on AlpineWSL project `<<ALPINEWSL_VERSION>>`
 * Podman `<<PODMAN_VERSION>>` with patches to enable QEMU support on Windows
 * QEMU `<<QEMU_VERSION>>` (this one includes 9pfs on Windows hosts patches and UEFI pflash fixes, if this functionality is not needed, then consider using official installer)
