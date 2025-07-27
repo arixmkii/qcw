@@ -59,8 +59,8 @@ feature rich machine emulator;
 #### `Alpine-WSL`
 
 Version `3.18.4-0` with 2 patch sets:
-* Update Alpine to 3.20.3
-* Update Alpine to 3.22.1 and add Lima required tools
+* Update Alpine to 3.20.3;
+* Update Alpine to 3.22.1 and add Lima required tools.
 
 #### `docker-cli`
 
@@ -82,14 +82,14 @@ Version `0.0.7`. Rebuilt for Windows amd64 platform with 1 patch set:
 #### `Lima`
 
 Version `1.2.1` with 1 patch set:
-* Support WSL2 as a replacement for msys2/cygwin
+* Support WSL2 as a replacement for msys2/cygwin.
 
 #### `Podman`
 
-Version `5.5.2` with 3 patch sets:
-* Implement QEMU Podman machine on Windows
-* Change CPU HW baseline to x86_64v2 + AES (also known as v2.5)
-* Unlock an additional named volume test for QEMU on Windows
+Version `5.6.0` with 3 patch sets:
+* Implement QEMU Podman machine on Windows;
+* Change CPU HW baseline to x86_64v2 + AES (also known as v2.5);
+* Increase timeout for Local Machine test suite.
 
 #### `Podman Desktop`
 
@@ -107,14 +107,14 @@ Version `10.0.2` with 3 patch sets:
 
 #### `sshocker`
 
-Version bundled with Lima is used
+Version bundled with Lima is used.
 
 #### `WinSocat`
 
 Version `0.1.3` with 3 patch sets:
-* Pending commits after the release https://github.com/firejox/WinSocat/compare/v0.1.3...b7e32fa8f782ae38475cfc7cf1eed25de1fad339
-* Dependency updates from https://github.com/firejox/WinSocat/pull/16
-* Some additinal cleanups for VisualStudio solution setup
+* Pending commits after the release https://github.com/firejox/WinSocat/compare/v0.1.3...b7e32fa8f782ae38475cfc7cf1eed25de1fad339;
+* Dependency updates from https://github.com/firejox/WinSocat/pull/16;
+* Some additinal cleanups for VisualStudio solution setup.
 
 ## How to use QEMU
 
