@@ -7,7 +7,7 @@ on:
         description: QEMU version"
         value: ${{ jobs.build.outputs.qemu_version }}
 env:
-  QEMU_VERSION: 10.0.2
+  QEMU_VERSION: 10.1.0
   MSYS: "winsymlinks:native"
 jobs:
   build:
@@ -26,7 +26,7 @@ jobs:
           msystem: ${{ matrix.msystem }}
           update: true
           install: >-
-            base-devel cmake git make mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_image mingw-w64-x86_64-binutils mingw-w64-x86_64-capstone mingw-w64-x86_64-cc mingw-w64-x86_64-curl-gnutls mingw-w64-x86_64-cyrus-sasl mingw-w64-x86_64-gtk-vnc mingw-w64-x86_64-gtk3 mingw-w64-x86_64-libcbor mingw-w64-x86_64-libnfs mingw-w64-x86_64-libslirp mingw-w64-x86_64-libssh mingw-w64-x86_64-libxml2 mingw-w64-x86_64-lzo2 mingw-w64-x86_64-ncurses mingw-w64-x86_64-ninja mingw-w64-x86_64-nsis mingw-w64-x86_64-pixman mingw-w64-x86_64-pkgconf mingw-w64-x86_64-python mingw-w64-x86_64-sccache mingw-w64-x86_64-snappy mingw-w64-x86_64-spice mingw-w64-x86_64-spice-protocol mingw-w64-x86_64-toolchain mingw-w64-x86_64-usbredir mingw-w64-x86_64-virglrenderer mingw-w64-x86_64-zlib mingw-w64-x86_64-zstd patch zip
+            base-devel cmake git make mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_image mingw-w64-x86_64-binutils mingw-w64-x86_64-capstone mingw-w64-x86_64-cc mingw-w64-x86_64-curl-winssl mingw-w64-x86_64-cyrus-sasl mingw-w64-x86_64-gtk-vnc mingw-w64-x86_64-gtk3 mingw-w64-x86_64-libcbor mingw-w64-x86_64-libnfs mingw-w64-x86_64-libslirp mingw-w64-x86_64-libssh mingw-w64-x86_64-libxml2 mingw-w64-x86_64-lzo2 mingw-w64-x86_64-ncurses mingw-w64-x86_64-ninja mingw-w64-x86_64-nsis mingw-w64-x86_64-pixman mingw-w64-x86_64-pkgconf mingw-w64-x86_64-python mingw-w64-x86_64-sccache mingw-w64-x86_64-snappy mingw-w64-x86_64-spice mingw-w64-x86_64-spice-protocol mingw-w64-x86_64-toolchain mingw-w64-x86_64-usbredir mingw-w64-x86_64-virglrenderer mingw-w64-x86_64-zlib mingw-w64-x86_64-zstd patch zip
       - name: "🏗️ Install msys2 UCRT64"
         if: "${{ matrix.msystem == 'ucrt64' }}"
         uses: msys2/setup-msys2@40677d36a502eb2cf0fb808cc9dec31bf6152638 # v2.28.0
@@ -34,7 +34,7 @@ jobs:
           msystem: ${{ matrix.msystem }}
           update: true
           install: >-
-            base-devel cmake git make mingw-w64-ucrt-x86_64-SDL2 mingw-w64-ucrt-x86_64-SDL2_image mingw-w64-ucrt-x86_64-binutils mingw-w64-ucrt-x86_64-capstone mingw-w64-ucrt-x86_64-cc mingw-w64-ucrt-x86_64-curl-gnutls mingw-w64-ucrt-x86_64-cyrus-sasl mingw-w64-ucrt-x86_64-gtk-vnc mingw-w64-ucrt-x86_64-gtk3 mingw-w64-ucrt-x86_64-libcbor mingw-w64-ucrt-x86_64-libnfs mingw-w64-ucrt-x86_64-libslirp mingw-w64-ucrt-x86_64-libssh mingw-w64-ucrt-x86_64-libxml2 mingw-w64-ucrt-x86_64-lzo2 mingw-w64-ucrt-x86_64-ncurses mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-nsis mingw-w64-ucrt-x86_64-pixman mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-sccache mingw-w64-ucrt-x86_64-snappy mingw-w64-ucrt-x86_64-spice mingw-w64-ucrt-x86_64-spice-protocol mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-usbredir mingw-w64-ucrt-x86_64-virglrenderer mingw-w64-ucrt-x86_64-zlib mingw-w64-ucrt-x86_64-zstd patch zip
+            base-devel cmake git make mingw-w64-ucrt-x86_64-SDL2 mingw-w64-ucrt-x86_64-SDL2_image mingw-w64-ucrt-x86_64-binutils mingw-w64-ucrt-x86_64-capstone mingw-w64-ucrt-x86_64-cc mingw-w64-ucrt-x86_64-curl-winssl mingw-w64-ucrt-x86_64-cyrus-sasl mingw-w64-ucrt-x86_64-gtk-vnc mingw-w64-ucrt-x86_64-gtk3 mingw-w64-ucrt-x86_64-libcbor mingw-w64-ucrt-x86_64-libnfs mingw-w64-ucrt-x86_64-libslirp mingw-w64-ucrt-x86_64-libssh mingw-w64-ucrt-x86_64-libxml2 mingw-w64-ucrt-x86_64-lzo2 mingw-w64-ucrt-x86_64-ncurses mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-nsis mingw-w64-ucrt-x86_64-pixman mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-sccache mingw-w64-ucrt-x86_64-snappy mingw-w64-ucrt-x86_64-spice mingw-w64-ucrt-x86_64-spice-protocol mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-usbredir mingw-w64-ucrt-x86_64-virglrenderer mingw-w64-ucrt-x86_64-zlib mingw-w64-ucrt-x86_64-zstd patch zip
       - name: "🏗️ Install msys2 CLANG64"
         if: "${{ matrix.msystem == 'clang64' }}"
         uses: msys2/setup-msys2@40677d36a502eb2cf0fb808cc9dec31bf6152638 # v2.28.0
@@ -43,7 +43,7 @@ jobs:
           update: true
           # mingw-w64-clang-x86_64-virglrenderer is missing
           install: >-
-            base-devel cmake git make mingw-w64-clang-x86_64-SDL2 mingw-w64-clang-x86_64-SDL2_image mingw-w64-clang-x86_64-binutils mingw-w64-clang-x86_64-capstone mingw-w64-clang-x86_64-cc mingw-w64-clang-x86_64-curl-gnutls mingw-w64-clang-x86_64-cyrus-sasl mingw-w64-clang-x86_64-gtk-vnc mingw-w64-clang-x86_64-gtk3 mingw-w64-clang-x86_64-libcbor mingw-w64-clang-x86_64-libnfs mingw-w64-clang-x86_64-libslirp mingw-w64-clang-x86_64-libssh mingw-w64-clang-x86_64-libxml2 mingw-w64-clang-x86_64-lzo2 mingw-w64-clang-x86_64-ncurses mingw-w64-clang-x86_64-ninja mingw-w64-clang-x86_64-nsis mingw-w64-clang-x86_64-pixman mingw-w64-clang-x86_64-pkgconf mingw-w64-clang-x86_64-python mingw-w64-clang-x86_64-sccache mingw-w64-clang-x86_64-snappy mingw-w64-clang-x86_64-spice mingw-w64-clang-x86_64-spice-protocol mingw-w64-clang-x86_64-toolchain mingw-w64-clang-x86_64-usbredir mingw-w64-clang-x86_64-zlib mingw-w64-clang-x86_64-zstd patch zip
+            base-devel cmake git make mingw-w64-clang-x86_64-SDL2 mingw-w64-clang-x86_64-SDL2_image mingw-w64-clang-x86_64-binutils mingw-w64-clang-x86_64-capstone mingw-w64-clang-x86_64-cc mingw-w64-clang-x86_64-curl-winssl mingw-w64-clang-x86_64-cyrus-sasl mingw-w64-clang-x86_64-gtk-vnc mingw-w64-clang-x86_64-gtk3 mingw-w64-clang-x86_64-libcbor mingw-w64-clang-x86_64-libnfs mingw-w64-clang-x86_64-libslirp mingw-w64-clang-x86_64-libssh mingw-w64-clang-x86_64-libxml2 mingw-w64-clang-x86_64-lzo2 mingw-w64-clang-x86_64-ncurses mingw-w64-clang-x86_64-ninja mingw-w64-clang-x86_64-nsis mingw-w64-clang-x86_64-pixman mingw-w64-clang-x86_64-pkgconf mingw-w64-clang-x86_64-python mingw-w64-clang-x86_64-sccache mingw-w64-clang-x86_64-snappy mingw-w64-clang-x86_64-spice mingw-w64-clang-x86_64-spice-protocol mingw-w64-clang-x86_64-toolchain mingw-w64-clang-x86_64-usbredir mingw-w64-clang-x86_64-zlib mingw-w64-clang-x86_64-zstd patch zip
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
       - name: "📝 Checkout"
@@ -66,9 +66,10 @@ jobs:
           7z x -sdel -snld "qemu-$QEMU_VERSION.tar"
           mv "qemu-$QEMU_VERSION" qemu-release
           cd qemu-release
-          patch --binary -l -p 1 < ../patches/qemu/0001-9pfs-Add-9pfs-support-for-Windows-host.patch
-          patch --binary -l -p 1 < ../patches/qemu/0002-WHPX-Add-support-for-device-backed-memory-regions.patch
+          patch --binary -l -p 1 < ../patches/qemu/0001-Revert-9pfs-Introduce-futimens-file-op.patch
+          patch --binary -l -p 1 < ../patches/qemu/0002-9pfs-Add-9pfs-support-for-Windows-host.patch
           patch --binary -l -p 1 < ../patches/qemu/0003-Fix-9p-utils-compilation-on-Windows.patch
+          patch --binary -l -p 1 < ../patches/qemu/0004-WHPX-Add-support-for-device-backed-memory-regions.patch
       - name: "🛠️ Build QEMU"
         working-directory: qemu-release
         shell: msys2 {0}
