@@ -1,0 +1,3487 @@
+From 7d78a136f8b4a0ef21b128d64fe11ca004560e52 Mon Sep 17 00:00:00 2001
+From: Guohuai Shi <guohuai.shi@windriver.com>
+Date: Mon, 20 Feb 2023 18:08:00 +0800
+Subject: [PATCH 01/15] hw/9pfs: Add missing definitions for Windows
+
+Some definitions currently used by the 9pfs codes are only available
+on POSIX platforms. Let's add our own ones in preparation to adding
+9pfs support for Windows.
+
+Signed-off-by: Guohuai Shi <guohuai.shi@windriver.com>
+Signed-off-by: Bin Meng <bin.meng@windriver.com>
+---
+ fsdev/file-op-9p.h | 33 +++++++++++++++++++++++++++++++++
+ hw/9pfs/9p.h       | 43 +++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 76 insertions(+)
+
+diff --git a/fsdev/file-op-9p.h b/fsdev/file-op-9p.h
+index 26ba1438c0..e754c63d3a 100644
+--- a/fsdev/file-op-9p.h
++++ b/fsdev/file-op-9p.h
+@@ -27,6 +27,39 @@
+ # include <sys/mount.h>
+ #endif
+ 
++#ifdef CONFIG_WIN32
++
++/* POSIX structure not defined in Windows */
++
++typedef uint32_t uid_t;
++typedef uint32_t gid_t;
++
++/* from http://man7.org/linux/man-pages/man2/statfs.2.html */
++typedef uint32_t __fsword_t;
++typedef uint32_t fsblkcnt_t;
++typedef uint32_t fsfilcnt_t;
++
++/* from linux/include/uapi/asm-generic/posix_types.h */
++typedef struct {
++    long __val[2];
++} fsid_t;
++
++struct statfs {
++    __fsword_t f_type;
++    __fsword_t f_bsize;
++    fsblkcnt_t f_blocks;
++    fsblkcnt_t f_bfree;
++    fsblkcnt_t f_bavail;
++    fsfilcnt_t f_files;
++    fsfilcnt_t f_ffree;
++    fsid_t f_fsid;
++    __fsword_t f_namelen;
++    __fsword_t f_frsize;
++    __fsword_t f_flags;
++};
++
++#endif /* CONFIG_WIN32 */
++
+ #define SM_LOCAL_MODE_BITS    0600
+ #define SM_LOCAL_DIR_MODE_BITS    0700
+ 
+diff --git a/hw/9pfs/9p.h b/hw/9pfs/9p.h
+index 65cc45e344..a6cf54cfa3 100644
+--- a/hw/9pfs/9p.h
++++ b/hw/9pfs/9p.h
+@@ -3,13 +3,56 @@
+ 
+ #include <dirent.h>
+ #include <utime.h>
++#ifndef CONFIG_WIN32
+ #include <sys/resource.h>
++#endif
+ #include "fsdev/file-op-9p.h"
+ #include "fsdev/9p-iov-marshal.h"
+ #include "qemu/thread.h"
+ #include "qemu/coroutine.h"
+ #include "qemu/qht.h"
+ 
++#ifdef CONFIG_WIN32
++
++/* Windows does not provide such a macro, typically it is 255 */
++#define NAME_MAX            255
++
++/* macros required for build, values do not matter */
++#define AT_SYMLINK_NOFOLLOW 0x100   /* Do not follow symbolic links */
++#define AT_REMOVEDIR        0x200   /* Remove directory instead of file */
++#define O_DIRECTORY         02000000
++
++#define makedev(major, minor)   \
++        ((dev_t)((((major) & 0xfff) << 8) | ((minor) & 0xff)))
++#define major(dev)  ((unsigned int)(((dev) >> 8) & 0xfff))
++#define minor(dev)  ((unsigned int)(((dev) & 0xff)))
++
++/*
++ * Currenlty Windows/MinGW does not provide the following flag macros,
++ * so define them here for 9p codes.
++ *
++ * Once Windows/MinGW provides them, remove the defines to prevent conflicts.
++ */
++
++#ifndef S_IFLNK
++#define S_IFLNK         0xA000
++#define S_ISLNK(mode)   ((mode & S_IFMT) == S_IFLNK)
++#endif /* S_IFLNK */
++
++#ifndef S_ISUID
++#define S_ISUID         0x0800
++#endif
++
++#ifndef S_ISGID
++#define S_ISGID         0x0400
++#endif
++
++#ifndef S_ISVTX
++#define S_ISVTX         0x0200
++#endif
++
++#endif /* CONFIG_WIN32 */
++
+ enum {
+     P9_TLERROR = 6,
+     P9_RLERROR,
+-- 
+2.50.1
+
+From de3df64273b81f4854867e9627baf54bfea9e428 Mon Sep 17 00:00:00 2001
+From: Guohuai Shi <guohuai.shi@windriver.com>
+Date: Mon, 20 Feb 2023 18:08:01 +0800
+Subject: [PATCH 02/15] hw/9pfs: Implement Windows specific utilities functions
+ for 9pfs
+
+Windows POSIX API and MinGW library do not provide the NO_FOLLOW
+flag, and do not allow opening a directory by POSIX open(). This
+causes all xxx_at() functions cannot work directly. However, we
+can provide Windows handle based functions to emulate xxx_at()
+functions (e.g.: openat_win32, utimensat_win32, etc.).
+
+NTFS ADS (Alternate Data Streams) is used to emulate 9pfs extended
+attributes on Windows. Symbolic link is only supported when security
+model is "mapped-xattr" or "mapped-file".
+
+Signed-off-by: Guohuai Shi <guohuai.shi@windriver.com>
+Signed-off-by: Bin Meng <bin.meng@windriver.com>
+---
+ hw/9pfs/9p-local.c      |   4 -
+ hw/9pfs/9p-local.h      |   7 +
+ hw/9pfs/9p-util-win32.c | 979 ++++++++++++++++++++++++++++++++++++++++
+ hw/9pfs/9p-util.h       |  32 +-
+ 4 files changed, 1017 insertions(+), 5 deletions(-)
+ create mode 100644 hw/9pfs/9p-util-win32.c
+
+diff --git a/hw/9pfs/9p-local.c b/hw/9pfs/9p-local.c
+index 0b33da8d2a..065f7dbef2 100644
+--- a/hw/9pfs/9p-local.c
++++ b/hw/9pfs/9p-local.c
+@@ -53,10 +53,6 @@
+ #define BTRFS_SUPER_MAGIC 0x9123683E
+ #endif
+ 
+-typedef struct {
+-    int mountfd;
+-} LocalData;
+-
+ int local_open_nofollow(FsContext *fs_ctx, const char *path, int flags,
+                         mode_t mode)
+ {
+diff --git a/hw/9pfs/9p-local.h b/hw/9pfs/9p-local.h
+index 32c72749d9..77e7f57f89 100644
+--- a/hw/9pfs/9p-local.h
++++ b/hw/9pfs/9p-local.h
+@@ -13,6 +13,13 @@
+ #ifndef QEMU_9P_LOCAL_H
+ #define QEMU_9P_LOCAL_H
+ 
++typedef struct {
++    int mountfd;
++#ifdef CONFIG_WIN32
++    char *root_path;
++#endif
++} LocalData;
++
+ int local_open_nofollow(FsContext *fs_ctx, const char *path, int flags,
+                         mode_t mode);
+ int local_opendir_nofollow(FsContext *fs_ctx, const char *path);
+diff --git a/hw/9pfs/9p-util-win32.c b/hw/9pfs/9p-util-win32.c
+new file mode 100644
+index 0000000000..a99d579a06
+--- /dev/null
++++ b/hw/9pfs/9p-util-win32.c
+@@ -0,0 +1,979 @@
++/*
++ * 9p utilities (Windows Implementation)
++ *
++ * Copyright (c) 2022 Wind River Systems, Inc.
++ *
++ * This work is licensed under the terms of the GNU GPL, version 2 or later.
++ * See the COPYING file in the top-level directory.
++ */
++
++/*
++ * This file contains Windows only functions for 9pfs.
++ *
++ * For 9pfs Windows host, the following features are different from Linux host:
++ *
++ * 1. Windows POSIX API does not provide the NO_FOLLOW flag, that means MinGW
++ *    cannot detect if a path is a symbolic link or not. Also Windows do not
++ *    provide POSIX compatible readlink(). Supporting symbolic link in 9pfs on
++ *    Windows may cause security issues, so symbolic link support is disabled
++ *    completely for security model "none" or "passthrough".
++ *
++ * 2. Windows file system does not support extended attributes directly. 9pfs
++ *    for Windows uses NTFS ADS (Alternate Data Streams) to emulate extended
++ *    attributes.
++ *
++ * 3. statfs() is not available on Windows. qemu_statfs() is used to emulate it.
++ *
++ * 4. On Windows trying to open a directory with the open() API will fail.
++ *    This is because Windows does not allow opening directory in normal usage.
++ *
++ *    As a result of this, all xxx_at() functions won't work directly on
++ *    Windows, e.g.: openat(), unlinkat(), etc.
++ *
++ *    As xxx_at() can prevent parent directory to be modified on Linux host,
++ *    to support this and prevent security issue, all xxx_at() APIs are replaced
++ *    by xxx_at_win32().
++ *
++ *    Windows does not support opendir, the directory fd is created by
++ *    CreateFile and convert to fd by _open_osfhandle(). Keep the fd open will
++ *    lock and protect the directory (can not be modified or replaced)
++ */
++
++#include "qemu/osdep.h"
++#include "qapi/error.h"
++#include "qemu/error-report.h"
++#include "9p.h"
++#include "9p-util.h"
++#include "9p-local.h"
++
++#include <windows.h>
++#include <dirent.h>
++
++#define V9FS_MAGIC  0x53465039  /* string "9PFS" */
++
++/*
++ * win32_error_to_posix - convert Win32 error to POSIX error number
++ *
++ * This function converts Win32 error to POSIX error number.
++ * e.g. ERROR_FILE_NOT_FOUND and ERROR_PATH_NOT_FOUND will be translated to
++ * ENOENT.
++ */
++static int win32_error_to_posix(DWORD win32err)
++{
++    switch (win32err) {
++    case ERROR_FILE_NOT_FOUND:      return ENOENT;
++    case ERROR_PATH_NOT_FOUND:      return ENOENT;
++    case ERROR_INVALID_DRIVE:       return ENODEV;
++    case ERROR_TOO_MANY_OPEN_FILES: return EMFILE;
++    case ERROR_ACCESS_DENIED:       return EACCES;
++    case ERROR_INVALID_HANDLE:      return EBADF;
++    case ERROR_NOT_ENOUGH_MEMORY:   return ENOMEM;
++    case ERROR_FILE_EXISTS:         return EEXIST;
++    case ERROR_DISK_FULL:           return ENOSPC;
++    }
++    return EIO;
++}
++
++/*
++ * build_ads_name - construct Windows ADS name
++ *
++ * This function constructs Windows NTFS ADS (Alternate Data Streams) name
++ * to <namebuf>.
++ */
++static int build_ads_name(char *namebuf, size_t namebuf_len,
++                          const char *filename, const char *ads_name)
++{
++    size_t total_size;
++
++    total_size = strlen(filename) + strlen(ads_name) + 2;
++    if (total_size  > namebuf_len) {
++        return -1;
++    }
++
++    /*
++     * NTFS ADS (Alternate Data Streams) name format: filename:ads_name
++     * e.g.: D:\1.txt:my_ads_name
++     */
++
++    strcpy(namebuf, filename);
++    strcat(namebuf, ":");
++    strcat(namebuf, ads_name);
++
++    return 0;
++}
++
++/*
++ * copy_ads_name - copy ADS name from buffer returned by FindNextStreamW()
++ *
++ * This function removes string "$DATA" in ADS name string returned by
++ * FindNextStreamW(), and copies the real ADS name to <namebuf>.
++ */
++static ssize_t copy_ads_name(char *namebuf, size_t namebuf_len,
++                             char *full_ads_name)
++{
++    char *p1, *p2;
++
++    /*
++     * NTFS ADS (Alternate Data Streams) name from enumerate data format:
++     * :ads_name:$DATA, e.g.: :my_ads_name:$DATA
++     *
++     * ADS name from FindNextStreamW() always has ":$DATA" string at the end.
++     *
++     * This function copies ADS name to namebuf.
++     */
++
++    p1 = strchr(full_ads_name, ':');
++    if (p1 == NULL) {
++        return -1;
++    }
++
++    p2 = strchr(p1 + 1, ':');
++    if (p2 == NULL) {
++        return -1;
++    }
++
++    /* skip empty ads name */
++    if (p2 - p1 == 1) {
++        return 0;
++    }
++
++    if (p2 - p1 + 1 > namebuf_len) {
++        return -1;
++    }
++
++    memcpy(namebuf, p1 + 1, p2 - p1 - 1);
++    namebuf[p2 - p1 - 1] = '\0';
++
++    return p2 - p1;
++}
++
++/*
++ * get_full_path_win32 - get full file name base on a handle
++ *
++ * This function gets full file name based on a handle specified by <fd> to
++ * a file or directory.
++ *
++ * Caller function needs to free the file name string after use.
++ */
++char *get_full_path_win32(HANDLE hDir, const char *name)
++{
++    g_autofree char *full_file_name = NULL;
++    DWORD total_size;
++    DWORD name_size;
++
++    if (hDir == INVALID_HANDLE_VALUE) {
++        return NULL;
++    }
++
++    full_file_name = g_malloc0(NAME_MAX);
++
++    /* get parent directory full file name */
++    name_size = GetFinalPathNameByHandle(hDir, full_file_name,
++                                         NAME_MAX - 1, FILE_NAME_NORMALIZED);
++    if (name_size == 0 || name_size > NAME_MAX - 1) {
++        return NULL;
++    }
++
++    /* full path returned is the "\\?\" syntax, remove the lead string */
++    memmove(full_file_name, full_file_name + 4, NAME_MAX - 4);
++
++    if (name != NULL) {
++        total_size = strlen(full_file_name) + strlen(name) + 2;
++
++        if (total_size > NAME_MAX) {
++            return NULL;
++        }
++
++        /* build sub-directory file name */
++        strcat(full_file_name, "\\");
++        strcat(full_file_name, name);
++    }
++
++    return g_steal_pointer(&full_file_name);
++}
++
++/*
++ * fgetxattr_win32 - get extended attribute by fd
++ *
++ * This function gets extened attribute by <fd>. <fd> will be translated to
++ * Windows handle.
++ *
++ * This function emulates extended attribute by NTFS ADS.
++ */
++ssize_t fgetxattr_win32(int fd, const char *name, void *value, size_t size)
++{
++    g_autofree char *full_file_name = NULL;
++    char ads_file_name[NAME_MAX + 1] = {0};
++    DWORD dwBytesRead;
++    HANDLE hStream;
++    HANDLE hFile;
++
++    hFile = (HANDLE)_get_osfhandle(fd);
++
++    full_file_name = get_full_path_win32(hFile, NULL);
++    if (full_file_name == NULL) {
++        errno = EIO;
++        return -1;
++    }
++
++    if (build_ads_name(ads_file_name, NAME_MAX, full_file_name, name) < 0) {
++        errno = EIO;
++        return -1;
++    }
++
++    hStream = CreateFile(ads_file_name, GENERIC_READ, FILE_SHARE_READ, NULL,
++                         OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
++    if (hStream == INVALID_HANDLE_VALUE &&
++        GetLastError() == ERROR_FILE_NOT_FOUND) {
++        errno = ENODATA;
++        return -1;
++    }
++
++    if (ReadFile(hStream, value, size, &dwBytesRead, NULL) == FALSE) {
++        errno = EIO;
++        CloseHandle(hStream);
++        return -1;
++    }
++
++    CloseHandle(hStream);
++
++    return dwBytesRead;
++}
++
++/*
++ * openat_win32 - emulate openat()
++ *
++ * This function emulates openat().
++ *
++ * this function needs a handle to get the full file name, it has to
++ * convert fd to handle by get_osfhandle().
++ *
++ * For symbolic access:
++ * 1. Parent directory handle <dirfd> should not be a symbolic link because
++ *    it is opened by openat_dir() which can prevent from opening a link to
++ *    a dirctory.
++ * 2. Link flag in <mode> is not set because Windows does not have this flag.
++ *    Create a new symbolic link will be denied.
++ * 3. This function checks file symbolic link attribute after open.
++ *
++ * So native symbolic link will not be accessed by 9p client.
++ */
++int openat_win32(int dirfd, const char *pathname, int flags, mode_t mode)
++{
++    g_autofree char *full_file_name1 = NULL;
++    g_autofree char *full_file_name2 = NULL;
++    HANDLE hFile;
++    HANDLE hDir = (HANDLE)_get_osfhandle(dirfd);
++    int fd;
++
++    full_file_name1 = get_full_path_win32(hDir, pathname);
++    if (full_file_name1 == NULL) {
++        return -1;
++    }
++
++    fd = open(full_file_name1, flags, mode);
++    if (fd > 0) {
++        DWORD attribute;
++        hFile = (HANDLE)_get_osfhandle(fd);
++
++        full_file_name2 = get_full_path_win32(hFile, NULL);
++        attribute = GetFileAttributes(full_file_name2);
++
++        /* check if it is a symbolic link */
++        if ((attribute == INVALID_FILE_ATTRIBUTES)
++            || (attribute & FILE_ATTRIBUTE_REPARSE_POINT) != 0) {
++            errno = EACCES;
++            close(fd);
++        }
++    }
++
++    return fd;
++}
++
++/*
++ * fstatat_win32 - emulate fstatat()
++ *
++ * This function emulates fstatat().
++ *
++ * Access to a symbolic link will be denied to prevent security issues.
++ */
++int fstatat_win32(int dirfd, const char *pathname,
++                  struct stat *statbuf, int flags)
++{
++    g_autofree char *full_file_name = NULL;
++    HANDLE hFile = INVALID_HANDLE_VALUE;
++    HANDLE hDir = (HANDLE)_get_osfhandle(dirfd);
++    BY_HANDLE_FILE_INFORMATION file_info;
++    DWORD attribute;
++    int err = 0;
++    int ret = -1;
++    ino_t st_ino;
++    int is_symlink = 0;
++
++    full_file_name = get_full_path_win32(hDir, pathname);
++    if (full_file_name == NULL) {
++        return ret;
++    }
++
++    /* open file to lock it */
++    hFile = CreateFile(full_file_name, GENERIC_READ,
++                       FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
++                       NULL,
++                       OPEN_EXISTING,
++                       FILE_FLAG_BACKUP_SEMANTICS
++                       | FILE_FLAG_OPEN_REPARSE_POINT,
++                       NULL);
++
++    if (hFile == INVALID_HANDLE_VALUE) {
++        err = win32_error_to_posix(GetLastError());
++        goto out;
++    }
++
++    attribute = GetFileAttributes(full_file_name);
++
++    if (attribute == INVALID_FILE_ATTRIBUTES) {
++        err = EACCES;
++        goto out;
++    }
++
++    /* check if it is a symbolic link */
++    if ((attribute & FILE_ATTRIBUTE_REPARSE_POINT) != 0) {
++        is_symlink = 1;
++    }
++
++    ret = stat(full_file_name, statbuf);
++
++    if (GetFileInformationByHandle(hFile, &file_info) == 0) {
++        err = win32_error_to_posix(GetLastError());
++        goto out;
++    }
++
++    /*
++     * Windows (NTFS) file ID is a 64-bit ID:
++     *   16-bit sequence ID + 48 bit segment number
++     *
++     * But currently, ino_t defined in Windows header file is only 16-bit,
++     * and it is not patched by MinGW. So we build a pseudo inode number
++     * by the low 32-bit segment number when ino_t is only 16-bit.
++     */
++    if (sizeof(st_ino) == sizeof(uint64_t)) {
++        st_ino = (ino_t)((uint64_t)file_info.nFileIndexLow
++                         | (((uint64_t)file_info.nFileIndexHigh) << 32));
++    } else if (sizeof(st_ino) == sizeof(uint16_t)) {
++        st_ino = (ino_t)(((uint16_t)file_info.nFileIndexLow)
++                         ^ ((uint16_t)(file_info.nFileIndexLow >> 16)));
++    } else {
++        st_ino = (ino_t)file_info.nFileIndexLow;
++    }
++
++    statbuf->st_ino = st_ino;
++
++    if (is_symlink == 1) {
++        /* force to set mode to 0, to prevent symlink access */
++        statbuf->st_mode = 0;
++
++        /* hide information */
++        statbuf->st_atime = 0;
++        statbuf->st_mtime = 0;
++        statbuf->st_ctime = 0;
++        statbuf->st_size = 0;
++    }
++
++out:
++    if (hFile != INVALID_HANDLE_VALUE) {
++        CloseHandle(hFile);
++    }
++
++    if (err != 0) {
++        errno = err;
++    }
++    return ret;
++}
++
++/*
++ * mkdirat_win32 - emulate mkdirat()
++ *
++ * This function emulates mkdirat().
++ *
++ * this function needs a handle to get the full file name, it has to
++ * convert fd to handle by get_osfhandle().
++ */
++int mkdirat_win32(int dirfd, const char *pathname, mode_t mode)
++{
++    g_autofree char *full_file_name = NULL;
++    int ret = -1;
++    HANDLE hDir = (HANDLE)_get_osfhandle(dirfd);
++
++    full_file_name = get_full_path_win32(hDir, pathname);
++    if (full_file_name == NULL) {
++        return ret;
++    }
++
++    ret = mkdir(full_file_name);
++
++    return ret;
++}
++
++/*
++ * renameat_win32 - emulate renameat()
++ *
++ * This function emulates renameat().
++ *
++ * this function needs a handle to get the full file name, it has to
++ * convert fd to handle by get_osfhandle().
++ *
++ * Access to a symbolic link will be denied to prevent security issues.
++ */
++int renameat_win32(int olddirfd, const char *oldpath,
++                   int newdirfd, const char *newpath)
++{
++    g_autofree char *full_old_name = NULL;
++    g_autofree char *full_new_name = NULL;
++    HANDLE hFile;
++    HANDLE hOldDir = (HANDLE)_get_osfhandle(olddirfd);
++    HANDLE hNewDir = (HANDLE)_get_osfhandle(newdirfd);
++    DWORD attribute;
++    int err = 0;
++    int ret = -1;
++
++    full_old_name = get_full_path_win32(hOldDir, oldpath);
++    full_new_name = get_full_path_win32(hNewDir, newpath);
++    if (full_old_name == NULL || full_new_name == NULL) {
++        return ret;
++    }
++
++    /* open file to lock it */
++    hFile = CreateFile(full_old_name, GENERIC_READ,
++                       FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
++                       NULL,
++                       OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
++
++    if (hFile == INVALID_HANDLE_VALUE) {
++        err = win32_error_to_posix(GetLastError());
++        goto out;
++    }
++
++    attribute = GetFileAttributes(full_old_name);
++
++    /* check if it is a symbolic link */
++    if ((attribute == INVALID_FILE_ATTRIBUTES)
++        || (attribute & FILE_ATTRIBUTE_REPARSE_POINT) != 0) {
++        err = EACCES;
++        goto out;
++    }
++
++    CloseHandle(hFile);
++
++    ret = rename(full_old_name, full_new_name);
++out:
++    if (err != 0) {
++        errno = err;
++    }
++    return ret;
++}
++
++/*
++ * utimensat_win32 - emulate utimensat()
++ *
++ * This function emulates utimensat().
++ *
++ * this function needs a handle to get the full file name, it has to
++ * convert fd to handle by get_osfhandle().
++ *
++ * Access to a symbolic link will be denied to prevent security issues.
++ */
++int utimensat_win32(int dirfd, const char *pathname,
++                    const struct timespec times[2], int flags)
++{
++    g_autofree char *full_file_name = NULL;
++    HANDLE hFile = INVALID_HANDLE_VALUE;
++    HANDLE hDir = (HANDLE)_get_osfhandle(dirfd);
++    DWORD attribute;
++    struct utimbuf tm;
++    int err = 0;
++    int ret = -1;
++
++    full_file_name = get_full_path_win32(hDir, pathname);
++    if (full_file_name == NULL) {
++        return ret;
++    }
++
++    /* open file to lock it */
++    hFile = CreateFile(full_file_name, GENERIC_READ,
++                       FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
++                       NULL,
++                       OPEN_EXISTING,
++                       FILE_FLAG_BACKUP_SEMANTICS
++                       | FILE_FLAG_OPEN_REPARSE_POINT,
++                       NULL);
++
++    if (hFile == INVALID_HANDLE_VALUE) {
++        err = win32_error_to_posix(GetLastError());
++        goto out;
++    }
++
++    attribute = GetFileAttributes(full_file_name);
++
++    /* check if it is a symbolic link */
++    if ((attribute == INVALID_FILE_ATTRIBUTES)
++        || (attribute & FILE_ATTRIBUTE_REPARSE_POINT) != 0) {
++        errno = EACCES;
++        goto out;
++    }
++
++    tm.actime = times[0].tv_sec;
++    tm.modtime = times[1].tv_sec;
++
++    ret = utime(full_file_name, &tm);
++
++out:
++    if (hFile != INVALID_HANDLE_VALUE) {
++        CloseHandle(hFile);
++    }
++
++    if (err != 0) {
++        errno = err;
++    }
++    return ret;
++}
++
++/*
++ * unlinkat_win32 - emulate unlinkat()
++ *
++ * This function emulates unlinkat().
++ *
++ * this function needs a handle to get the full file name, it has to
++ * convert fd to handle by get_osfhandle().
++ *
++ * Access to a symbolic link will be denied to prevent security issues.
++ */
++
++int unlinkat_win32(int dirfd, const char *pathname, int flags)
++{
++    g_autofree char *full_file_name = NULL;
++    HANDLE hFile;
++    HANDLE hDir = (HANDLE)_get_osfhandle(dirfd);
++    DWORD attribute;
++    int err = 0;
++    int ret = -1;
++
++    full_file_name = get_full_path_win32(hDir, pathname);
++    if (full_file_name == NULL) {
++        return ret;
++    }
++
++    /*
++     * open file to prevent other one modify it. FILE_SHARE_DELETE flag
++     * allows remove a file even it is still in opening.
++     */
++    hFile = CreateFile(full_file_name, GENERIC_READ,
++                       FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
++                       NULL,
++                       OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
++
++    if (hFile == INVALID_HANDLE_VALUE) {
++        err = win32_error_to_posix(GetLastError());
++        goto out;
++    }
++
++    attribute = GetFileAttributes(full_file_name);
++
++    /* check if it is a symbolic link */
++    if ((attribute == INVALID_FILE_ATTRIBUTES)
++        || (attribute & FILE_ATTRIBUTE_REPARSE_POINT) != 0) {
++        err = EACCES;
++        goto out;
++    }
++
++    if (flags == AT_REMOVEDIR) { /* remove directory */
++        if ((attribute & FILE_ATTRIBUTE_DIRECTORY) == 0) {
++            err = ENOTDIR;
++            goto out;
++        }
++        ret = rmdir(full_file_name);
++    } else { /* remove regular file */
++        if ((attribute & FILE_ATTRIBUTE_DIRECTORY) != 0) {
++            err = EISDIR;
++            goto out;
++        }
++        ret = remove(full_file_name);
++    }
++
++    /* after last handle closed, file will be removed */
++    CloseHandle(hFile);
++
++out:
++    if (err != 0) {
++        errno = err;
++    }
++    return ret;
++}
++
++/*
++ * statfs_win32 - statfs() on Windows
++ *
++ * This function emulates statfs() on Windows host.
++ */
++int statfs_win32(const char *path, struct statfs *stbuf)
++{
++    char RealPath[4] = { 0 };
++    unsigned long SectorsPerCluster;
++    unsigned long BytesPerSector;
++    unsigned long NumberOfFreeClusters;
++    unsigned long TotalNumberOfClusters;
++
++    /* only need first 3 bytes, e.g. "C:\ABC", only need "C:\" */
++    memcpy(RealPath, path, 3);
++
++    if (GetDiskFreeSpace(RealPath, &SectorsPerCluster, &BytesPerSector,
++                         &NumberOfFreeClusters, &TotalNumberOfClusters) == 0) {
++        errno = EIO;
++        return -1;
++    }
++
++    stbuf->f_type = V9FS_MAGIC;
++    stbuf->f_bsize =
++        (__fsword_t)SectorsPerCluster * (__fsword_t)BytesPerSector;
++    stbuf->f_blocks = (fsblkcnt_t)TotalNumberOfClusters;
++    stbuf->f_bfree = (fsblkcnt_t)NumberOfFreeClusters;
++    stbuf->f_bavail = (fsblkcnt_t)NumberOfFreeClusters;
++    stbuf->f_files = -1;
++    stbuf->f_ffree = -1;
++    stbuf->f_namelen = NAME_MAX;
++    stbuf->f_frsize = 0;
++    stbuf->f_flags = 0;
++
++    return 0;
++}
++
++/*
++ * openat_dir - emulate openat_dir()
++ *
++ * This function emulates openat_dir().
++ *
++ * Access to a symbolic link will be denied to prevent security issues.
++ */
++int openat_dir(int dirfd, const char *name)
++{
++    g_autofree char *full_file_name = NULL;
++    HANDLE hSubDir;
++    HANDLE hDir = (HANDLE)_get_osfhandle(dirfd);
++    DWORD attribute;
++
++    full_file_name = get_full_path_win32(hDir, name);
++    if (full_file_name == NULL) {
++        return -1;
++    }
++
++    attribute = GetFileAttributes(full_file_name);
++    if (attribute == INVALID_FILE_ATTRIBUTES) {
++        return -1;
++    }
++
++    /* check if it is a directory */
++    if ((attribute & FILE_ATTRIBUTE_DIRECTORY) == 0) {
++        return -1;
++    }
++
++    /* do not allow opening a symbolic link */
++    if ((attribute & FILE_ATTRIBUTE_REPARSE_POINT) != 0) {
++        return -1;
++    }
++
++    /* open it */
++    hSubDir = CreateFile(full_file_name, GENERIC_READ,
++                         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
++                         NULL,
++                         OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
++    return _open_osfhandle((intptr_t)hSubDir, _O_RDONLY);
++}
++
++
++int openat_file(int dirfd, const char *name, int flags, mode_t mode)
++{
++    return openat_win32(dirfd, name, flags | _O_BINARY, mode);
++}
++
++/*
++ * fgetxattrat_nofollow - get extended attribute
++ *
++ * This function gets extended attribute from file <path> in the directory
++ * specified by <dirfd>. The extended atrribute name is specified by <name>
++ * and return value will be put in <value>.
++ *
++ * This function emulates extended attribute by NTFS ADS.
++ */
++ssize_t fgetxattrat_nofollow(int dirfd, const char *path,
++                             const char *name, void *value, size_t size)
++{
++    g_autofree char *full_file_name = NULL;
++    char ads_file_name[NAME_MAX + 1] = { 0 };
++    DWORD dwBytesRead;
++    HANDLE hStream;
++    HANDLE hDir = (HANDLE)_get_osfhandle(dirfd);
++
++    full_file_name = get_full_path_win32(hDir, path);
++    if (full_file_name == NULL) {
++        errno = EIO;
++        return -1;
++    }
++
++    if (build_ads_name(ads_file_name, NAME_MAX, full_file_name, name) < 0) {
++        errno = EIO;
++        return -1;
++    }
++
++    hStream = CreateFile(ads_file_name, GENERIC_READ, FILE_SHARE_READ, NULL,
++                         OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
++    if (hStream == INVALID_HANDLE_VALUE &&
++        GetLastError() == ERROR_FILE_NOT_FOUND) {
++        errno = ENODATA;
++        return -1;
++    }
++
++    if (ReadFile(hStream, value, size, &dwBytesRead, NULL) == FALSE) {
++        errno = EIO;
++        CloseHandle(hStream);
++        return -1;
++    }
++
++    CloseHandle(hStream);
++
++    return dwBytesRead;
++}
++
++/*
++ * fsetxattrat_nofollow - set extended attribute
++ *
++ * This function sets extended attribute to file <path> in the directory
++ * specified by <dirfd>.
++ *
++ * This function emulates extended attribute by NTFS ADS.
++ */
++
++int fsetxattrat_nofollow(int dirfd, const char *path, const char *name,
++                         void *value, size_t size, int flags)
++{
++    g_autofree char *full_file_name = NULL;
++    char ads_file_name[NAME_MAX + 1] = { 0 };
++    DWORD dwBytesWrite;
++    HANDLE hStream;
++    HANDLE hDir = (HANDLE)_get_osfhandle(dirfd);
++
++    full_file_name = get_full_path_win32(hDir, path);
++    if (full_file_name == NULL) {
++        errno = EIO;
++        return -1;
++    }
++
++    if (build_ads_name(ads_file_name, NAME_MAX, full_file_name, name) < 0) {
++        errno = EIO;
++        return -1;
++    }
++
++    hStream = CreateFile(ads_file_name, GENERIC_WRITE, FILE_SHARE_READ, NULL,
++                         CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
++    if (hStream == INVALID_HANDLE_VALUE) {
++        errno = EIO;
++        return -1;
++    }
++
++    if (WriteFile(hStream, value, size, &dwBytesWrite, NULL) == FALSE) {
++        errno = EIO;
++        CloseHandle(hStream);
++        return -1;
++    }
++
++    CloseHandle(hStream);
++
++    return 0;
++}
++
++/*
++ * flistxattrat_nofollow - list extended attribute
++ *
++ * This function gets extended attribute lists from file <filename> in the
++ * directory specified by <dirfd>. Lists returned will be put in <list>.
++ *
++ * This function emulates extended attribute by NTFS ADS.
++ */
++ssize_t flistxattrat_nofollow(int dirfd, const char *filename,
++                              char *list, size_t size)
++{
++    g_autofree char *full_file_name = NULL;
++    WCHAR WideCharStr[NAME_MAX + 1] = { 0 };
++    char full_ads_name[NAME_MAX + 1];
++    WIN32_FIND_STREAM_DATA fsd;
++    BOOL bFindNext;
++    char *list_ptr = list;
++    size_t list_left_size = size;
++    HANDLE hFind;
++    HANDLE hDir = (HANDLE)_get_osfhandle(dirfd);
++    int ret;
++
++    full_file_name = get_full_path_win32(hDir, filename);
++    if (full_file_name == NULL) {
++        errno = EIO;
++        return -1;
++    }
++
++    /*
++     * ADS enumerate function only has WCHAR version, so we need to
++     * covert filename to utf-8 string.
++     */
++    ret = MultiByteToWideChar(CP_UTF8, 0, full_file_name,
++                              strlen(full_file_name), WideCharStr, NAME_MAX);
++    if (ret == 0) {
++        errno = EIO;
++        return -1;
++    }
++
++    hFind = FindFirstStreamW(WideCharStr, FindStreamInfoStandard, &fsd, 0);
++    if (hFind == INVALID_HANDLE_VALUE) {
++        errno = ENODATA;
++        return -1;
++    }
++
++    do {
++        memset(full_ads_name, 0, sizeof(full_ads_name));
++
++        /*
++         * ADS enumerate function only has WCHAR version, so we need to
++         * covert cStreamName to utf-8 string.
++         */
++        ret = WideCharToMultiByte(CP_UTF8, 0,
++                                  fsd.cStreamName, wcslen(fsd.cStreamName) + 1,
++                                  full_ads_name, sizeof(full_ads_name) - 1,
++                                  NULL, NULL);
++        if (ret == 0) {
++            if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
++                errno = ERANGE;
++            }
++            CloseHandle(hFind);
++            return -1;
++        }
++
++        ret = copy_ads_name(list_ptr, list_left_size, full_ads_name);
++        if (ret < 0) {
++            errno = ERANGE;
++            CloseHandle(hFind);
++            return -1;
++        }
++
++        list_ptr = list_ptr + ret;
++        list_left_size = list_left_size - ret;
++
++        bFindNext = FindNextStreamW(hFind, &fsd);
++    } while (bFindNext);
++
++    CloseHandle(hFind);
++
++    return size - list_left_size;
++}
++
++/*
++ * fremovexattrat_nofollow - remove extended attribute
++ *
++ * This function removes an extended attribute from file <filename> in the
++ * directory specified by <dirfd>.
++ *
++ * This function emulates extended attribute by NTFS ADS.
++ */
++ssize_t fremovexattrat_nofollow(int dirfd, const char *filename,
++                                const char *name)
++{
++    g_autofree char *full_file_name = NULL;
++    char ads_file_name[NAME_MAX + 1] = { 0 };
++    HANDLE hDir = (HANDLE)_get_osfhandle(dirfd);
++
++    full_file_name = get_full_path_win32(hDir, filename);
++    if (full_file_name == NULL) {
++        errno = EIO;
++        return -1;
++    }
++
++    if (build_ads_name(ads_file_name, NAME_MAX, filename, name) < 0) {
++        errno = EIO;
++        return -1;
++    }
++
++    if (DeleteFile(ads_file_name) != 0) {
++        if (GetLastError() == ERROR_FILE_NOT_FOUND) {
++            errno = ENODATA;
++            return -1;
++        }
++    }
++
++    return 0;
++}
++
++/*
++ * local_opendir_nofollow - open a Windows directory
++ *
++ * This function returns a fd of the directory specified by
++ * <dirpath> based on 9pfs mount point.
++ *
++ * Windows POSIX API does not support opening a directory by open(). Only
++ * handle of directory can be opened by CreateFile().
++ * This function convert handle to fd by _open_osfhandle().
++ *
++ * This function checks the resolved path of <dirpath>. If the resolved
++ * path is not in the scope of root directory (e.g. by symbolic link), then
++ * this function will fail to prevent any security issues.
++ */
++int local_opendir_nofollow(FsContext *fs_ctx, const char *dirpath)
++{
++    g_autofree char *full_file_name = NULL;
++    LocalData *data = fs_ctx->private;
++    HANDLE hDir;
++    int dirfd;
++
++    dirfd = openat_dir(data->mountfd, dirpath);
++    if (dirfd == -1) {
++        return -1;
++    }
++    hDir = (HANDLE)_get_osfhandle(dirfd);
++
++    full_file_name = get_full_path_win32(hDir, NULL);
++    if (full_file_name == NULL) {
++        close(dirfd);
++        return -1;
++    }
++
++    /*
++     * Check if the resolved path is in the root directory scope:
++     * data->root_path and full_file_name are full path with symbolic
++     * link resolved, so fs_ctx->root_path must be in the head of
++     * full_file_name. If not, that means guest OS tries to open a file not
++     * in the scope of mount point. This operation should be denied.
++     */
++    if (memcmp(full_file_name, data->root_path,
++               strlen(data->root_path)) != 0) {
++        close(dirfd);
++        return -1;
++    }
++
++    return dirfd;
++}
++
++/*
++ * qemu_mknodat - mknodat emulate function
++ *
++ * This function emulates mknodat on Windows. It only works when security
++ * model is mapped or mapped-xattr.
++ */
++int qemu_mknodat(int dirfd, const char *filename, mode_t mode, dev_t dev)
++{
++    if (S_ISREG(mode) || !(mode & S_IFMT)) {
++        int fd = openat_file(dirfd, filename, O_CREAT, mode);
++        if (fd == -1) {
++            return -1;
++        }
++        close_preserve_errno(fd);
++        return 0;
++    }
++
++    error_report_once("Unsupported operation for mknodat");
++    errno = ENOTSUP;
++    return -1;
++}
+diff --git a/hw/9pfs/9p-util.h b/hw/9pfs/9p-util.h
+index 7bc4ec8e85..ec92934750 100644
+--- a/hw/9pfs/9p-util.h
++++ b/hw/9pfs/9p-util.h
+@@ -90,12 +90,22 @@ static inline int errno_to_dotl(int err) {
+     return err;
+ }
+ 
+-#ifdef CONFIG_DARWIN
++#if defined(CONFIG_DARWIN)
+ #define qemu_fgetxattr(...) fgetxattr(__VA_ARGS__, 0, 0)
++#elif defined(CONFIG_WIN32)
++#define qemu_fgetxattr fgetxattr_win32
+ #else
+ #define qemu_fgetxattr fgetxattr
+ #endif
+ 
++#ifdef CONFIG_WIN32
++#define qemu_openat     openat_win32
++#define qemu_fstatat    fstatat_win32
++#define qemu_mkdirat    mkdirat_win32
++#define qemu_renameat   renameat_win32
++#define qemu_utimensat  utimensat_win32
++#define qemu_unlinkat   unlinkat_win32
++#else
+ #define qemu_openat     openat
+ #define qemu_fstat      fstat
+ #define qemu_fstatat    fstatat
+@@ -103,6 +113,24 @@ static inline int errno_to_dotl(int err) {
+ #define qemu_renameat   renameat
+ #define qemu_utimensat  utimensat
+ #define qemu_unlinkat   unlinkat
++#endif
++
++#ifdef CONFIG_WIN32
++char *get_full_path_win32(HANDLE hDir, const char *name);
++ssize_t fgetxattr_win32(int fd, const char *name, void *value, size_t size);
++int openat_win32(int dirfd, const char *pathname, int flags, mode_t mode);
++int fstatat_win32(int dirfd, const char *pathname,
++                  struct stat *statbuf, int flags);
++int mkdirat_win32(int dirfd, const char *pathname, mode_t mode);
++int renameat_win32(int olddirfd, const char *oldpath,
++                   int newdirfd, const char *newpath);
++int utimensat_win32(int dirfd, const char *pathname,
++                    const struct timespec times[2], int flags);
++int unlinkat_win32(int dirfd, const char *pathname, int flags);
++int statfs_win32(const char *root_path, struct statfs *stbuf);
++int openat_dir(int dirfd, const char *name);
++int openat_file(int dirfd, const char *name, int flags, mode_t mode);
++#endif
+ 
+ static inline void close_preserve_errno(int fd)
+ {
+@@ -111,6 +139,7 @@ static inline void close_preserve_errno(int fd)
+     errno = serrno;
+ }
+ 
++#ifndef CONFIG_WIN32
+ /**
+  * close_if_special_file() - Close @fd if neither regular file nor directory.
+  *
+@@ -200,6 +229,7 @@ again:
+     }
+     return fd;
+ }
++#endif
+ 
+ ssize_t fgetxattrat_nofollow(int dirfd, const char *path, const char *name,
+                              void *value, size_t size);
+-- 
+2.50.1
+
+From 1ab0616535e72c4b1552887e41333503969f21e9 Mon Sep 17 00:00:00 2001
+From: Guohuai Shi <guohuai.shi@windriver.com>
+Date: Mon, 20 Feb 2023 18:08:02 +0800
+Subject: [PATCH 03/15] hw/9pfs: Replace the direct call to xxxdir() APIs with
+ a wrapper
+
+xxxdir() APIs are not safe on Windows host. For future extension to
+Windows, let's replace the direct call to xxxdir() APIs with a wrapper.
+
+Signed-off-by: Guohuai Shi <guohuai.shi@windriver.com>
+Signed-off-by: Bin Meng <bin.meng@windriver.com>
+---
+ hw/9pfs/9p-local.c | 12 ++++++------
+ hw/9pfs/9p-util.h  | 14 ++++++++++++++
+ 2 files changed, 20 insertions(+), 6 deletions(-)
+
+diff --git a/hw/9pfs/9p-local.c b/hw/9pfs/9p-local.c
+index 065f7dbef2..7340d03422 100644
+--- a/hw/9pfs/9p-local.c
++++ b/hw/9pfs/9p-local.c
+@@ -495,7 +495,7 @@ static int local_close(FsContext *ctx, V9fsFidOpenState *fs)
+ 
+ static int local_closedir(FsContext *ctx, V9fsFidOpenState *fs)
+ {
+-    return closedir(fs->dir.stream);
++    return qemu_closedir(fs->dir.stream);
+ }
+ 
+ static int local_open(FsContext *ctx, V9fsPath *fs_path,
+@@ -533,12 +533,12 @@ static int local_opendir(FsContext *ctx,
+ 
+ static void local_rewinddir(FsContext *ctx, V9fsFidOpenState *fs)
+ {
+-    rewinddir(fs->dir.stream);
++    qeme_rewinddir(fs->dir.stream);
+ }
+ 
+ static off_t local_telldir(FsContext *ctx, V9fsFidOpenState *fs)
+ {
+-    return telldir(fs->dir.stream);
++    return qemu_telldir(fs->dir.stream);
+ }
+ 
+ static bool local_is_mapped_file_metadata(FsContext *fs_ctx, const char *name)
+@@ -552,13 +552,13 @@ static struct dirent *local_readdir(FsContext *ctx, V9fsFidOpenState *fs)
+     struct dirent *entry;
+ 
+ again:
+-    entry = readdir(fs->dir.stream);
++    entry = qemu_readdir(fs->dir.stream);
+     if (!entry) {
+         return NULL;
+     }
+ #ifdef CONFIG_DARWIN
+     int off;
+-    off = telldir(fs->dir.stream);
++    off = qemu_telldir(fs->dir.stream);
+     /* If telldir fails, fail the entire readdir call */
+     if (off < 0) {
+         return NULL;
+@@ -581,7 +581,7 @@ again:
+ 
+ static void local_seekdir(FsContext *ctx, V9fsFidOpenState *fs, off_t off)
+ {
+-    seekdir(fs->dir.stream, off);
++    qemu_seekdir(fs->dir.stream, off);
+ }
+ 
+ static ssize_t local_preadv(FsContext *ctx, V9fsFidOpenState *fs,
+diff --git a/hw/9pfs/9p-util.h b/hw/9pfs/9p-util.h
+index ec92934750..aec88892cc 100644
+--- a/hw/9pfs/9p-util.h
++++ b/hw/9pfs/9p-util.h
+@@ -105,6 +105,13 @@ static inline int errno_to_dotl(int err) {
+ #define qemu_renameat   renameat_win32
+ #define qemu_utimensat  utimensat_win32
+ #define qemu_unlinkat   unlinkat_win32
++
++#define qemu_opendir    opendir_win32
++#define qemu_closedir   closedir_win32
++#define qemu_readdir    readdir_win32
++#define qeme_rewinddir  rewinddir_win32
++#define qemu_seekdir    seekdir_win32
++#define qemu_telldir    telldir_win32
+ #else
+ #define qemu_openat     openat
+ #define qemu_fstat      fstat
+@@ -113,6 +120,13 @@ static inline int errno_to_dotl(int err) {
+ #define qemu_renameat   renameat
+ #define qemu_utimensat  utimensat
+ #define qemu_unlinkat   unlinkat
++
++#define qemu_opendir    opendir
++#define qemu_closedir   closedir
++#define qemu_readdir    readdir
++#define qeme_rewinddir  rewinddir
++#define qemu_seekdir    seekdir
++#define qemu_telldir    telldir
+ #endif
+ 
+ #ifdef CONFIG_WIN32
+-- 
+2.50.1
+
+From d7d8697bd9eccb0fe306454fbe1c45214d39cd4e Mon Sep 17 00:00:00 2001
+From: Guohuai Shi <guohuai.shi@windriver.com>
+Date: Mon, 20 Feb 2023 18:08:03 +0800
+Subject: [PATCH 04/15] hw/9pfs: Implement Windows specific xxxdir() APIs
+
+This commit implements Windows specific xxxdir() APIs for safety
+directory access.
+
+Signed-off-by: Guohuai Shi <guohuai.shi@windriver.com>
+Signed-off-by: Bin Meng <bin.meng@windriver.com>
+---
+ hw/9pfs/9p-util-win32.c | 443 ++++++++++++++++++++++++++++++++++++++++
+ hw/9pfs/9p-util.h       |   6 +
+ 2 files changed, 449 insertions(+)
+
+diff --git a/hw/9pfs/9p-util-win32.c b/hw/9pfs/9p-util-win32.c
+index a99d579a06..e9408f3c45 100644
+--- a/hw/9pfs/9p-util-win32.c
++++ b/hw/9pfs/9p-util-win32.c
+@@ -37,6 +37,16 @@
+  *    Windows does not support opendir, the directory fd is created by
+  *    CreateFile and convert to fd by _open_osfhandle(). Keep the fd open will
+  *    lock and protect the directory (can not be modified or replaced)
++ *
++ * 5. Neither Windows native APIs, nor MinGW provide a POSIX compatible API for
++ *    acquiring directory entries in a safe way. Calling those APIs (native
++ *    _findfirst() and _findnext() or MinGW's readdir(), seekdir() and
++ *    telldir()) directly can lead to an inconsistent state if directory is
++ *    modified in between, e.g. the same directory appearing more than once
++ *    in output, or directories not appearing at all in output even though they
++ *    were neither newly created nor deleted. POSIX does not define what happens
++ *    with deleted or newly created directories in between, but it guarantees a
++ *    consistent state.
+  */
+ 
+ #include "qemu/osdep.h"
+@@ -51,6 +61,25 @@
+ 
+ #define V9FS_MAGIC  0x53465039  /* string "9PFS" */
+ 
++/*
++ * MinGW and Windows does not provide a safe way to seek directory while other
++ * thread is modifying the same directory.
++ *
++ * This structure is used to store sorted file id and ensure directory seek
++ * consistency.
++ */
++struct dir_win32 {
++    struct dirent dd_dir;
++    uint32_t offset;
++    uint32_t total_entries;
++    HANDLE hDir;
++    uint32_t dir_name_len;
++    uint64_t dot_id;
++    uint64_t dot_dot_id;
++    uint64_t *file_id_list;
++    char dd_name[1];
++};
++
+ /*
+  * win32_error_to_posix - convert Win32 error to POSIX error number
+  *
+@@ -977,3 +1006,417 @@ int qemu_mknodat(int dirfd, const char *filename, mode_t mode, dev_t dev)
+     errno = ENOTSUP;
+     return -1;
+ }
++
++static int file_id_compare(const void *id_ptr1, const void *id_ptr2)
++{
++    uint64_t id[2];
++
++    id[0] = *(uint64_t *)id_ptr1;
++    id[1] = *(uint64_t *)id_ptr2;
++
++    if (id[0] > id[1]) {
++        return 1;
++    } else if (id[0] < id[1]) {
++        return -1;
++    } else {
++        return 0;
++    }
++}
++
++static int get_next_entry(struct dir_win32 *stream)
++{
++    HANDLE hDirEntry = INVALID_HANDLE_VALUE;
++    char *entry_name;
++    char *entry_start;
++    FILE_ID_DESCRIPTOR fid;
++    DWORD attribute;
++
++    if (stream->file_id_list[stream->offset] == stream->dot_id) {
++        strcpy(stream->dd_dir.d_name, ".");
++        return 0;
++    }
++
++    if (stream->file_id_list[stream->offset] == stream->dot_dot_id) {
++        strcpy(stream->dd_dir.d_name, "..");
++        return 0;
++    }
++
++    fid.dwSize = sizeof(fid);
++    fid.Type = FileIdType;
++
++    fid.FileId.QuadPart = stream->file_id_list[stream->offset];
++
++    hDirEntry = OpenFileById(stream->hDir, &fid, GENERIC_READ,
++                             FILE_SHARE_READ | FILE_SHARE_WRITE
++                             | FILE_SHARE_DELETE,
++                             NULL,
++                             FILE_FLAG_BACKUP_SEMANTICS
++                             | FILE_FLAG_OPEN_REPARSE_POINT);
++
++    if (hDirEntry == INVALID_HANDLE_VALUE) {
++        /*
++         * Not open it successfully, it may be deleted.
++         * Try next id.
++         */
++        return -1;
++    }
++
++    entry_name = get_full_path_win32(hDirEntry, NULL);
++
++    CloseHandle(hDirEntry);
++
++    if (entry_name == NULL) {
++        return -1;
++    }
++
++    attribute = GetFileAttributes(entry_name);
++
++    /* symlink is not allowed */
++    if (attribute == INVALID_FILE_ATTRIBUTES
++        || (attribute & FILE_ATTRIBUTE_REPARSE_POINT) != 0) {
++        return -1;
++    }
++
++    if (memcmp(entry_name, stream->dd_name, stream->dir_name_len) != 0) {
++        /*
++         * The full entry file name should be a part of parent directory name,
++         * except dot and dot_dot (is already handled).
++         * If not, this entry should not be returned.
++         */
++        return -1;
++    }
++
++    entry_start = entry_name + stream->dir_name_len;
++
++    /* skip slash */
++    while (*entry_start == '\\') {
++        entry_start++;
++    }
++
++    if (strchr(entry_start, '\\') != NULL) {
++        return -1;
++    }
++
++    if (strlen(entry_start) == 0
++        || strlen(entry_start) + 1 > sizeof(stream->dd_dir.d_name)) {
++        return -1;
++    }
++    strcpy(stream->dd_dir.d_name, entry_start);
++
++    return 0;
++}
++
++/*
++ * opendir_win32 - open a directory
++ *
++ * This function opens a directory and caches all directory entries.
++ */
++DIR *opendir_win32(const char *full_file_name)
++{
++    HANDLE hDir = INVALID_HANDLE_VALUE;
++    HANDLE hDirEntry = INVALID_HANDLE_VALUE;
++    char *full_dir_entry = NULL;
++    DWORD attribute;
++    intptr_t dd_handle = -1;
++    struct _finddata_t dd_data;
++    uint64_t file_id;
++    uint64_t *file_id_list = NULL;
++    BY_HANDLE_FILE_INFORMATION FileInfo;
++    struct dir_win32 *stream = NULL;
++    int err = 0;
++    int find_status;
++    int sort_first_two_entry = 0;
++    uint32_t list_count = 16;
++    uint32_t index = 0;
++
++    /* open directory to prevent it being removed */
++
++    hDir = CreateFile(full_file_name, GENERIC_READ,
++                      FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
++                      NULL,
++                      OPEN_EXISTING,
++                      FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
++                      NULL);
++
++    if (hDir == INVALID_HANDLE_VALUE) {
++        err = win32_error_to_posix(GetLastError());
++        goto out;
++    }
++
++    attribute = GetFileAttributes(full_file_name);
++
++    /* symlink is not allow */
++    if (attribute == INVALID_FILE_ATTRIBUTES
++        || (attribute & FILE_ATTRIBUTE_REPARSE_POINT) != 0) {
++        err = EACCES;
++        goto out;
++    }
++
++    /* check if it is a directory */
++    if ((attribute & FILE_ATTRIBUTE_DIRECTORY) == 0) {
++        err = ENOTDIR;
++        goto out;
++    }
++
++    file_id_list = g_malloc0(sizeof(uint64_t) * list_count);
++
++    /*
++     * findfirst() needs suffix format name like "\dir1\dir2\*",
++     * allocate more buffer to store suffix.
++     */
++    stream = g_malloc0(sizeof(struct dir_win32) + strlen(full_file_name) + 3);
++
++    strcpy(stream->dd_name, full_file_name);
++    strcat(stream->dd_name, "\\*");
++
++    stream->hDir = hDir;
++    stream->dir_name_len = strlen(full_file_name);
++
++    dd_handle = _findfirst(stream->dd_name, &dd_data);
++
++    if (dd_handle == -1) {
++        err = errno;
++        goto out;
++    }
++
++    /* read all entries to link list */
++    do {
++        full_dir_entry = get_full_path_win32(hDir, dd_data.name);
++
++        if (full_dir_entry == NULL) {
++            err = ENOMEM;
++            break;
++        }
++
++        /*
++         * Open every entry and get the file informations.
++         *
++         * Skip symbolic links during reading directory.
++         */
++        hDirEntry = CreateFile(full_dir_entry,
++                               GENERIC_READ,
++                               FILE_SHARE_READ | FILE_SHARE_WRITE
++                               | FILE_SHARE_DELETE,
++                               NULL,
++                               OPEN_EXISTING,
++                               FILE_FLAG_BACKUP_SEMANTICS
++                               | FILE_FLAG_OPEN_REPARSE_POINT, NULL);
++
++        if (hDirEntry != INVALID_HANDLE_VALUE) {
++            if (GetFileInformationByHandle(hDirEntry,
++                                           &FileInfo) == TRUE) {
++                attribute = FileInfo.dwFileAttributes;
++
++                /* only save validate entries */
++                if ((attribute & FILE_ATTRIBUTE_REPARSE_POINT) == 0) {
++                    if (index >= list_count) {
++                        list_count = list_count + 16;
++                        file_id_list = g_realloc(file_id_list,
++                                                 sizeof(uint64_t)
++                                                 * list_count);
++                    }
++                    file_id = (uint64_t)FileInfo.nFileIndexLow
++                              + (((uint64_t)FileInfo.nFileIndexHigh) << 32);
++
++
++                    file_id_list[index] = file_id;
++
++                    if (strcmp(dd_data.name, ".") == 0) {
++                        stream->dot_id = file_id_list[index];
++                        if (index != 0) {
++                            sort_first_two_entry = 1;
++                        }
++                    } else if (strcmp(dd_data.name, "..") == 0) {
++                        stream->dot_dot_id = file_id_list[index];
++                        if (index != 1) {
++                            sort_first_two_entry = 1;
++                        }
++                    }
++                    index++;
++                }
++            }
++            CloseHandle(hDirEntry);
++        }
++        g_free(full_dir_entry);
++        find_status = _findnext(dd_handle, &dd_data);
++    } while (find_status == 0);
++
++    if (errno == ENOENT) {
++        /* No more matching files could be found, clean errno */
++        errno = 0;
++    } else {
++        err = errno;
++        goto out;
++    }
++
++    stream->total_entries = index;
++    stream->file_id_list = file_id_list;
++
++    if (sort_first_two_entry == 0) {
++        /*
++         * If the first two entry is "." and "..", then do not sort them.
++         *
++         * If the guest OS always considers first two entries are "." and "..",
++         * sort the two entries may cause confused display in guest OS.
++         */
++        qsort(&file_id_list[2], index - 2, sizeof(file_id), file_id_compare);
++    } else {
++        qsort(&file_id_list[0], index, sizeof(file_id), file_id_compare);
++    }
++
++out:
++    if (err != 0) {
++        errno = err;
++        if (stream != NULL) {
++            if (file_id_list != NULL) {
++                g_free(file_id_list);
++            }
++            CloseHandle(hDir);
++            g_free(stream);
++            stream = NULL;
++        }
++    }
++
++    if (dd_handle != -1) {
++        _findclose(dd_handle);
++    }
++
++    return (DIR *)stream;
++}
++
++/*
++ * closedir_win32 - close a directory
++ *
++ * This function closes directory and free all cached resources.
++ */
++int closedir_win32(DIR *pDir)
++{
++    struct dir_win32 *stream = (struct dir_win32 *)pDir;
++
++    if (stream == NULL) {
++        errno = EBADF;
++        return -1;
++    }
++
++    /* free all resources */
++    CloseHandle(stream->hDir);
++
++    g_free(stream->file_id_list);
++
++    g_free(stream);
++
++    return 0;
++}
++
++/*
++ * readdir_win32 - read a directory
++ *
++ * This function reads a directory entry from cached entry list.
++ */
++struct dirent *readdir_win32(DIR *pDir)
++{
++    struct dir_win32 *stream = (struct dir_win32 *)pDir;
++
++    if (stream == NULL) {
++        errno = EBADF;
++        return NULL;
++    }
++
++retry:
++
++    if (stream->offset >= stream->total_entries) {
++        /* reach to the end, return NULL without set errno */
++        return NULL;
++    }
++
++    if (get_next_entry(stream) != 0) {
++        stream->offset++;
++        goto retry;
++    }
++
++    /* Windows does not provide inode number */
++    stream->dd_dir.d_ino = 0;
++    stream->dd_dir.d_reclen = 0;
++    stream->dd_dir.d_namlen = strlen(stream->dd_dir.d_name);
++
++    stream->offset++;
++
++    return &stream->dd_dir;
++}
++
++/*
++ * rewinddir_win32 - reset directory stream
++ *
++ * This function resets the position of the directory stream to the
++ * beginning of the directory.
++ */
++void rewinddir_win32(DIR *pDir)
++{
++    struct dir_win32 *stream = (struct dir_win32 *)pDir;
++
++    if (stream == NULL) {
++        errno = EBADF;
++        return;
++    }
++
++    stream->offset = 0;
++
++    return;
++}
++
++/*
++ * seekdir_win32 - set the position of the next readdir() call in the directory
++ *
++ * This function sets the position of the next readdir() call in the directory
++ * from which the next readdir() call will start.
++ */
++void seekdir_win32(DIR *pDir, long pos)
++{
++    struct dir_win32 *stream = (struct dir_win32 *)pDir;
++
++    if (stream == NULL) {
++        errno = EBADF;
++        return;
++    }
++
++    if (pos < -1) {
++        errno = EINVAL;
++        return;
++    }
++
++    if (pos == -1 || pos >= (long)stream->total_entries) {
++        /* seek to the end */
++        stream->offset = stream->total_entries;
++        return;
++    }
++
++    if (pos - (long)stream->offset == 0) {
++        /* no need to seek */
++        return;
++    }
++
++    stream->offset = pos;
++
++    return;
++}
++
++/*
++ * telldir_win32 - return current location in directory
++ *
++ * This function returns current location in directory.
++ */
++long telldir_win32(DIR *pDir)
++{
++    struct dir_win32 *stream = (struct dir_win32 *)pDir;
++
++    if (stream == NULL) {
++        errno = EBADF;
++        return -1;
++    }
++
++    if (stream->offset > stream->total_entries) {
++        return -1;
++    }
++
++    return (long)stream->offset;
++}
+diff --git a/hw/9pfs/9p-util.h b/hw/9pfs/9p-util.h
+index aec88892cc..c07a919caa 100644
+--- a/hw/9pfs/9p-util.h
++++ b/hw/9pfs/9p-util.h
+@@ -144,6 +144,12 @@ int unlinkat_win32(int dirfd, const char *pathname, int flags);
+ int statfs_win32(const char *root_path, struct statfs *stbuf);
+ int openat_dir(int dirfd, const char *name);
+ int openat_file(int dirfd, const char *name, int flags, mode_t mode);
++DIR *opendir_win32(const char *full_file_name);
++int closedir_win32(DIR *pDir);
++struct dirent *readdir_win32(DIR *pDir);
++void rewinddir_win32(DIR *pDir);
++void seekdir_win32(DIR *pDir, long pos);
++long telldir_win32(DIR *pDir);
+ #endif
+ 
+ static inline void close_preserve_errno(int fd)
+-- 
+2.50.1
+
+From e06a51643a50e8a337d017a8b83c91bfdae9799b Mon Sep 17 00:00:00 2001
+From: Guohuai Shi <guohuai.shi@windriver.com>
+Date: Mon, 20 Feb 2023 18:08:04 +0800
+Subject: [PATCH 05/15] hw/9pfs: Update the local fs driver to support Windows
+
+Update the 9p 'local' file system driver to support Windows,
+including open, read, write, close, rename, remove, etc.
+
+All security models are supported. The mapped (mapped-xattr)
+security model is implemented using NTFS Alternate Data Stream
+(ADS) so the 9p export path shall be on an NTFS partition.
+
+Symbolic link and hard link are not supported when security
+model is "passthrough" or "none", because Windows NTFS does
+not fully support them with POSIX compatibility. Symbolic
+link is enabled when security model is "mapped-file" or
+"mapped-xattr".
+
+inode remap is always enabled because Windows file system
+does not provide a compatible inode number.
+
+mknod() is not supported because Windows does not support it.
+chown() and chmod() are not supported when 9pfs is configured
+with security mode to 'none' or 'passthrough' because Windows
+host does not support such type request.
+
+Signed-off-by: Guohuai Shi <guohuai.shi@windriver.com>
+Signed-off-by: Bin Meng <bin.meng@windriver.com>
+---
+ hw/9pfs/9p-local.c | 258 +++++++++++++++++++++++++++++++++++++++++++--
+ hw/9pfs/9p-local.h |   1 +
+ 2 files changed, 251 insertions(+), 8 deletions(-)
+
+diff --git a/hw/9pfs/9p-local.c b/hw/9pfs/9p-local.c
+index 7340d03422..913c7bdcba 100644
+--- a/hw/9pfs/9p-local.c
++++ b/hw/9pfs/9p-local.c
+@@ -21,11 +21,13 @@
+ #include "9p-xattr.h"
+ #include "9p-util.h"
+ #include "fsdev/qemu-fsdev.h"   /* local_ops */
++#ifndef CONFIG_WIN32
+ #include <arpa/inet.h>
+ #include <pwd.h>
+ #include <grp.h>
+ #include <sys/socket.h>
+ #include <sys/un.h>
++#endif
+ #include "qemu/xattr.h"
+ #include "qapi/error.h"
+ #include "qemu/cutils.h"
+@@ -38,7 +40,9 @@
+ #include <linux/magic.h>
+ #endif
+ #endif
++#ifndef CONFIG_WIN32
+ #include <sys/ioctl.h>
++#endif
+ 
+ #ifndef XFS_SUPER_MAGIC
+ #define XFS_SUPER_MAGIC  0x58465342
+@@ -90,10 +94,12 @@ int local_open_nofollow(FsContext *fs_ctx, const char *path, int flags,
+     return fd;
+ }
+ 
++#ifndef CONFIG_WIN32
+ int local_opendir_nofollow(FsContext *fs_ctx, const char *path)
+ {
+     return local_open_nofollow(fs_ctx, path, O_DIRECTORY | O_RDONLY, 0);
+ }
++#endif
+ 
+ static void renameat_preserve_errno(int odirfd, const char *opath, int ndirfd,
+                                     const char *npath)
+@@ -236,7 +242,7 @@ static int local_set_mapped_file_attrat(int dirfd, const char *name,
+     int ret;
+     char buf[ATTR_MAX];
+     int uid = -1, gid = -1, mode = -1, rdev = -1;
+-    int map_dirfd = -1, map_fd;
++    int map_dirfd = -1;
+     bool is_root = !strcmp(name, ".");
+ 
+     if (is_root) {
+@@ -300,10 +306,12 @@ update_map_file:
+         return -1;
+     }
+ 
+-    map_fd = fileno(fp);
++#ifndef CONFIG_WIN32
++    int map_fd = fileno(fp);
+     assert(map_fd != -1);
+     ret = fchmod(map_fd, 0600);
+     assert(ret == 0);
++#endif
+ 
+     if (credp->fc_uid != -1) {
+         uid = credp->fc_uid;
+@@ -335,6 +343,7 @@ update_map_file:
+     return 0;
+ }
+ 
++#ifndef CONFIG_WIN32
+ static int fchmodat_nofollow(int dirfd, const char *name, mode_t mode)
+ {
+     struct stat stbuf;
+@@ -396,6 +405,7 @@ static int fchmodat_nofollow(int dirfd, const char *name, mode_t mode)
+     close_preserve_errno(fd);
+     return ret;
+ }
++#endif
+ 
+ static int local_set_xattrat(int dirfd, const char *path, FsCred *credp)
+ {
+@@ -436,6 +446,7 @@ static int local_set_xattrat(int dirfd, const char *path, FsCred *credp)
+     return 0;
+ }
+ 
++#ifndef CONFIG_WIN32
+ static int local_set_cred_passthrough(FsContext *fs_ctx, int dirfd,
+                                       const char *name, FsCred *credp)
+ {
+@@ -452,6 +463,7 @@ static int local_set_cred_passthrough(FsContext *fs_ctx, int dirfd,
+ 
+     return fchmodat_nofollow(dirfd, name, credp->fc_mode & 07777);
+ }
++#endif
+ 
+ static ssize_t local_readlink(FsContext *fs_ctx, V9fsPath *fs_path,
+                               char *buf, size_t bufsz)
+@@ -470,6 +482,12 @@ static ssize_t local_readlink(FsContext *fs_ctx, V9fsPath *fs_path,
+         close_preserve_errno(fd);
+     } else if ((fs_ctx->export_flags & V9FS_SM_PASSTHROUGH) ||
+                (fs_ctx->export_flags & V9FS_SM_NONE)) {
++#ifdef CONFIG_WIN32
++        errno = ENOTSUP;
++        error_report_once("readlink is not available on Windows host when"
++                          "security_model is \"none\" or \"passthrough\"");
++        tsize = -1;
++#else
+         char *dirpath = g_path_get_dirname(fs_path->data);
+         char *name = g_path_get_basename(fs_path->data);
+         int dirfd;
+@@ -484,6 +502,7 @@ static ssize_t local_readlink(FsContext *fs_ctx, V9fsPath *fs_path,
+     out:
+         g_free(name);
+         g_free(dirpath);
++#endif
+     }
+     return tsize;
+ }
+@@ -522,9 +541,31 @@ static int local_opendir(FsContext *ctx,
+         return -1;
+     }
+ 
++#ifdef CONFIG_WIN32
++    char *full_file_name;
++
++    HANDLE hDir = (HANDLE)_get_osfhandle(dirfd);
++
++    full_file_name = get_full_path_win32(hDir, NULL);
++
++    close(dirfd);
++
++    if (full_file_name == NULL) {
++        return -1;
++    }
++    stream = qemu_opendir(full_file_name);
++    g_free(full_file_name);
++#else
+     stream = fdopendir(dirfd);
++#endif
++
+     if (!stream) {
++#ifndef CONFIG_WIN32
++        /*
++         * dirfd is closed always in above code, so no need to close it here.
++         */
+         close(dirfd);
++#endif
+         return -1;
+     }
+     fs->dir.stream = stream;
+@@ -567,13 +608,17 @@ again:
+ #endif
+ 
+     if (ctx->export_flags & V9FS_SM_MAPPED) {
++#ifndef CONFIG_WIN32
+         entry->d_type = DT_UNKNOWN;
++#endif
+     } else if (ctx->export_flags & V9FS_SM_MAPPED_FILE) {
+         if (local_is_mapped_file_metadata(ctx, entry->d_name)) {
+             /* skip the meta data */
+             goto again;
+         }
++#ifndef CONFIG_WIN32
+         entry->d_type = DT_UNKNOWN;
++#endif
+     }
+ 
+     return entry;
+@@ -647,7 +692,14 @@ static int local_chmod(FsContext *fs_ctx, V9fsPath *fs_path, FsCred *credp)
+         ret = local_set_mapped_file_attrat(dirfd, name, credp);
+     } else if (fs_ctx->export_flags & V9FS_SM_PASSTHROUGH ||
+                fs_ctx->export_flags & V9FS_SM_NONE) {
++#ifdef CONFIG_WIN32
++        errno = ENOTSUP;
++        error_report_once("chmod is not available on Windows host when"
++                          "security_model is \"none\" or \"passthrough\"");
++        ret = -1;
++#else
+         ret = fchmodat_nofollow(dirfd, name, credp->fc_mode);
++#endif
+     }
+     close_preserve_errno(dirfd);
+ 
+@@ -691,6 +743,12 @@ static int local_mknod(FsContext *fs_ctx, V9fsPath *dir_path,
+         }
+     } else if (fs_ctx->export_flags & V9FS_SM_PASSTHROUGH ||
+                fs_ctx->export_flags & V9FS_SM_NONE) {
++#ifdef CONFIG_WIN32
++        errno = ENOTSUP;
++        error_report_once("mknod is not available on Windows host when"
++                          "security_model is \"none\" or \"passthrough\"");
++        goto out;
++#else
+         err = qemu_mknodat(dirfd, name, credp->fc_mode, credp->fc_rdev);
+         if (err == -1) {
+             goto out;
+@@ -699,6 +757,7 @@ static int local_mknod(FsContext *fs_ctx, V9fsPath *dir_path,
+         if (err == -1) {
+             goto err_end;
+         }
++#endif
+     }
+     goto out;
+ 
+@@ -748,10 +807,12 @@ static int local_mkdir(FsContext *fs_ctx, V9fsPath *dir_path,
+         if (err == -1) {
+             goto out;
+         }
++#ifndef CONFIG_WIN32
+         err = local_set_cred_passthrough(fs_ctx, dirfd, name, credp);
+         if (err == -1) {
+             goto err_end;
+         }
++#endif
+     }
+     goto out;
+ 
+@@ -765,7 +826,11 @@ out:
+ static int local_fid_fd(int fid_type, V9fsFidOpenState *fs)
+ {
+     if (fid_type == P9_FID_DIR) {
++#ifdef CONFIG_WIN32
++        return -1;
++#else
+         return dirfd(fs->dir.stream);
++#endif
+     } else {
+         return fs->fd;
+     }
+@@ -774,6 +839,12 @@ static int local_fid_fd(int fid_type, V9fsFidOpenState *fs)
+ static int local_fstat(FsContext *fs_ctx, int fid_type,
+                        V9fsFidOpenState *fs, struct stat *stbuf)
+ {
++#ifdef CONFIG_WIN32
++    if (fid_type == P9_FID_DIR) {
++        errno = ENOTSUP;
++        return -1;  /* Windows do not allow opening a directory by open() */
++    }
++#endif
+     int err, fd = local_fid_fd(fid_type, fs);
+ 
+     err = fstat(fd, stbuf);
+@@ -823,10 +894,10 @@ static int local_open2(FsContext *fs_ctx, V9fsPath *dir_path, const char *name,
+         return -1;
+     }
+ 
+-    /*
+-     * Mark all the open to not follow symlinks
+-     */
++#ifndef CONFIG_WIN32
++    /* Mark all the open to not follow symlinks */
+     flags |= O_NOFOLLOW;
++#endif
+ 
+     dirfd = local_opendir_nofollow(fs_ctx, dir_path->data);
+     if (dirfd == -1) {
+@@ -856,10 +927,12 @@ static int local_open2(FsContext *fs_ctx, V9fsPath *dir_path, const char *name,
+         if (fd == -1) {
+             goto out;
+         }
++#ifndef CONFIG_WIN32
+         err = local_set_cred_passthrough(fs_ctx, dirfd, name, credp);
+         if (err == -1) {
+             goto err_end;
+         }
++#endif
+     }
+     err = fd;
+     fs->fd = fd;
+@@ -924,6 +997,21 @@ static int local_symlink(FsContext *fs_ctx, const char *oldpath,
+         }
+     } else if (fs_ctx->export_flags & V9FS_SM_PASSTHROUGH ||
+                fs_ctx->export_flags & V9FS_SM_NONE) {
++#ifdef CONFIG_WIN32
++        /*
++         * Windows symbolic link requires administrator privilage.
++         * And Windows does not provide any interface like readlink().
++         * All symbolic links on Windows are always absolute paths.
++         * It's not 100% compatible with POSIX symbolic link.
++         *
++         * With above reasons, symbolic link with "passthrough" or "none"
++         * mode is disabled on Windows host.
++         */
++        errno = ENOTSUP;
++        error_report_once("symlink is not available on Windows host when"
++                          "security_model is \"none\" or \"passthrough\"");
++        goto out;
++#else
+         err = symlinkat(oldpath, dirfd, name);
+         if (err) {
+             goto out;
+@@ -941,6 +1029,7 @@ static int local_symlink(FsContext *fs_ctx, const char *oldpath,
+                 err = 0;
+             }
+         }
++#endif
+     }
+     goto out;
+ 
+@@ -954,6 +1043,11 @@ out:
+ static int local_link(FsContext *ctx, V9fsPath *oldpath,
+                       V9fsPath *dirpath, const char *name)
+ {
++#ifdef CONFIG_WIN32
++    errno = ENOTSUP;
++    error_report_once("link is not available on Windows host");
++    return -1;
++#else
+     char *odirpath = g_path_get_dirname(oldpath->data);
+     char *oname = g_path_get_basename(oldpath->data);
+     int ret = -1;
+@@ -1023,6 +1117,7 @@ out:
+     g_free(oname);
+     g_free(odirpath);
+     return ret;
++#endif
+ }
+ 
+ static int local_truncate(FsContext *ctx, V9fsPath *fs_path, off_t size)
+@@ -1061,8 +1156,15 @@ static int local_chown(FsContext *fs_ctx, V9fsPath *fs_path, FsCred *credp)
+     if ((credp->fc_uid == -1 && credp->fc_gid == -1) ||
+         (fs_ctx->export_flags & V9FS_SM_PASSTHROUGH) ||
+         (fs_ctx->export_flags & V9FS_SM_NONE)) {
++#ifdef CONFIG_WIN32
++        errno = ENOTSUP;
++        error_report_once("chown is not available on Windows host when"
++                          "security_model is \"none\" or \"passthrough\"");
++        ret = -1;
++#else
+         ret = fchownat(dirfd, name, credp->fc_uid, credp->fc_gid,
+                        AT_SYMLINK_NOFOLLOW);
++#endif
+     } else if (fs_ctx->export_flags & V9FS_SM_MAPPED) {
+         ret = local_set_xattrat(dirfd, name, credp);
+     } else if (fs_ctx->export_flags & V9FS_SM_MAPPED_FILE) {
+@@ -1174,6 +1276,12 @@ out:
+ static int local_fsync(FsContext *ctx, int fid_type,
+                        V9fsFidOpenState *fs, int datasync)
+ {
++#ifdef CONFIG_WIN32
++    if (fid_type != P9_FID_DIR) {
++        return _commit(fs->fd);
++    }
++    return 0;
++#else
+     int fd = local_fid_fd(fid_type, fs);
+ 
+     if (datasync) {
+@@ -1181,11 +1289,14 @@ static int local_fsync(FsContext *ctx, int fid_type,
+     } else {
+         return fsync(fd);
+     }
++#endif
+ }
+ 
+ static int local_statfs(FsContext *s, V9fsPath *fs_path, struct statfs *stbuf)
+ {
+-    int fd, ret;
++    int ret;
++#ifndef CONFIG_WIN32
++    int fd;
+ 
+     fd = local_open_nofollow(s, fs_path->data, O_RDONLY, 0);
+     if (fd == -1) {
+@@ -1193,39 +1304,65 @@ static int local_statfs(FsContext *s, V9fsPath *fs_path, struct statfs *stbuf)
+     }
+     ret = fstatfs(fd, stbuf);
+     close_preserve_errno(fd);
++#else
++    LocalData *data = (LocalData *)s->private;
++
++    ret = statfs_win32(data->root_path, stbuf);
++    if (ret == 0) {
++        /* use context address as fsid */
++        memcpy(&stbuf->f_fsid, s, sizeof(intptr_t));
++    }
++#endif
++
+     return ret;
+ }
+ 
+ static ssize_t local_lgetxattr(FsContext *ctx, V9fsPath *fs_path,
+                                const char *name, void *value, size_t size)
+ {
++#ifdef CONFIG_WIN32
++    return -1;
++#else
+     char *path = fs_path->data;
+ 
+     return v9fs_get_xattr(ctx, path, name, value, size);
++#endif
+ }
+ 
+ static ssize_t local_llistxattr(FsContext *ctx, V9fsPath *fs_path,
+                                 void *value, size_t size)
+ {
++#ifdef CONFIG_WIN32
++    return -1;
++#else
+     char *path = fs_path->data;
+ 
+     return v9fs_list_xattr(ctx, path, value, size);
++#endif
+ }
+ 
+ static int local_lsetxattr(FsContext *ctx, V9fsPath *fs_path, const char *name,
+                            void *value, size_t size, int flags)
+ {
++#ifdef CONFIG_WIN32
++    return -1;
++#else
+     char *path = fs_path->data;
+ 
+     return v9fs_set_xattr(ctx, path, name, value, size, flags);
++#endif
+ }
+ 
+ static int local_lremovexattr(FsContext *ctx, V9fsPath *fs_path,
+                               const char *name)
+ {
++#ifdef CONFIG_WIN32
++    return -1;
++#else
+     char *path = fs_path->data;
+ 
+     return v9fs_remove_xattr(ctx, path, name);
++#endif
+ }
+ 
+ static int local_name_to_path(FsContext *ctx, V9fsPath *dir_path,
+@@ -1388,6 +1525,7 @@ static int local_unlinkat(FsContext *ctx, V9fsPath *dir,
+     return ret;
+ }
+ 
++#ifndef CONFIG_WIN32
+ #ifdef FS_IOC_GETVERSION
+ static int local_ioc_getversion(FsContext *ctx, V9fsPath *path,
+                                 mode_t st_mode, uint64_t *st_gen)
+@@ -1437,11 +1575,90 @@ static int local_ioc_getversion_init(FsContext *ctx, LocalData *data, Error **er
+ #endif
+     return 0;
+ }
++#endif
+ 
+-static int local_init(FsContext *ctx, Error **errp)
++#ifdef CONFIG_WIN32
++static int init_win32_root_directory(FsContext *ctx, LocalData *data,
++                                        Error **errp)
+ {
+-    LocalData *data = g_malloc(sizeof(*data));
++    HANDLE hRoot;
++    char *root_path;
++    DWORD SectorsPerCluster;
++    DWORD BytesPerSector;
++    DWORD NumberOfFreeClusters;
++    DWORD TotalNumberOfClusters;
++    char disk_root[4] = { 0 };
++
++    hRoot = CreateFile(ctx->fs_root, GENERIC_READ,
++                       FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
++                       NULL,
++                       OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
++    if (hRoot == INVALID_HANDLE_VALUE) {
++        error_setg_errno(errp, EINVAL, "cannot open %s", ctx->fs_root);
++        return -1;
++    }
++
++    if ((ctx->export_flags & V9FS_SM_MAPPED) != 0) {
++        wchar_t fs_name[MAX_PATH + 1] = {0};
++        wchar_t ntfs_name[5] = {'N', 'T', 'F', 'S'};
++
++        /* Get file system type name */
++        if (GetVolumeInformationByHandleW(hRoot, NULL, 0, NULL, NULL, NULL,
++                                          fs_name, MAX_PATH + 1) == 0) {
++            error_setg_errno(errp, EINVAL,
++                             "cannot get file system information");
++            CloseHandle(hRoot);
++            return -1;
++        }
++
++        /*
++         * security_model=mapped(-xattr) requires a fileystem on Windows that
++         * supports Alternate Data Stream (ADS). NTFS is one of them, and is
++         * probably most popular on Windows. It is fair enough to assume
++         * Windows users to use NTFS for the mapped security model.
++         */
++        if (wcscmp(fs_name, ntfs_name) != 0) {
++            CloseHandle(hRoot);
++            error_setg_errno(errp, EINVAL, "require NTFS file system");
++            return -1;
++        }
++    }
++
++    root_path = get_full_path_win32(hRoot, NULL);
++    if (root_path == NULL) {
++        CloseHandle(hRoot);
++        error_setg_errno(errp, EINVAL, "cannot get full root path");
++        return -1;
++    }
+ 
++    /* copy the first 3 characters for the root directory */
++    memcpy(disk_root, root_path, 3);
++
++    if (GetDiskFreeSpace(disk_root, &SectorsPerCluster, &BytesPerSector,
++                         &NumberOfFreeClusters, &TotalNumberOfClusters) == 0) {
++        CloseHandle(hRoot);
++        error_setg_errno(errp, EINVAL, "cannot get file system block size");
++        return -1;
++    }
++
++    /*
++     * hold the root handle will prevent other one to delete or replace the
++     * root directory during runtime.
++     */
++
++    data->mountfd = _open_osfhandle((intptr_t)hRoot, _O_RDONLY);
++    data->root_path = root_path;
++    data->block_size = SectorsPerCluster * BytesPerSector;
++
++    return 0;
++}
++
++#endif
++
++static int local_init(FsContext *ctx, Error **errp)
++{
++    LocalData *data = g_malloc0(sizeof(*data));
++#ifndef CONFIG_WIN32
+     data->mountfd = open(ctx->fs_root, O_DIRECTORY | O_RDONLY);
+     if (data->mountfd == -1) {
+         error_setg_errno(errp, errno, "failed to open '%s'", ctx->fs_root);
+@@ -1452,7 +1669,17 @@ static int local_init(FsContext *ctx, Error **errp)
+         close(data->mountfd);
+         goto err;
+     }
++#else
++    if (init_win32_root_directory(ctx, data, errp) != 0) {
++        goto err;
++    }
+ 
++    /*
++     * Always enable inode remap since Windows file system does not
++     * have inode number.
++     */
++    ctx->export_flags |= V9FS_REMAP_INODES;
++#endif
+     if (ctx->export_flags & V9FS_SM_PASSTHROUGH) {
+         ctx->xops = passthrough_xattr_ops;
+     } else if (ctx->export_flags & V9FS_SM_MAPPED) {
+@@ -1472,6 +1699,16 @@ static int local_init(FsContext *ctx, Error **errp)
+     return 0;
+ 
+ err:
++#ifdef CONFIG_WIN32
++    if (data->root_path != NULL) {
++        g_free(data->root_path);
++    }
++#endif
++
++    if (data->mountfd != -1) {
++        close(data->mountfd);
++    }
++
+     g_free(data);
+     return -1;
+ }
+@@ -1484,6 +1721,11 @@ static void local_cleanup(FsContext *ctx)
+         return;
+     }
+ 
++#ifdef CONFIG_WIN32
++    if (data->root_path != NULL) {
++        g_free(data->root_path);
++    }
++#endif
+     close(data->mountfd);
+     g_free(data);
+ }
+diff --git a/hw/9pfs/9p-local.h b/hw/9pfs/9p-local.h
+index 77e7f57f89..5905923881 100644
+--- a/hw/9pfs/9p-local.h
++++ b/hw/9pfs/9p-local.h
+@@ -17,6 +17,7 @@ typedef struct {
+     int mountfd;
+ #ifdef CONFIG_WIN32
+     char *root_path;
++    DWORD block_size;
+ #endif
+ } LocalData;
+ 
+-- 
+2.50.1
+
+From 5364021b8940c1ba198f67a6c76680fcf8fcfec3 Mon Sep 17 00:00:00 2001
+From: Guohuai Shi <guohuai.shi@windriver.com>
+Date: Mon, 20 Feb 2023 18:08:05 +0800
+Subject: [PATCH 06/15] hw/9pfs: Support getting current directory offset for
+ Windows
+
+On Windows 'struct dirent' does not have current directory offset.
+Update qemu_dirent_off() to support Windows.
+
+While we are here, add a build time check to error out if a new
+host does not implement this helper.
+
+Signed-off-by: Guohuai Shi <guohuai.shi@windriver.com>
+Signed-off-by: Bin Meng <bin.meng@windriver.com>
+---
+ hw/9pfs/9p-util-win32.c |  5 +++++
+ hw/9pfs/9p-util.h       | 16 +++++++++++++---
+ hw/9pfs/9p.c            |  4 ++--
+ hw/9pfs/codir.c         |  2 +-
+ 4 files changed, 21 insertions(+), 6 deletions(-)
+
+diff --git a/hw/9pfs/9p-util-win32.c b/hw/9pfs/9p-util-win32.c
+index e9408f3c45..37d98a3e63 100644
+--- a/hw/9pfs/9p-util-win32.c
++++ b/hw/9pfs/9p-util-win32.c
+@@ -1420,3 +1420,8 @@ long telldir_win32(DIR *pDir)
+ 
+     return (long)stream->offset;
+ }
++
++off_t qemu_dirent_off_win32(struct V9fsState *s, union V9fsFidOpenState *fs)
++{
++    return s->ops->telldir(&s->ctx, fs);
++}
+diff --git a/hw/9pfs/9p-util.h b/hw/9pfs/9p-util.h
+index c07a919caa..a78602e99a 100644
+--- a/hw/9pfs/9p-util.h
++++ b/hw/9pfs/9p-util.h
+@@ -21,6 +21,10 @@
+ #define O_PATH_9P_UTIL 0
+ #endif
+ 
++/* forward declaration */
++union V9fsFidOpenState;
++struct V9fsState;
++
+ #if !defined(CONFIG_LINUX)
+ 
+ /*
+@@ -150,6 +154,7 @@ struct dirent *readdir_win32(DIR *pDir);
+ void rewinddir_win32(DIR *pDir);
+ void seekdir_win32(DIR *pDir, long pos);
+ long telldir_win32(DIR *pDir);
++off_t qemu_dirent_off_win32(struct V9fsState *s, union V9fsFidOpenState *fs);
+ #endif
+ 
+ static inline void close_preserve_errno(int fd)
+@@ -266,12 +271,17 @@ ssize_t fremovexattrat_nofollow(int dirfd, const char *filename,
+  * so ensure it is manually injected earlier and call here when
+  * needed.
+  */
+-static inline off_t qemu_dirent_off(struct dirent *dent)
++static inline off_t qemu_dirent_off(struct dirent *dent, struct V9fsState *s,
++                                    union V9fsFidOpenState *fs)
+ {
+-#ifdef CONFIG_DARWIN
++#if defined(CONFIG_DARWIN)
+     return dent->d_seekoff;
+-#else
++#elif defined(CONFIG_LINUX)
+     return dent->d_off;
++#elif defined(CONFIG_WIN32)
++    return qemu_dirent_off_win32(s, fs);
++#else
++#error Missing qemu_dirent_off() implementation for this host system
+ #endif
+ }
+ 
+diff --git a/hw/9pfs/9p.c b/hw/9pfs/9p.c
+index 7118692a1e..5fb9fabfae 100644
+--- a/hw/9pfs/9p.c
++++ b/hw/9pfs/9p.c
+@@ -2395,7 +2395,7 @@ static int coroutine_fn v9fs_do_readdir_with_stat(V9fsPDU *pdu,
+         count += len;
+         v9fs_stat_free(&v9stat);
+         v9fs_path_free(&path);
+-        saved_dir_pos = qemu_dirent_off(dent);
++        saved_dir_pos = qemu_dirent_off(dent, pdu->s, &fidp->fs);
+     }
+ 
+     v9fs_readdir_unlock(&fidp->fs.dir);
+@@ -2596,7 +2596,7 @@ static int coroutine_fn v9fs_do_readdir(V9fsPDU *pdu, V9fsFidState *fidp,
+             qid.version = 0;
+         }
+ 
+-        off = qemu_dirent_off(dent);
++        off = qemu_dirent_off(dent, pdu->s, &fidp->fs);
+         v9fs_string_init(&name);
+         v9fs_string_sprintf(&name, "%s", dent->d_name);
+ 
+diff --git a/hw/9pfs/codir.c b/hw/9pfs/codir.c
+index bce7dd96e9..a953f36d14 100644
+--- a/hw/9pfs/codir.c
++++ b/hw/9pfs/codir.c
+@@ -168,7 +168,7 @@ do_readdir_many(V9fsPDU *pdu, V9fsFidState *fidp, struct V9fsDirEnt **entries,
+         }
+ 
+         size += len;
+-        saved_dir_pos = qemu_dirent_off(dent);
++        saved_dir_pos = qemu_dirent_off(dent, s, &fidp->fs);
+     }
+ 
+     /* restore (last) saved position */
+-- 
+2.50.1
+
+From d6e5e88a503835aaeae2bfc9524826e197b36b77 Mon Sep 17 00:00:00 2001
+From: Bin Meng <bin.meng@windriver.com>
+Date: Mon, 20 Feb 2023 18:08:06 +0800
+Subject: [PATCH 07/15] hw/9pfs: Update helper qemu_stat_rdev()
+
+As Windows host does not have stat->st_rdev field, we use the first
+3 characters of the root path to build a device id.
+
+Co-developed-by: Guohuai Shi <guohuai.shi@windriver.com>
+Signed-off-by: Bin Meng <bin.meng@windriver.com>
+---
+ hw/9pfs/9p-util-win32.c | 18 ++++++++++++++++++
+ hw/9pfs/9p-util.h       | 22 +++++++++++++++++++---
+ hw/9pfs/9p.c            |  5 +++--
+ 3 files changed, 40 insertions(+), 5 deletions(-)
+
+diff --git a/hw/9pfs/9p-util-win32.c b/hw/9pfs/9p-util-win32.c
+index 37d98a3e63..61bb572261 100644
+--- a/hw/9pfs/9p-util-win32.c
++++ b/hw/9pfs/9p-util-win32.c
+@@ -1425,3 +1425,21 @@ off_t qemu_dirent_off_win32(struct V9fsState *s, union V9fsFidOpenState *fs)
+ {
+     return s->ops->telldir(&s->ctx, fs);
+ }
++
++uint64_t qemu_stat_rdev_win32(struct FsContext *fs_ctx)
++{
++    uint64_t rdev = 0;
++    LocalData *data = fs_ctx->private;
++
++    /*
++     * As Windows host does not have stat->st_rdev field, we use the first
++     * 3 characters of the root path to build a device id.
++     *
++     * (Windows root path always starts from a driver letter like "C:\")
++     */
++    if (data) {
++        memcpy(&rdev, data->root_path, 3);
++    }
++
++    return rdev;
++}
+diff --git a/hw/9pfs/9p-util.h b/hw/9pfs/9p-util.h
+index a78602e99a..61b56d5f26 100644
+--- a/hw/9pfs/9p-util.h
++++ b/hw/9pfs/9p-util.h
+@@ -24,8 +24,9 @@
+ /* forward declaration */
+ union V9fsFidOpenState;
+ struct V9fsState;
++struct FsContext;
+ 
+-#if !defined(CONFIG_LINUX)
++#ifdef CONFIG_DARWIN
+ 
+ /*
+  * Generates a Linux device number (a.k.a. dev_t) for given device major
+@@ -57,10 +58,12 @@ static inline uint64_t makedev_dotl(uint32_t dev_major, uint32_t dev_minor)
+  */
+ static inline uint64_t host_dev_to_dotl_dev(dev_t dev)
+ {
+-#ifdef CONFIG_LINUX
++#if defined(CONFIG_LINUX) || defined(CONFIG_WIN32)
+     return dev;
+-#else
++#elif defined(CONFIG_DARWIN)
+     return makedev_dotl(major(dev), minor(dev));
++#else
++#error Missing host_dev_to_dotl_dev() implementation for this host system
+ #endif
+ }
+ 
+@@ -155,6 +158,7 @@ void rewinddir_win32(DIR *pDir);
+ void seekdir_win32(DIR *pDir, long pos);
+ long telldir_win32(DIR *pDir);
+ off_t qemu_dirent_off_win32(struct V9fsState *s, union V9fsFidOpenState *fs);
++uint64_t qemu_stat_rdev_win32(struct FsContext *fs_ctx);
+ #endif
+ 
+ static inline void close_preserve_errno(int fd)
+@@ -315,6 +319,18 @@ static inline struct dirent *qemu_dirent_dup(struct dirent *dent)
+     return g_memdup(dent, sz);
+ }
+ 
++static inline uint64_t qemu_stat_rdev(const struct stat *stbuf,
++                                      struct FsContext *fs_ctx)
++{
++#if defined(CONFIG_LINUX) || defined(CONFIG_DARWIN)
++    return stbuf->st_rdev;
++#elif defined(CONFIG_WIN32)
++    return qemu_stat_rdev_win32(fs_ctx);
++#else
++#error Missing qemu_stat_rdev() implementation for this host system
++#endif
++}
++
+ /*
+  * As long as mknodat is not available on macOS, this workaround
+  * using pthread_fchdir_np is needed. qemu_mknodat is defined in
+diff --git a/hw/9pfs/9p.c b/hw/9pfs/9p.c
+index 5fb9fabfae..06caee085d 100644
+--- a/hw/9pfs/9p.c
++++ b/hw/9pfs/9p.c
+@@ -1285,7 +1285,8 @@ static int coroutine_fn stat_to_v9stat(V9fsPDU *pdu, V9fsPath *path,
+     } else if (v9stat->mode & P9_STAT_MODE_DEVICE) {
+         v9fs_string_sprintf(&v9stat->extension, "%c %u %u",
+                 S_ISCHR(stbuf->st_mode) ? 'c' : 'b',
+-                major(stbuf->st_rdev), minor(stbuf->st_rdev));
++                major(qemu_stat_rdev(stbuf, &pdu->s->ctx)),
++                minor(qemu_stat_rdev(stbuf, &pdu->s->ctx)));
+     } else if (S_ISDIR(stbuf->st_mode) || S_ISREG(stbuf->st_mode)) {
+         v9fs_string_sprintf(&v9stat->extension, "%s %lu",
+                 "HARDLINKCOUNT", (unsigned long)stbuf->st_nlink);
+@@ -1365,7 +1366,7 @@ static int stat_to_v9stat_dotl(V9fsPDU *pdu, const struct stat *stbuf,
+     v9lstat->st_nlink = stbuf->st_nlink;
+     v9lstat->st_uid = stbuf->st_uid;
+     v9lstat->st_gid = stbuf->st_gid;
+-    v9lstat->st_rdev = host_dev_to_dotl_dev(stbuf->st_rdev);
++    v9lstat->st_rdev = host_dev_to_dotl_dev(rdev);
+     v9lstat->st_size = stbuf->st_size;
+     v9lstat->st_blksize = stat_to_iounit(pdu, stbuf);
+     v9lstat->st_blocks = stbuf->st_blocks;
+-- 
+2.50.1
+
+From 49e629c5c0ab45786cb604224f66d9356a358d3e Mon Sep 17 00:00:00 2001
+From: Bin Meng <bin.meng@windriver.com>
+Date: Mon, 20 Feb 2023 18:08:07 +0800
+Subject: [PATCH 08/15] hw/9pfs: Add a helper qemu_stat_blksize()
+
+As Windows host does not have stat->st_blksize field, we use the one
+we calculated in init_win32_root_directory().
+
+Add a helper qemu_stat_blksize() and use it to avoid direct access to
+stat->st_blksize.
+
+Co-developed-by: Guohuai Shi <guohuai.shi@windriver.com>
+Signed-off-by: Bin Meng <bin.meng@windriver.com>
+---
+ hw/9pfs/9p-util-win32.c |  7 +++++++
+ hw/9pfs/9p-util.h       | 13 +++++++++++++
+ hw/9pfs/9p.c            | 13 ++++++++++++-
+ 3 files changed, 32 insertions(+), 1 deletion(-)
+
+diff --git a/hw/9pfs/9p-util-win32.c b/hw/9pfs/9p-util-win32.c
+index 61bb572261..ce7c5f7847 100644
+--- a/hw/9pfs/9p-util-win32.c
++++ b/hw/9pfs/9p-util-win32.c
+@@ -1443,3 +1443,10 @@ uint64_t qemu_stat_rdev_win32(struct FsContext *fs_ctx)
+ 
+     return rdev;
+ }
++
++uint64_t qemu_stat_blksize_win32(struct FsContext *fs_ctx)
++{
++    LocalData *data = fs_ctx->private;
++
++    return data ? (uint64_t)data->block_size : 0;
++}
+diff --git a/hw/9pfs/9p-util.h b/hw/9pfs/9p-util.h
+index 61b56d5f26..331b7e3d83 100644
+--- a/hw/9pfs/9p-util.h
++++ b/hw/9pfs/9p-util.h
+@@ -159,6 +159,7 @@ void seekdir_win32(DIR *pDir, long pos);
+ long telldir_win32(DIR *pDir);
+ off_t qemu_dirent_off_win32(struct V9fsState *s, union V9fsFidOpenState *fs);
+ uint64_t qemu_stat_rdev_win32(struct FsContext *fs_ctx);
++uint64_t qemu_stat_blksize_win32(struct FsContext *fs_ctx);
+ #endif
+ 
+ static inline void close_preserve_errno(int fd)
+@@ -331,6 +332,18 @@ static inline uint64_t qemu_stat_rdev(const struct stat *stbuf,
+ #endif
+ }
+ 
++static inline uint64_t qemu_stat_blksize(const struct stat *stbuf,
++                                         struct FsContext *fs_ctx)
++{
++#if defined(CONFIG_LINUX) || defined(CONFIG_DARWIN)
++    return stbuf->st_blksize;
++#elif defined(CONFIG_WIN32)
++    return qemu_stat_blksize_win32(fs_ctx);
++#else
++#error Missing qemu_stat_blksize() implementation for this host system
++#endif
++}
++
+ /*
+  * As long as mknodat is not available on macOS, this workaround
+  * using pthread_fchdir_np is needed. qemu_mknodat is defined in
+diff --git a/hw/9pfs/9p.c b/hw/9pfs/9p.c
+index 06caee085d..c48d2fc8ea 100644
+--- a/hw/9pfs/9p.c
++++ b/hw/9pfs/9p.c
+@@ -1354,12 +1354,14 @@ static int32_t blksize_to_iounit(const V9fsPDU *pdu, int32_t blksize)
+ 
+ static int32_t stat_to_iounit(const V9fsPDU *pdu, const struct stat *stbuf)
+ {
+-    return blksize_to_iounit(pdu, stbuf->st_blksize);
++    return blksize_to_iounit(pdu, qemu_stat_blksize(stbuf, &pdu->s->ctx));
+ }
+ 
+ static int stat_to_v9stat_dotl(V9fsPDU *pdu, const struct stat *stbuf,
+                                 V9fsStatDotl *v9lstat)
+ {
++    dev_t rdev = qemu_stat_rdev(stbuf, &pdu->s->ctx);
++
+     memset(v9lstat, 0, sizeof(*v9lstat));
+ 
+     v9lstat->st_mode = stbuf->st_mode;
+@@ -1369,7 +1371,16 @@ static int stat_to_v9stat_dotl(V9fsPDU *pdu, const struct stat *stbuf,
+     v9lstat->st_rdev = host_dev_to_dotl_dev(rdev);
+     v9lstat->st_size = stbuf->st_size;
+     v9lstat->st_blksize = stat_to_iounit(pdu, stbuf);
++#if defined(CONFIG_LINUX) || defined(CONFIG_DARWIN)
+     v9lstat->st_blocks = stbuf->st_blocks;
++#elif defined(CONFIG_WIN32)
++    if (v9lstat->st_blksize == 0) {
++        v9lstat->st_blocks = 0;
++    } else {
++        v9lstat->st_blocks = ROUND_UP(v9lstat->st_size / v9lstat->st_blksize,
++                                      v9lstat->st_blksize);
++    }
++#endif
+     v9lstat->st_atime_sec = stbuf->st_atime;
+     v9lstat->st_mtime_sec = stbuf->st_mtime;
+     v9lstat->st_ctime_sec = stbuf->st_ctime;
+-- 
+2.50.1
+
+From a11ae5ac2be88a12d737075a27707fdd4f9132e6 Mon Sep 17 00:00:00 2001
+From: Guohuai Shi <guohuai.shi@windriver.com>
+Date: Mon, 20 Feb 2023 18:08:08 +0800
+Subject: [PATCH 09/15] hw/9pfs: Disable unsupported flags and features for
+ Windows
+
+Some flags and features are not supported on Windows, like mknod,
+readlink, file mode, etc. Update the codes for Windows.
+
+Signed-off-by: Guohuai Shi <guohuai.shi@windriver.com>
+Signed-off-by: Bin Meng <bin.meng@windriver.com>
+---
+ hw/9pfs/9p.c | 45 ++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 38 insertions(+), 7 deletions(-)
+
+diff --git a/hw/9pfs/9p.c b/hw/9pfs/9p.c
+index c48d2fc8ea..093fca75e9 100644
+--- a/hw/9pfs/9p.c
++++ b/hw/9pfs/9p.c
+@@ -37,6 +37,11 @@
+ #include "qemu/xxhash.h"
+ #include <math.h>
+ 
++#ifdef CONFIG_WIN32
++#define UTIME_NOW   ((1l << 30) - 1l)
++#define UTIME_OMIT  ((1l << 30) - 2l)
++#endif
++
+ int open_fd_hw;
+ int total_open_fd;
+ static int open_fd_rc;
+@@ -130,13 +135,17 @@ static int dotl_to_open_flags(int flags)
+     DotlOpenflagMap dotl_oflag_map[] = {
+         { P9_DOTL_CREATE, O_CREAT },
+         { P9_DOTL_EXCL, O_EXCL },
++#ifndef CONFIG_WIN32
+         { P9_DOTL_NOCTTY , O_NOCTTY },
++#endif
+         { P9_DOTL_TRUNC, O_TRUNC },
+         { P9_DOTL_APPEND, O_APPEND },
++#ifndef CONFIG_WIN32
+         { P9_DOTL_NONBLOCK, O_NONBLOCK } ,
+         { P9_DOTL_DSYNC, O_DSYNC },
+         { P9_DOTL_FASYNC, FASYNC },
+-#ifndef CONFIG_DARWIN
++#endif
++#if !defined(CONFIG_DARWIN) && !defined(CONFIG_WIN32)
+         { P9_DOTL_NOATIME, O_NOATIME },
+         /*
+          *  On Darwin, we could map to F_NOCACHE, which is
+@@ -149,8 +158,10 @@ static int dotl_to_open_flags(int flags)
+ #endif
+         { P9_DOTL_LARGEFILE, O_LARGEFILE },
+         { P9_DOTL_DIRECTORY, O_DIRECTORY },
++#ifndef CONFIG_WIN32
+         { P9_DOTL_NOFOLLOW, O_NOFOLLOW },
+         { P9_DOTL_SYNC, O_SYNC },
++#endif
+     };
+ 
+     for (i = 0; i < ARRAY_SIZE(dotl_oflag_map); i++) {
+@@ -177,8 +188,11 @@ static int get_dotl_openflags(V9fsState *s, int oflags)
+      * Filter the client open flags
+      */
+     flags = dotl_to_open_flags(oflags);
+-    flags &= ~(O_NOCTTY | O_ASYNC | O_CREAT);
+-#ifndef CONFIG_DARWIN
++    flags &= ~(O_CREAT);
++#ifndef CONFIG_WIN32
++    flags &= ~(O_NOCTTY | O_ASYNC);
++#endif
++#if !defined(CONFIG_DARWIN) && !defined(CONFIG_WIN32)
+     /*
+      * Ignore direct disk access hint until the server supports it.
+      */
+@@ -1136,12 +1150,14 @@ static mode_t v9mode_to_mode(uint32_t mode, V9fsString *extension)
+     if (mode & P9_STAT_MODE_SYMLINK) {
+         ret |= S_IFLNK;
+     }
++#ifndef CONFIG_WIN32
+     if (mode & P9_STAT_MODE_SOCKET) {
+         ret |= S_IFSOCK;
+     }
+     if (mode & P9_STAT_MODE_NAMED_PIPE) {
+         ret |= S_IFIFO;
+     }
++#endif
+     if (mode & P9_STAT_MODE_DEVICE) {
+         if (extension->size && extension->data[0] == 'c') {
+             ret |= S_IFCHR;
+@@ -1222,6 +1238,7 @@ static uint32_t stat_to_v9mode(const struct stat *stbuf)
+         mode |= P9_STAT_MODE_SYMLINK;
+     }
+ 
++#ifndef CONFIG_WIN32
+     if (S_ISSOCK(stbuf->st_mode)) {
+         mode |= P9_STAT_MODE_SOCKET;
+     }
+@@ -1229,6 +1246,7 @@ static uint32_t stat_to_v9mode(const struct stat *stbuf)
+     if (S_ISFIFO(stbuf->st_mode)) {
+         mode |= P9_STAT_MODE_NAMED_PIPE;
+     }
++#endif
+ 
+     if (S_ISBLK(stbuf->st_mode) || S_ISCHR(stbuf->st_mode)) {
+         mode |= P9_STAT_MODE_DEVICE;
+@@ -1388,7 +1406,8 @@ static int stat_to_v9stat_dotl(V9fsPDU *pdu, const struct stat *stbuf,
+     v9lstat->st_atime_nsec = stbuf->st_atimespec.tv_nsec;
+     v9lstat->st_mtime_nsec = stbuf->st_mtimespec.tv_nsec;
+     v9lstat->st_ctime_nsec = stbuf->st_ctimespec.tv_nsec;
+-#else
++#endif
++#ifdef CONFIG_LINUX
+     v9lstat->st_atime_nsec = stbuf->st_atim.tv_nsec;
+     v9lstat->st_mtime_nsec = stbuf->st_mtim.tv_nsec;
+     v9lstat->st_ctime_nsec = stbuf->st_ctim.tv_nsec;
+@@ -2551,6 +2570,7 @@ static int coroutine_fn v9fs_do_readdir(V9fsPDU *pdu, V9fsFidState *fidp,
+     struct dirent *dent;
+     struct stat *st;
+     struct V9fsDirEnt *entries = NULL;
++    unsigned char d_type = 0;
+ 
+     /*
+      * inode remapping requires the device id, which in turn might be
+@@ -2612,10 +2632,13 @@ static int coroutine_fn v9fs_do_readdir(V9fsPDU *pdu, V9fsFidState *fidp,
+         v9fs_string_init(&name);
+         v9fs_string_sprintf(&name, "%s", dent->d_name);
+ 
++#ifndef CONFIG_WIN32
++        d_type = dent->d_type;
++#endif
+         /* 11 = 7 + 4 (7 = start offset, 4 = space for storing count) */
+         len = pdu_marshal(pdu, 11 + count, "Qqbs",
+                           &qid, off,
+-                          dent->d_type, &name);
++                          d_type, &name);
+ 
+         v9fs_string_free(&name);
+ 
+@@ -2976,8 +2999,12 @@ static void coroutine_fn v9fs_create(void *opaque)
+         v9fs_path_copy(&fidp->path, &path);
+         v9fs_path_unlock(s);
+     } else if (perm & P9_STAT_MODE_SOCKET) {
++#ifndef CONFIG_WIN32
+         err = v9fs_co_mknod(pdu, fidp, &name, fidp->uid, -1,
+                             0, S_IFSOCK | (perm & 0777), &stbuf);
++#else
++        err = -ENOTSUP;
++#endif
+         if (err < 0) {
+             goto out;
+         }
+@@ -4047,7 +4074,7 @@ out_nofid:
+ #if defined(CONFIG_LINUX)
+ /* Currently, only Linux has XATTR_SIZE_MAX */
+ #define P9_XATTR_SIZE_MAX XATTR_SIZE_MAX
+-#elif defined(CONFIG_DARWIN)
++#elif defined(CONFIG_DARWIN) || defined(CONFIG_WIN32)
+ /*
+  * Darwin doesn't seem to define a maximum xattr size in its user
+  * space header, so manually configure it across platforms as 64k.
+@@ -4064,6 +4091,8 @@ out_nofid:
+ 
+ static void coroutine_fn v9fs_xattrcreate(void *opaque)
+ {
++    V9fsPDU *pdu = opaque;
++#ifndef CONFIG_WIN32
+     int flags, rflags = 0;
+     int32_t fid;
+     uint64_t size;
+@@ -4072,7 +4101,6 @@ static void coroutine_fn v9fs_xattrcreate(void *opaque)
+     size_t offset = 7;
+     V9fsFidState *file_fidp;
+     V9fsFidState *xattr_fidp;
+-    V9fsPDU *pdu = opaque;
+ 
+     v9fs_string_init(&name);
+     err = pdu_unmarshal(pdu, offset, "dsqd", &fid, &name, &size, &flags);
+@@ -4125,6 +4153,9 @@ out_put_fid:
+ out_nofid:
+     pdu_complete(pdu, err);
+     v9fs_string_free(&name);
++#else
++    pdu_complete(pdu, -1);
++#endif
+ }
+ 
+ static void coroutine_fn v9fs_readlink(void *opaque)
+-- 
+2.50.1
+
+From 7e02168813d20f47868bdecf578f3f83cebe4851 Mon Sep 17 00:00:00 2001
+From: Guohuai Shi <guohuai.shi@windriver.com>
+Date: Mon, 20 Feb 2023 18:08:09 +0800
+Subject: [PATCH 10/15] hw/9pfs: Update v9fs_set_fd_limit() for Windows
+
+Use _getmaxstdio() to set the fd limit on Windows.
+
+Signed-off-by: Guohuai Shi <guohuai.shi@windriver.com>
+Signed-off-by: Bin Meng <bin.meng@windriver.com>
+---
+ hw/9pfs/9p.c | 23 ++++++++++++++++++++---
+ 1 file changed, 20 insertions(+), 3 deletions(-)
+
+diff --git a/hw/9pfs/9p.c b/hw/9pfs/9p.c
+index 093fca75e9..f07ba8bddb 100644
+--- a/hw/9pfs/9p.c
++++ b/hw/9pfs/9p.c
+@@ -4462,11 +4462,28 @@ void v9fs_reset(V9fsState *s)
+ 
+ static void __attribute__((__constructor__)) v9fs_set_fd_limit(void)
+ {
++    int rlim_cur;
++    int ret;
++
++#ifndef CONFIG_WIN32
+     struct rlimit rlim;
+-    if (getrlimit(RLIMIT_NOFILE, &rlim) < 0) {
++    ret = getrlimit(RLIMIT_NOFILE, &rlim);
++    rlim_cur = rlim.rlim_cur;
++#else
++    /*
++     * On Windows host, _getmaxstdio() actually returns the number of max
++     * open files at the stdio level. It *may* be smaller than the number
++     * of open files by open() or CreateFile().
++     */
++    ret = _getmaxstdio();
++    rlim_cur = ret;
++#endif
++
++    if (ret < 0) {
+         error_report("Failed to get the resource limit");
+         exit(1);
+     }
+-    open_fd_hw = rlim.rlim_cur - MIN(400, rlim.rlim_cur / 3);
+-    open_fd_rc = rlim.rlim_cur / 2;
++
++    open_fd_hw = rlim_cur - MIN(400, rlim_cur / 3);
++    open_fd_rc = rlim_cur / 2;
+ }
+-- 
+2.50.1
+
+From 94781c567b9c1abd7841774e95ebcdb860968e9b Mon Sep 17 00:00:00 2001
+From: Guohuai Shi <guohuai.shi@windriver.com>
+Date: Mon, 20 Feb 2023 18:08:10 +0800
+Subject: [PATCH 11/15] hw/9pfs: Add Linux error number definition
+
+When using 9p2000.L protocol, the errno should use the Linux errno.
+Currently magic numbers with comments are used. Replace these with
+macros for future expansion.
+
+Signed-off-by: Guohuai Shi <guohuai.shi@windriver.com>
+Signed-off-by: Bin Meng <bin.meng@windriver.com>
+---
+ hw/9pfs/9p-linux-errno.h | 151 +++++++++++++++++++++++++++++++++++++++
+ hw/9pfs/9p-util.h        |  24 +++----
+ 2 files changed, 162 insertions(+), 13 deletions(-)
+ create mode 100644 hw/9pfs/9p-linux-errno.h
+
+diff --git a/hw/9pfs/9p-linux-errno.h b/hw/9pfs/9p-linux-errno.h
+new file mode 100644
+index 0000000000..56c37fa293
+--- /dev/null
++++ b/hw/9pfs/9p-linux-errno.h
+@@ -0,0 +1,151 @@
++/*
++ * 9p Linux errno translation definition
++ *
++ * This work is licensed under the terms of the GNU GPL, version 2 or later.
++ * See the COPYING file in the top-level directory.
++ */
++
++#include <errno.h>
++
++#ifndef QEMU_9P_LINUX_ERRNO_H
++#define QEMU_9P_LINUX_ERRNO_H
++
++/*
++ * This file contains the Linux errno definitions to translate errnos set by
++ * the 9P server (running on non-Linux hosts) to a corresponding errno value.
++ *
++ * This list should be periodically reviewed and updated; particularly for
++ * errnos that might be set as a result of a file system operation.
++ */
++
++#define L_EPERM             1   /* Operation not permitted */
++#define L_ENOENT            2   /* No such file or directory */
++#define L_ESRCH             3   /* No such process */
++#define L_EINTR             4   /* Interrupted system call */
++#define L_EIO               5   /* I/O error */
++#define L_ENXIO             6   /* No such device or address */
++#define L_E2BIG             7   /* Argument list too long */
++#define L_ENOEXEC           8   /* Exec format error */
++#define L_EBADF             9   /* Bad file number */
++#define L_ECHILD            10  /* No child processes */
++#define L_EAGAIN            11  /* Try again */
++#define L_ENOMEM            12  /* Out of memory */
++#define L_EACCES            13  /* Permission denied */
++#define L_EFAULT            14  /* Bad address */
++#define L_ENOTBLK           15  /* Block device required */
++#define L_EBUSY             16  /* Device or resource busy */
++#define L_EEXIST            17  /* File exists */
++#define L_EXDEV             18  /* Cross-device link */
++#define L_ENODEV            19  /* No such device */
++#define L_ENOTDIR           20  /* Not a directory */
++#define L_EISDIR            21  /* Is a directory */
++#define L_EINVAL            22  /* Invalid argument */
++#define L_ENFILE            23  /* File table overflow */
++#define L_EMFILE            24  /* Too many open files */
++#define L_ENOTTY            25  /* Not a typewriter */
++#define L_ETXTBSY           26  /* Text file busy */
++#define L_EFBIG             27  /* File too large */
++#define L_ENOSPC            28  /* No space left on device */
++#define L_ESPIPE            29  /* Illegal seek */
++#define L_EROFS             30  /* Read-only file system */
++#define L_EMLINK            31  /* Too many links */
++#define L_EPIPE             32  /* Broken pipe */
++#define L_EDOM              33  /* Math argument out of domain of func */
++#define L_ERANGE            34  /* Math result not representable */
++#define L_EDEADLK           35  /* Resource deadlock would occur */
++#define L_ENAMETOOLONG      36  /* File name too long */
++#define L_ENOLCK            37  /* No record locks available */
++#define L_ENOSYS            38  /* Function not implemented */
++#define L_ENOTEMPTY         39  /* Directory not empty */
++#define L_ELOOP             40  /* Too many symbolic links encountered */
++#define L_ENOMSG            42  /* No message of desired type */
++#define L_EIDRM             43  /* Identifier removed */
++#define L_ECHRNG            44  /* Channel number out of range */
++#define L_EL2NSYNC          45  /* Level 2 not synchronized */
++#define L_EL3HLT            46  /* Level 3 halted */
++#define L_EL3RST            47  /* Level 3 reset */
++#define L_ELNRNG            48  /* Link number out of range */
++#define L_EUNATCH           49  /* Protocol driver not attached */
++#define L_ENOCSI            50  /* No CSI structure available */
++#define L_EL2HLT            51  /* Level 2 halted */
++#define L_EBADE             52  /* Invalid exchange */
++#define L_EBADR             53  /* Invalid request descriptor */
++#define L_EXFULL            54  /* Exchange full */
++#define L_ENOANO            55  /* No anode */
++#define L_EBADRQC           56  /* Invalid request code */
++#define L_EBADSLT           57  /* Invalid slot */
++#define L_EBFONT            58  /* Bad font file format */
++#define L_ENOSTR            59  /* Device not a stream */
++#define L_ENODATA           61  /* No data available */
++#define L_ETIME             62  /* Timer expired */
++#define L_ENOSR             63  /* Out of streams resources */
++#define L_ENONET            64  /* Machine is not on the network */
++#define L_ENOPKG            65  /* Package not installed */
++#define L_EREMOTE           66  /* Object is remote */
++#define L_ENOLINK           67  /* Link has been severed */
++#define L_EADV              68  /* Advertise error */
++#define L_ESRMNT            69  /* Srmount error */
++#define L_ECOMM             70  /* Communication error on send */
++#define L_EPROTO            71  /* Protocol error */
++#define L_EMULTIHOP         72  /* Multihop attempted */
++#define L_EDOTDOT           73  /* RFS specific error */
++#define L_EBADMSG           74  /* Not a data message */
++#define L_EOVERFLOW         75  /* Value too large for defined data type */
++#define L_ENOTUNIQ          76  /* Name not unique on network */
++#define L_EBADFD            77  /* File descriptor in bad state */
++#define L_EREMCHG           78  /* Remote address changed */
++#define L_ELIBACC           79  /* Can not access a needed shared library */
++#define L_ELIBBAD           80  /* Accessing a corrupted shared library */
++#define L_ELIBSCN           81  /* .lib section in a.out corrupted */
++#define L_ELIBMAX           82  /* Attempting to link in too many shared libs */
++#define L_ELIBEXEC          83  /* Cannot exec a shared library directly */
++#define L_EILSEQ            84  /* Illegal byte sequence */
++#define L_ERESTART          85  /* Interrupted system call should be restarted */
++#define L_ESTRPIPE          86  /* Streams pipe error */
++#define L_EUSERS            87  /* Too many users */
++#define L_ENOTSOCK          88  /* Socket operation on non-socket */
++#define L_EDESTADDRREQ      89  /* Destination address required */
++#define L_EMSGSIZE          90  /* Message too long */
++#define L_EPROTOTYPE        91  /* Protocol wrong type for socket */
++#define L_ENOPROTOOPT       92  /* Protocol not available */
++#define L_EPROTONOSUPPORT   93  /* Protocol not supported */
++#define L_ESOCKTNOSUPPORT   94  /* Socket type not supported */
++#define L_EOPNOTSUPP        95  /* Operation not supported on transport endpoint */
++#define L_EPFNOSUPPORT      96  /* Protocol family not supported */
++#define L_EAFNOSUPPORT      97  /* Address family not supported by protocol */
++#define L_EADDRINUSE        98  /* Address already in use */
++#define L_EADDRNOTAVAIL     99  /* Cannot assign requested address */
++#define L_ENETDOWN          100 /* Network is down */
++#define L_ENETUNREACH       101 /* Network is unreachable */
++#define L_ENETRESET         102 /* Network dropped connection because of reset */
++#define L_ECONNABORTED      103 /* Software caused connection abort */
++#define L_ECONNRESET        104 /* Connection reset by peer */
++#define L_ENOBUFS           105 /* No buffer space available */
++#define L_EISCONN           106 /* Transport endpoint is already connected */
++#define L_ENOTCONN          107 /* Transport endpoint is not connected */
++#define L_ESHUTDOWN         108 /* Cannot send after transport endpoint shutdown */
++#define L_ETOOMANYREFS      109 /* Too many references: cannot splice */
++#define L_ETIMEDOUT         110 /* Connection timed out */
++#define L_ECONNREFUSED      111 /* Connection refused */
++#define L_EHOSTDOWN         112 /* Host is down */
++#define L_EHOSTUNREACH      113 /* No route to host */
++#define L_EALREADY          114 /* Operation already in progress */
++#define L_EINPROGRESS       115 /* Operation now in progress */
++#define L_ESTALE            116 /* Stale NFS file handle */
++#define L_EUCLEAN           117 /* Structure needs cleaning */
++#define L_ENOTNAM           118 /* Not a XENIX named type file */
++#define L_ENAVAIL           119 /* No XENIX semaphores available */
++#define L_EISNAM            120 /* Is a named type file */
++#define L_EREMOTEIO         121 /* Remote I/O error */
++#define L_EDQUOT            122 /* Quota exceeded */
++#define L_ENOMEDIUM         123 /* No medium found */
++#define L_EMEDIUMTYPE       124 /* Wrong medium type */
++#define L_ECANCELED         125 /* Operation Canceled */
++#define L_ENOKEY            126 /* Required key not available */
++#define L_EKEYEXPIRED       127 /* Key has expired */
++#define L_EKEYREVOKED       128 /* Key has been revoked */
++#define L_EKEYREJECTED      129 /* Key was rejected by service */
++#define L_EOWNERDEAD        130 /* Owner died */
++#define L_ENOTRECOVERABLE   131 /* State not recoverable */
++
++#endif /* QEMU_9P_LINUX_ERRNO_H */
+diff --git a/hw/9pfs/9p-util.h b/hw/9pfs/9p-util.h
+index 331b7e3d83..cc720ece80 100644
+--- a/hw/9pfs/9p-util.h
++++ b/hw/9pfs/9p-util.h
+@@ -67,8 +67,11 @@ static inline uint64_t host_dev_to_dotl_dev(dev_t dev)
+ #endif
+ }
+ 
++#include "9p-linux-errno.h"
++
+ /* Translates errno from host -> Linux if needed */
+-static inline int errno_to_dotl(int err) {
++static inline int errno_to_dotl(int err)
++{
+ #if defined(CONFIG_LINUX)
+     /* nothing to translate (Linux -> Linux) */
+ #elif defined(CONFIG_DARWIN)
+@@ -78,18 +81,13 @@ static inline int errno_to_dotl(int err) {
+      * FIXME: Only most important errnos translated here yet, this should be
+      * extended to as many errnos being translated as possible in future.
+      */
+-    if (err == ENAMETOOLONG) {
+-        err = 36; /* ==ENAMETOOLONG on Linux */
+-    } else if (err == ENOTEMPTY) {
+-        err = 39; /* ==ENOTEMPTY on Linux */
+-    } else if (err == ELOOP) {
+-        err = 40; /* ==ELOOP on Linux */
+-    } else if (err == ENOATTR) {
+-        err = 61; /* ==ENODATA on Linux */
+-    } else if (err == ENOTSUP) {
+-        err = 95; /* ==EOPNOTSUPP on Linux */
+-    } else if (err == EOPNOTSUPP) {
+-        err = 95; /* ==EOPNOTSUPP on Linux */
++    switch (err) {
++    case ENAMETOOLONG:  return L_ENAMETOOLONG;
++    case ENOTEMPTY:     return L_ENOTEMPTY;
++    case ELOOP:         return L_ELOOP;
++    case ENOATTR:       return L_ENODATA;
++    case ENOTSUP:       return L_EOPNOTSUPP;
++    case EOPNOTSUPP:    return L_EOPNOTSUPP;
+     }
+ #else
+ #error Missing errno translation to Linux for this host system
+-- 
+2.50.1
+
+From 5e273587026b2df24648e4f665ee390b7db9ebbe Mon Sep 17 00:00:00 2001
+From: Guohuai Shi <guohuai.shi@windriver.com>
+Date: Mon, 20 Feb 2023 18:08:11 +0800
+Subject: [PATCH 12/15] hw/9pfs: Translate Windows errno to Linux value
+
+Some of Windows error numbers have different value from Linux ones.
+For example, ENOTEMPTY is defined to 39 in Linux, but is defined to
+41 in Windows. So deleting a directory from a Linux guest on top
+of QEMU from a Windows host complains:
+
+  # rmdir tmp
+  rmdir: 'tmp': Unknown error 41
+
+This commit provides error number translation from Windows to Linux.
+It can make Linux guest OS happy with the error number when running
+on top of QEMU from a Windows host.
+
+Signed-off-by: Guohuai Shi <guohuai.shi@windriver.com>
+Signed-off-by: Bin Meng <bin.meng@windriver.com>
+---
+ hw/9pfs/9p-util.h | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/hw/9pfs/9p-util.h b/hw/9pfs/9p-util.h
+index cc720ece80..a92b85d7ca 100644
+--- a/hw/9pfs/9p-util.h
++++ b/hw/9pfs/9p-util.h
+@@ -74,9 +74,9 @@ static inline int errno_to_dotl(int err)
+ {
+ #if defined(CONFIG_LINUX)
+     /* nothing to translate (Linux -> Linux) */
+-#elif defined(CONFIG_DARWIN)
++#elif defined(CONFIG_DARWIN) || defined(CONFIG_WIN32)
+     /*
+-     * translation mandatory for macOS hosts
++     * translation mandatory for different hosts
+      *
+      * FIXME: Only most important errnos translated here yet, this should be
+      * extended to as many errnos being translated as possible in future.
+@@ -85,9 +85,17 @@ static inline int errno_to_dotl(int err)
+     case ENAMETOOLONG:  return L_ENAMETOOLONG;
+     case ENOTEMPTY:     return L_ENOTEMPTY;
+     case ELOOP:         return L_ELOOP;
++#ifdef CONFIG_DARWIN
+     case ENOATTR:       return L_ENODATA;
+     case ENOTSUP:       return L_EOPNOTSUPP;
+     case EOPNOTSUPP:    return L_EOPNOTSUPP;
++#endif
++#ifdef CONFIG_WIN32
++    case EDEADLK:       return L_EDEADLK;
++    case ENOLCK:        return L_ENOLCK;
++    case ENOSYS:        return L_ENOSYS;
++    case EILSEQ:        return L_EILSEQ;
++#endif
+     }
+ #else
+ #error Missing errno translation to Linux for this host system
+-- 
+2.50.1
+
+From bf30de0633daca5186ae69ce48153d1ea9720f60 Mon Sep 17 00:00:00 2001
+From: Guohuai Shi <guohuai.shi@windriver.com>
+Date: Mon, 20 Feb 2023 18:08:13 +0800
+Subject: [PATCH 13/15] hw/9pfs: Update synth fs driver for Windows
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Adapt synth fs driver for Windows in preparation to running qtest
+9p testing on Windows.
+
+Signed-off-by: Guohuai Shi <guohuai.shi@windriver.com>
+Signed-off-by: Bin Meng <bin.meng@windriver.com>
+Reviewed-by: Philippe Mathieu-Daudé <philmd@linaro.org>
+---
+ hw/9pfs/9p-synth.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/hw/9pfs/9p-synth.c b/hw/9pfs/9p-synth.c
+index 3d28afc4d0..ffc1542f77 100644
+--- a/hw/9pfs/9p-synth.c
++++ b/hw/9pfs/9p-synth.c
+@@ -146,8 +146,10 @@ static void synth_fill_statbuf(V9fsSynthNode *node, struct stat *stbuf)
+     stbuf->st_gid = 0;
+     stbuf->st_rdev = 0;
+     stbuf->st_size = 0;
++#ifndef CONFIG_WIN32
+     stbuf->st_blksize = 0;
+     stbuf->st_blocks = 0;
++#endif
+     stbuf->st_atime = 0;
+     stbuf->st_mtime = 0;
+     stbuf->st_ctime = 0;
+@@ -230,7 +232,8 @@ static void synth_direntry(V9fsSynthNode *node,
+     entry->d_ino = node->attr->inode;
+ #ifdef CONFIG_DARWIN
+     entry->d_seekoff = off + 1;
+-#else
++#endif
++#ifdef CONFIG_LINUX
+     entry->d_off = off + 1;
+ #endif
+ }
+-- 
+2.50.1
+
+From d55a7b61394b686e2c28b50773238945a55b77f9 Mon Sep 17 00:00:00 2001
+From: Guohuai Shi <guohuai.shi@windriver.com>
+Date: Mon, 20 Feb 2023 18:08:14 +0800
+Subject: [PATCH 14/15] tests/qtest: virtio-9p-test: Adapt the case for win32
+
+Windows does not provide the getuid() API. Let's create a local
+one and return a fixed value 0 as the uid for testing.
+
+Co-developed-by: Xuzhou Cheng <xuzhou.cheng@windriver.com>
+Signed-off-by: Guohuai Shi <guohuai.shi@windriver.com>
+Signed-off-by: Bin Meng <bin.meng@windriver.com>
+Reviewed-by: Thomas Huth <thuth@redhat.com>
+---
+ tests/qtest/libqos/virtio-9p-client.h | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/tests/qtest/libqos/virtio-9p-client.h b/tests/qtest/libqos/virtio-9p-client.h
+index e3221a3104..0058a5b1b3 100644
+--- a/tests/qtest/libqos/virtio-9p-client.h
++++ b/tests/qtest/libqos/virtio-9p-client.h
+@@ -525,4 +525,11 @@ void v9fs_rlink(P9Req *req);
+ TunlinkatRes v9fs_tunlinkat(TunlinkatOpt);
+ void v9fs_runlinkat(P9Req *req);
+ 
++#ifdef CONFIG_WIN32
++static inline uint32_t getuid(void)
++{
++    return 0;
++}
++#endif
++
+ #endif
+-- 
+2.50.1
+
+From 3ccd596c7273abfedf6d3460e1494d03669c4441 Mon Sep 17 00:00:00 2001
+From: Guohuai Shi <guohuai.shi@windriver.com>
+Date: Mon, 20 Feb 2023 18:08:15 +0800
+Subject: [PATCH 15/15] meson.build: Turn on virtfs for Windows
+
+Enable virtfs configuration option for Windows host.
+
+Signed-off-by: Guohuai Shi <guohuai.shi@windriver.com>
+Signed-off-by: Bin Meng <bin.meng@windriver.com>
+---
+ fsdev/meson.build   | 2 +-
+ hw/9pfs/meson.build | 6 ++++--
+ meson.build         | 8 ++++----
+ 3 files changed, 9 insertions(+), 7 deletions(-)
+
+diff --git a/fsdev/meson.build b/fsdev/meson.build
+index c751d8cb62..cdfa077fa1 100644
+--- a/fsdev/meson.build
++++ b/fsdev/meson.build
+@@ -5,6 +5,6 @@ fsdev_ss.add(when: ['CONFIG_FSDEV_9P'], if_true: files(
+   '9p-marshal.c',
+   'qemu-fsdev.c',
+ ), if_false: files('qemu-fsdev-dummy.c'))
+-if host_os in ['linux', 'darwin']
++if host_os in ['linux', 'darwin', 'windows']
+   system_ss.add_all(fsdev_ss)
+ endif
+diff --git a/hw/9pfs/meson.build b/hw/9pfs/meson.build
+index d35d4f44ff..dd5b514c23 100644
+--- a/hw/9pfs/meson.build
++++ b/hw/9pfs/meson.build
+@@ -14,9 +14,11 @@ fs_ss.add(files(
+   'coxattr.c',
+ ))
+ if host_os == 'darwin'
+-  fs_ss.add(files('9p-util-darwin.c'))
++  fs_ss.add(files('9p-util-darwin.c', '9p-proxy.c',))
+ elif host_os == 'linux'
+-  fs_ss.add(files('9p-util-linux.c'))
++  fs_ss.add(files('9p-util-linux.c', '9p-proxy.c',))
++elif host_os == 'windows'
++  fs_ss.add(files('9p-util-win32.c',))
+ endif
+ fs_ss.add(when: 'CONFIG_XEN_BUS', if_true: files('xen-9p-backend.c'))
+ system_ss.add_all(when: 'CONFIG_FSDEV_9P', if_true: fs_ss)
+diff --git a/meson.build b/meson.build
+index 50c774a195..1112296ba0 100644
+--- a/meson.build
++++ b/meson.build
+@@ -2391,11 +2391,11 @@ dbus_display = get_option('dbus_display') \
+   .allowed()
+ 
+ have_virtfs = get_option('virtfs') \
+-    .require(host_os == 'linux' or host_os == 'darwin',
+-             error_message: 'virtio-9p (virtfs) requires Linux or macOS') \
+-    .require(host_os == 'linux' or cc.has_function('pthread_fchdir_np'),
++    .require(host_os == 'linux' or host_os == 'darwin' or host_os == 'windows',
++             error_message: 'virtio-9p (virtfs) requires Linux or macOS or Windows') \
++    .require(host_os == 'linux' or host_os == 'windows' or cc.has_function('pthread_fchdir_np'),
+              error_message: 'virtio-9p (virtfs) on macOS requires the presence of pthread_fchdir_np') \
+-    .require(host_os == 'darwin' or libattr.found(),
++    .require(host_os == 'darwin' or host_os == 'windows' or libattr.found(),
+              error_message: 'virtio-9p (virtfs) on Linux requires libattr-devel') \
+     .disable_auto_if(not have_tools and not have_system) \
+     .allowed()
+-- 
+2.50.1
+

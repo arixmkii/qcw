@@ -1,0 +1,153 @@
+From 0fdb6018153f91455b4fd980fb8596df6648c887 Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Fri, 1 Aug 2025 09:04:23 +0300
+Subject: [PATCH] Revert "9pfs: Introduce futimens file op"
+
+This reverts commit 371a269ff8ce561c28e4fa03bb49e4940f990637.
+---
+ fsdev/file-op-9p.h |  2 --
+ hw/9pfs/9p-local.c |  9 ---------
+ hw/9pfs/9p-synth.c |  8 --------
+ hw/9pfs/9p-util.h  |  1 -
+ hw/9pfs/9p.c       |  6 +-----
+ hw/9pfs/cofs.c     | 19 -------------------
+ hw/9pfs/coth.h     |  2 --
+ 7 files changed, 1 insertion(+), 46 deletions(-)
+
+diff --git a/fsdev/file-op-9p.h b/fsdev/file-op-9p.h
+index b9dae8c84c..26ba1438c0 100644
+--- a/fsdev/file-op-9p.h
++++ b/fsdev/file-op-9p.h
+@@ -129,8 +129,6 @@ struct FileOperations {
+     int (*chown)(FsContext *, V9fsPath *, FsCred *);
+     int (*mknod)(FsContext *, V9fsPath *, const char *, FsCred *);
+     int (*utimensat)(FsContext *, V9fsPath *, const struct timespec *);
+-    int (*futimens)(FsContext *ctx, int fid_type, V9fsFidOpenState *fs,
+-                    const struct timespec *times);
+     int (*remove)(FsContext *, const char *);
+     int (*symlink)(FsContext *, const char *, V9fsPath *,
+                    const char *, FsCred *);
+diff --git a/hw/9pfs/9p-local.c b/hw/9pfs/9p-local.c
+index 31e216227c..0b33da8d2a 100644
+--- a/hw/9pfs/9p-local.c
++++ b/hw/9pfs/9p-local.c
+@@ -1100,14 +1100,6 @@ out:
+     return ret;
+ }
+ 
+-static int local_futimens(FsContext *s, int fid_type, V9fsFidOpenState *fs,
+-                          const struct timespec *times)
+-{
+-    int fd = local_fid_fd(fid_type, fs);
+-
+-    return qemu_futimens(fd, times);
+-}
+-
+ static int local_unlinkat_common(FsContext *ctx, int dirfd, const char *name,
+                                  int flags)
+ {
+@@ -1634,5 +1626,4 @@ FileOperations local_ops = {
+     .unlinkat = local_unlinkat,
+     .has_valid_file_handle = local_has_valid_file_handle,
+     .ftruncate = local_ftruncate,
+-    .futimens = local_futimens,
+ };
+diff --git a/hw/9pfs/9p-synth.c b/hw/9pfs/9p-synth.c
+index 9cd1884224..3d28afc4d0 100644
+--- a/hw/9pfs/9p-synth.c
++++ b/hw/9pfs/9p-synth.c
+@@ -424,13 +424,6 @@ static int synth_utimensat(FsContext *fs_ctx, V9fsPath *path,
+     return 0;
+ }
+ 
+-static int synth_futimens(FsContext *fs_ctx, int fid_type, V9fsFidOpenState *fs,
+-                          const struct timespec *buf)
+-{
+-    errno = ENOSYS;
+-    return -1;
+-}
+-
+ static int synth_remove(FsContext *ctx, const char *path)
+ {
+     errno = EPERM;
+@@ -671,5 +664,4 @@ FileOperations synth_ops = {
+     .unlinkat     = synth_unlinkat,
+     .has_valid_file_handle = synth_has_valid_file_handle,
+     .ftruncate    = synth_ftruncate,
+-    .futimens     = synth_futimens,
+ };
+diff --git a/hw/9pfs/9p-util.h b/hw/9pfs/9p-util.h
+index a1924fe3f0..7bc4ec8e85 100644
+--- a/hw/9pfs/9p-util.h
++++ b/hw/9pfs/9p-util.h
+@@ -103,7 +103,6 @@ static inline int errno_to_dotl(int err) {
+ #define qemu_renameat   renameat
+ #define qemu_utimensat  utimensat
+ #define qemu_unlinkat   unlinkat
+-#define qemu_futimens   futimens
+ 
+ static inline void close_preserve_errno(int fd)
+ {
+diff --git a/hw/9pfs/9p.c b/hw/9pfs/9p.c
+index acfa7db4e1..7118692a1e 100644
+--- a/hw/9pfs/9p.c
++++ b/hw/9pfs/9p.c
+@@ -1734,11 +1734,7 @@ static void coroutine_fn v9fs_setattr(void *opaque)
+         } else {
+             times[1].tv_nsec = UTIME_OMIT;
+         }
+-        if (fid_has_valid_file_handle(pdu->s, fidp)) {
+-            err = v9fs_co_futimens(pdu, fidp, times);
+-        } else {
+-            err = v9fs_co_utimensat(pdu, &fidp->path, times);
+-        }
++        err = v9fs_co_utimensat(pdu, &fidp->path, times);
+         if (err < 0) {
+             goto out;
+         }
+diff --git a/hw/9pfs/cofs.c b/hw/9pfs/cofs.c
+index 12fa8c9fe9..893466fb1a 100644
+--- a/hw/9pfs/cofs.c
++++ b/hw/9pfs/cofs.c
+@@ -139,25 +139,6 @@ int coroutine_fn v9fs_co_utimensat(V9fsPDU *pdu, V9fsPath *path,
+     return err;
+ }
+ 
+-int coroutine_fn v9fs_co_futimens(V9fsPDU *pdu, V9fsFidState *fidp,
+-                                  struct timespec times[2])
+-{
+-    int err;
+-    V9fsState *s = pdu->s;
+-
+-    if (v9fs_request_cancelled(pdu)) {
+-        return -EINTR;
+-    }
+-    v9fs_co_run_in_worker(
+-        {
+-            err = s->ops->futimens(&s->ctx, fidp->fid_type, &fidp->fs, times);
+-            if (err < 0) {
+-                err = -errno;
+-            }
+-        });
+-    return err;
+-}
+-
+ int coroutine_fn v9fs_co_chown(V9fsPDU *pdu, V9fsPath *path, uid_t uid,
+                                gid_t gid)
+ {
+diff --git a/hw/9pfs/coth.h b/hw/9pfs/coth.h
+index 7906fa7782..62e922dc12 100644
+--- a/hw/9pfs/coth.h
++++ b/hw/9pfs/coth.h
+@@ -71,8 +71,6 @@ int coroutine_fn v9fs_co_statfs(V9fsPDU *, V9fsPath *, struct statfs *);
+ int coroutine_fn v9fs_co_lstat(V9fsPDU *, V9fsPath *, struct stat *);
+ int coroutine_fn v9fs_co_chmod(V9fsPDU *, V9fsPath *, mode_t);
+ int coroutine_fn v9fs_co_utimensat(V9fsPDU *, V9fsPath *, struct timespec [2]);
+-int coroutine_fn v9fs_co_futimens(V9fsPDU *pdu, V9fsFidState *fidp,
+-                                  struct timespec times[2]);
+ int coroutine_fn v9fs_co_chown(V9fsPDU *, V9fsPath *, uid_t, gid_t);
+ int coroutine_fn v9fs_co_truncate(V9fsPDU *, V9fsPath *, off_t);
+ int coroutine_fn v9fs_co_ftruncate(V9fsPDU *pdu, V9fsFidState *fidp,
+-- 
+2.50.1
+
