@@ -52,7 +52,6 @@ GUI companion to Podman;
 * `QEMU` - [home page](https://www.qemu.org/) and [GitHub (mirror)](https://github.com/qemu/qemu) free and open source
 feature rich machine emulator;
 * `sshocker` - [GitHub](https://github.com/lima-vm/sshocker) ssh + reverse sshfs + port forwarder, in Docker-like CLI;
-* `WinSocat` - [GitHub](https://github.com/firejox/WinSocat) socat-like windows-specific program;
 
 ### Versions and patches
 
@@ -108,13 +107,6 @@ Version `10.0.2` with 3 patch sets:
 #### `sshocker`
 
 Version bundled with Lima is used.
-
-#### `WinSocat`
-
-Version `0.1.3` with 3 patch sets:
-* Pending commits after the release https://github.com/firejox/WinSocat/compare/v0.1.3...b7e32fa8f782ae38475cfc7cf1eed25de1fad339;
-* Dependency updates from https://github.com/firejox/WinSocat/pull/16;
-* Some additinal cleanups for VisualStudio solution setup.
 
 ## How to use QEMU
 
