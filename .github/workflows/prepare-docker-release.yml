@@ -24,7 +24,7 @@ jobs:
       compose_version: ${{ steps.make_versions.outputs.compose }}
     steps:
       - name: 🏗️ Install Docker Buildx
-        uses: docker/setup-buildx-action@ve468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
       - name: "📝 Checkout"
