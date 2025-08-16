@@ -65,7 +65,6 @@ jobs:
         env:
           CONTAINERS_MACHINE_PROVIDER: qemu
           MACHINE_TEST_TIMEOUT: 360
-          GINKGOTIMEOUT: --timeout=90m
         run: |
           $env:PATH="$env:PROGRAMFILES\QEMU;$env:PATH"
           ./winmake localmachine
