@@ -51,7 +51,7 @@ container runtime;
 GUI companion to Podman;
 * `QEMU` - [home page](https://www.qemu.org/) and [GitHub (mirror)](https://github.com/qemu/qemu) free and open source
 feature rich machine emulator;
-* `sshocker` - [GitHub](https://github.com/lima-vm/sshocker) ssh + reverse sshfs + port forwarder, in Docker-like CLI;
+* `sshocker` - [GitHub](https://github.com/lima-vm/sshocker) ssh + reverse sshfs + port forwarder, in Docker-like CLI.
 
 ### Versions and patches
 
@@ -88,7 +88,7 @@ Version `1.2.1` with 1 patch set:
 Version `5.6.0` with 3 patch sets:
 * Implement QEMU Podman machine on Windows;
 * Change CPU HW baseline to x86_64v2 + AES (also known as v2.5);
-* Increase timeout for Local Machine test suite.
+* Configurable GINKGOTIMEOUT in `winmake.ps1`.
 
 #### `Podman Desktop`
 
