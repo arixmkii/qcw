@@ -26,8 +26,7 @@ starting with Windows 10 Insiders build in late 2017: https://devblogs.microsoft
 It will also require [Hyper-V](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/about/) support by
 default.
 
-Some features require even more fresh Windows systems. To use `Lima` WSL2 release newer than
-[`2.5.4`](https://github.com/microsoft/WSL/releases/tag/2.5.4) is a hard requirement.
+Some features require even more fresh Windows systems. To baseline would be a Windows system with `WSL` version `2.6.1`.
 
 It is also recommended to allow inbound connections in Hyper-V firewall to not interfere with port forwarding from inside Lima
 ```powershell
