@@ -20,8 +20,8 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: dfecd3e8138f6e4b06f80ad58b892746004edd43
-  LIMA_VERSION: 1.2.1
+  LIMA_SHA: 9d5f4697bed7c889bac215ac10368d30b1da5937 # v2.0.0-alpha.2
+  LIMA_VERSION: 2.0.0-alpha.2
 jobs:
   call-prepare-alpine-wsl:
     uses: ./.github/workflows/prepare-alpine-wsl-release.yml

@@ -65,18 +65,18 @@ index 2ddd4380..3de2de4a 100644
  	"runtime"
  	"strconv"
 @@ -22,6 +23,7 @@ import (
- 
- 	hostagentclient "github.com/lima-vm/lima/pkg/hostagent/api/client"
- 	"github.com/lima-vm/lima/pkg/instance/hostname"
-+	"github.com/lima-vm/lima/pkg/ioutilx"
- 	"github.com/lima-vm/lima/pkg/limayaml"
- 	"github.com/lima-vm/lima/pkg/store/dirnames"
- 	"github.com/lima-vm/lima/pkg/store/filenames"
+ 	"github.com/lima-vm/lima/v2/pkg/driverutil"
+ 	hostagentclient "github.com/lima-vm/lima/v2/pkg/hostagent/api/client"
+ 	"github.com/lima-vm/lima/v2/pkg/instance/hostname"
++	"github.com/lima-vm/lima/v2/pkg/ioutilx"
+ 	"github.com/lima-vm/lima/v2/pkg/limatype"
+ 	"github.com/lima-vm/lima/v2/pkg/limatype/dirnames"
+ 	"github.com/lima-vm/lima/v2/pkg/limatype/filenames"
 @@ -98,6 +100,20 @@ func Inspect(instName string) (*Instance, error) {
+ 	inst.Arch = *y.Arch
  	inst.VMType = *y.VMType
- 	inst.CPUType = y.CPUType[*y.Arch]
  	inst.SSHAddress = "127.0.0.1"
-+	if runtime.GOOS == "windows" && inst.VMType == limayaml.QEMU {
++	if runtime.GOOS == "windows" && inst.VMType == limatype.QEMU {
 +		localFS, err := ioutilx.IsLocalWindowsFS()
 +		if err == nil && !localFS {
 +			mode, err := call([]string{"wsl", "-d", "lima-infra", "wslinfo", "--networking-mode"})
@@ -93,8 +93,8 @@ index 2ddd4380..3de2de4a 100644
  	inst.SSHLocalPort = *y.SSH.LocalPort // maybe 0
  	inst.SSHConfigFile = filepath.Join(instDir, filenames.SSHConfig)
  	inst.HostAgentPID, err = ReadPIDFile(filepath.Join(instDir, filenames.HostAgentPID))
-@@ -185,6 +201,15 @@ func Inspect(instName string) (*Instance, error) {
- 	return inst, nil
+@@ -165,6 +181,15 @@ func inspectStatus(ctx context.Context, instDir string, inst *limatype.Instance, y *limatype.LimaYAML) {
+ 	inst.Status = status
  }
  
 +func call(args []string) (string, error) {
@@ -106,7 +106,7 @@ index 2ddd4380..3de2de4a 100644
 +	return strings.TrimSpace(string(out)), nil
 +}
 +
- func inspectStatusWithPIDFiles(instDir string, inst *Instance, y *limayaml.LimaYAML) {
+ func inspectStatusWithPIDFiles(instDir string, inst *limatype.Instance, y *limatype.LimaYAML) {
  	var err error
  	inst.DriverPID, err = ReadPIDFile(filepath.Join(instDir, filenames.PIDFile(*y.VMType)))
 diff --git a/pkg/hostagent/mount.go b/pkg/hostagent/mount.go
