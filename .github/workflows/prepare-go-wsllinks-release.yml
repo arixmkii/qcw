@@ -11,9 +11,9 @@ on:
         value: ${{ jobs.build.outputs.bundles_version }}
 env:
   GOWSLLINKS_GITURL: https://github.com/arixmkii/go-wsllinks.git
-  GOWSLLINKS_SHA: bf1f9e0f528f76da18c0ccd34656c6841e7815c7 # v0.0.7
-  GOWSLLINKS_VERSION: 0.0.7
-  BUNDLES_VERSION: 0.0.1
+  GOWSLLINKS_SHA: ac54577d40ad024bed3dc78c028a6045cd607759 # v0.0.8
+  GOWSLLINKS_VERSION: 0.0.8
+  BUNDLES_VERSION: 0.0.2 #increment on go-wsllinks change
 jobs:
   build:
     runs-on: windows-2025
