@@ -11,9 +11,9 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   ALPINE_WSL_GITURL: https://github.com/yuk7/AlpineWSL.git
-  ALPINE_WSL_SHA: f7aceea3c25aee24fdee0a08a5ec5d02abb8f2a0 # 3.18.4-0
-  ALPINE_WSL_VERSION: 3.18.4-0
-  ALPINE_VERSION: 3.22.1-0 # from the last applied patch
+  ALPINE_WSL_SHA: 984c3e110e87711228c623c282d34d1b4c8022cb # 3.21.3-1
+  ALPINE_WSL_VERSION: 3.21.3-1
+  ALPINE_VERSION: 3.22.2-0 # from the last applied patch
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -35,8 +35,7 @@ jobs:
           git remote add origin $ALPINE_WSL_GITURL
           git fetch --depth 1 origin $ALPINE_WSL_SHA
           git checkout FETCH_HEAD
-          patch --binary -l -p 1 < ../patches/AlpineWSL/0001-Updated-Alpine-Linux-distro-version-to-3.20.3.patch
-          patch --binary -l -p 1 < ../patches/AlpineWSL/0002-Add-Lima-customizations.patch
+          patch --binary -l -p 1 < ../patches/AlpineWSL/0001-Add-Lima-customizations.patch
       - name: "🛠️ Build Alpine-WSL"
         working-directory: alpine-wsl-release/src_x64
         run: |

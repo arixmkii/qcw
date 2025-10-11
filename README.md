@@ -56,9 +56,8 @@ feature rich machine emulator;
 
 #### `Alpine-WSL`
 
-Version `3.18.4-0` with 2 patch sets:
-* Update Alpine to 3.20.3;
-* Update Alpine to 3.22.1 and add Lima required tools.
+Version `3.21.3-1` with 1 patch set:
+* Update Alpine to 3.22.2 and add Lima required tools.
 
 #### `docker-cli`
 
