@@ -28,7 +28,7 @@ jobs:
         run: |
           winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
           winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity JohnMacFarlane.Pandoc
-          dotnet tool install --global wix
+          dotnet tool install wix --global --version 5.0.2
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
       - name: "📝 Checkout"
