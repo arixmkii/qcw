@@ -19,40 +19,15 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
  create mode 100644 pkg/machine/provider/platform_windows_amd64.go
  create mode 100644 pkg/machine/provider/platform_windows_arm64.go
 
-diff --git a/contrib/win-installer/podman-theme.wxl b/contrib/win-installer/podman-theme.wxl
-index b5666fd67..3fe96ba7a 100644
---- a/contrib/win-installer/podman-theme.wxl
-+++ b/contrib/win-installer/podman-theme.wxl
-@@ -7,7 +7,7 @@
-   <String Id="Title" Value="[WixBundleName] [VERSION]" />
-   <String Id="InstallHeader" Value="Welcome to [WixBundleName] Setup" />
-   <String Id="InstallMessage" Value="Welcome to the [WixBundleName] [VERSION] setup wizard. This will install [WixBundleName] on your computer." />
--  <String Id="ProvidersMessage" Value="Additionally, you have the option to select the virtualization provider required by Podman: WSLv2 or Hyper-V.
-+  <String Id="ProvidersMessage" Value="Additionally, you have the option to select the virtualization provider required by Podman: WSLv2 or Hyper-V or QEMU.
- 
- If it's not already installed, you will have to install the virtualization provider manually.
- 
-diff --git a/contrib/win-installer/podman-theme.xml b/contrib/win-installer/podman-theme.xml
-index fd681e67d..f256d0591 100644
---- a/contrib/win-installer/podman-theme.xml
-+++ b/contrib/win-installer/podman-theme.xml
-@@ -36,6 +36,7 @@
-             <RadioButtons Name="MachineProvider">
-                 <RadioButton Name="WSLRadioButton" Value="wsl" VisibleCondition="NOT PreviousInstallFolder" X="185" Y="260" Width="-11" Height="17" TabStop="yes" FontId="3" HideWhenDisabled="yes" EnableCondition="" >Windows Linux Subsystem (WSLv2)</RadioButton>
-                 <RadioButton Name="HyperVRadioButton"  Value="hyperv" VisibleCondition="NOT PreviousInstallFolder" X="185" Y="285" Width="-11" Height="17" TabStop="yes" FontId="3" HideWhenDisabled="yes">Windows Hyper-V</RadioButton>
-+                <RadioButton Name="QemuRadioButton" Value="qemu" VisibleCondition="NOT PreviousInstallFolder" X="185" Y="310" Width="-11" Height="17" TabStop="yes" FontId="3" HideWhenDisabled="yes">QEMU</RadioButton>
-             </RadioButtons>
-             <Hypertext Name="EulaHyperlink" X="185" Y="-111" Width="-11" Height="17" TabStop="yes" FontId="3" HideWhenDisabled="yes">#(loc.InstallLicenseLinkText)</Hypertext>
-             <Label Name="InstallVersion" X="510" Y="-50" Width="-11" Height="17" FontId="3" DisablePrefix="yes" VisibleCondition="WixStdBAShowVersion">#(loc.InstallVersion)</Label>
-diff --git a/contrib/win-installer/welcome-install-dlg.wxs b/contrib/win-installer/welcome-install-dlg.wxs
-index c6dc65cbf..f27d420d6 100644
---- a/contrib/win-installer/welcome-install-dlg.wxs
-+++ b/contrib/win-installer/welcome-install-dlg.wxs
-@@ -11,6 +11,7 @@
+diff --git a/contrib/win-installer/wix/podman-ui-welcome-dlg.wxs b/contrib/win-installer/wix/podman-ui-welcome-dlg.wxs
+index deaa30552..ddd7e4eff 100644
+--- a/contrib/win-installer/wix/podman-ui-welcome-dlg.wxs
++++ b/contrib/win-installer/wix/podman-ui-welcome-dlg.wxs
+@@ -12,6 +12,7 @@
                      <RadioButtonGroup Property="MACHINE_PROVIDER">
                          <RadioButton Text="Windows Linux Subsystem (WSLv2)" Height="15" Value="wsl" Width="226" X="10" Y="0" />
                          <RadioButton Text="Windows Hyper-V" Height="15" Value="hyperv" Width="226" X="10" Y="15" />
-+                        <RadioButton Text="QEMU (distribution of QEMU not bundled)" Height="15" Value="qemu" Width="226" X="10" Y="30" />
++                        <RadioButton Text="QEMU" Height="15" Value="qemu" Width="226" X="10" Y="30" />
                      </RadioButtonGroup>
                  </Control>
                  <Control Id="Back" Type="PushButton" X="156" Y="243" Width="56" Height="17" Disabled="yes" Text="!(loc.WixUIBack)" />

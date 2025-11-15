@@ -8,9 +8,8 @@ on:
         value: ${{ jobs.build.outputs.podman_version }}
 env:
   PODMAN_GITURL: https://github.com/containers/podman.git
-  PODMAN_SHA: 9dd5e1ed33830612bc200d7a13db00af6ab865a4 # v5.6.2
-  PODMAN_VERSION: 5.6.2
-  PODMAN_REVISION_KIND: prod # prod|dev
+  PODMAN_SHA: 0370128fc8dcae93533334324ef838db8f8da8cb # v5.7.0
+  PODMAN_VERSION: 5.7.0
 jobs:
   build:
     runs-on: windows-2025
@@ -53,7 +52,6 @@ jobs:
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/podman/0001-Implement-QEMU-Podman-machine-on-Windows.patch
           patch --binary -l -p 1 < ../patches/podman/0002-Update-QEMU-CPU-baseline-to-x86-64v2.5.patch
-          patch --binary -l -p 1 < ../patches/podman/0003-Configurable-GINKGOTIMEOUT-in-winmake.ps1.patch
       - name: "⚗️ Prepare Test Podman"
         working-directory: podman-release
         shell: msys2 {0}
@@ -78,13 +76,13 @@ jobs:
           mkdir -p contrib/win-installer/current
           cp *.zip contrib/win-installer/current/
           cd contrib/win-installer
-          powershell -ExecutionPolicy Bypass -File build.ps1 $BUILD_PODMAN_VERSION $PODMAN_REVISION_KIND current
+          powershell -ExecutionPolicy Bypass -File build.ps1 -Version $BUILD_PODMAN_VERSION -Architecture amd64 -LocalReleaseDirPath current
       - name: "📦 Pack Podman"
         shell: msys2 {0}
         run: |
           mkdir -p qcw
           export BUILD_PODMAN_VERSION=$(podman-release/test/version/version | sed 's/-.*//')
-          cp "podman-release/contrib/win-installer/podman-$BUILD_PODMAN_VERSION-"*"setup.exe" qcw/
+          cp "podman-release/contrib/win-installer/podman-$BUILD_PODMAN_VERSION.msi" qcw/
           cd qcw
           find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
           find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums

@@ -84,7 +84,7 @@ jobs:
         with:
           name: ${{ inputs.release_name }}
           prerelease: "true"
-          artifacts: "qcw/**/*.exe,qcw/**/*.wsl,qcw/**/*.zip,qcw/*.sha256,qcw/*.sha512"
+          artifacts: "qcw/**/*.msi,qcw/**/*.exe,qcw/**/*.wsl,qcw/**/*.zip,qcw/*.sha256,qcw/*.sha512"
           bodyFile: "release.template.md"
           tag: ${{ inputs.release_tag }}
           commit: "main"
