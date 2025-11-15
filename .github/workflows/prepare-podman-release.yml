@@ -77,7 +77,7 @@ jobs:
           mkdir -p contrib/win-installer/current
           cp *.zip contrib/win-installer/current/
           cd contrib/win-installer
-          powershell -ExecutionPolicy Bypass -File build.ps1 $BUILD_PODMAN_VERSION $PODMAN_REVISION_KIND current
+          powershell -ExecutionPolicy Bypass -File build.ps1 $BUILD_PODMAN_VERSION amd64 current
       - name: "📦 Pack Podman"
         shell: msys2 {0}
         run: |
