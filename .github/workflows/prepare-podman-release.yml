@@ -10,7 +10,6 @@ env:
   PODMAN_GITURL: https://github.com/containers/podman.git
   PODMAN_SHA: 0370128fc8dcae93533334324ef838db8f8da8cb # v5.7.0
   PODMAN_VERSION: 5.7.0
-  PODMAN_REVISION_KIND: prod # prod|dev
 jobs:
   build:
     runs-on: windows-2025
@@ -77,13 +76,13 @@ jobs:
           mkdir -p contrib/win-installer/current
           cp *.zip contrib/win-installer/current/
           cd contrib/win-installer
-          powershell -ExecutionPolicy Bypass -File build.ps1 $BUILD_PODMAN_VERSION amd64 current
+          powershell -ExecutionPolicy Bypass -File build.ps1 -Version $BUILD_PODMAN_VERSION -Architecture amd64 -LocalReleaseDirPath current
       - name: "📦 Pack Podman"
         shell: msys2 {0}
         run: |
           mkdir -p qcw
           export BUILD_PODMAN_VERSION=$(podman-release/test/version/version | sed 's/-.*//')
-          cp "podman-release/contrib/win-installer/podman-$BUILD_PODMAN_VERSION-"*"setup.exe" qcw/
+          cp "podman-release/contrib/win-installer/podman-$BUILD_PODMAN_VERSION.msi" qcw/
           cd qcw
           find . -type f \( ! -iname "*.checksums" \) -exec sha256sum -b {} \; > sha.checksums
           find . -type f \( ! -iname "*.checksums" \) -exec sha512sum -b {} \; >> sha.checksums
