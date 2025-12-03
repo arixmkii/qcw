@@ -1,26 +1,25 @@
-From 0f1e00204ba63bde718f97d3808ff7e97c741c44 Mon Sep 17 00:00:00 2001
+From f50abda23217724a914fb2402539d427786a85fe Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 20 Feb 2024 21:52:34 +0200
-Subject: [PATCH 1/2] Implement QEMU Podman machine on Windows
+Subject: [PATCH] Implement QEMU Podman machine on Windows
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
- contrib/win-installer/podman-theme.wxl        |  2 +-
- contrib/win-installer/podman-theme.xml        |  5 ++--
- contrib/win-installer/welcome-install-dlg.wxs |  1 +
- pkg/machine/e2e/README.md                     |  9 ++++++
- pkg/machine/e2e/basic_test.go                 | 10 +++++++
- pkg/machine/e2e/config_init_test.go           |  6 ++++
- pkg/machine/e2e/init_test.go                  |  3 ++
- pkg/machine/provider/platform_windows.go      | 16 +++-------
- .../provider/platform_windows_amd64.go        | 30 +++++++++++++++++++
- .../provider/platform_windows_arm64.go        | 30 +++++++++++++++++++
- 10 files changed, 97 insertions(+), 15 deletions(-)
+ .../win-installer/wix/podman-ui-welcome-dlg.wxs  |  3 ++-
+ pkg/machine/e2e/README.md                        |  9 +++++++++
+ pkg/machine/e2e/basic_test.go                    |  9 +++++++++
+ pkg/machine/e2e/config_init_test.go              |  6 ++++++
+ pkg/machine/e2e/config_windows_test.go           |  3 +++
+ pkg/machine/e2e/init_test.go                     | 12 +++++++++++-
+ pkg/machine/provider/platform_windows.go         | 12 ++++++++++++
+ pkg/machine/provider/platform_windows_amd64.go   | 14 ++++++++++++++
+ pkg/machine/provider/platform_windows_arm64.go   | 16 ++++++++++++++++
+ 9 files changed, 82 insertions(+), 2 deletions(-)
  create mode 100644 pkg/machine/provider/platform_windows_amd64.go
  create mode 100644 pkg/machine/provider/platform_windows_arm64.go
 
 diff --git a/contrib/win-installer/wix/podman-ui-welcome-dlg.wxs b/contrib/win-installer/wix/podman-ui-welcome-dlg.wxs
-index deaa30552..ddd7e4eff 100644
+index deaa305521..4aba4d3f9a 100644
 --- a/contrib/win-installer/wix/podman-ui-welcome-dlg.wxs
 +++ b/contrib/win-installer/wix/podman-ui-welcome-dlg.wxs
 @@ -8,10 +8,11 @@
@@ -37,7 +36,7 @@ index deaa30552..ddd7e4eff 100644
                  </Control>
                  <Control Id="Back" Type="PushButton" X="156" Y="243" Width="56" Height="17" Disabled="yes" Text="!(loc.WixUIBack)" />
 diff --git a/pkg/machine/e2e/README.md b/pkg/machine/e2e/README.md
-index ae6873f42..55cdab839 100644
+index 07deb700e1..2184274320 100644
 --- a/pkg/machine/e2e/README.md
 +++ b/pkg/machine/e2e/README.md
 @@ -64,6 +64,15 @@ above.
@@ -57,10 +56,10 @@ index ae6873f42..55cdab839 100644
  
  Macs now support two different machine providers: `applehv` and `libkrun`. The
 diff --git a/pkg/machine/e2e/basic_test.go b/pkg/machine/e2e/basic_test.go
-index c060479cd..aa3626a79 100644
+index ac3242c06f..5dd0522848 100644
 --- a/pkg/machine/e2e/basic_test.go
 +++ b/pkg/machine/e2e/basic_test.go
-@@ -60,6 +61,9 @@ var _ = Describe("run basic podman commands", func() {
+@@ -63,6 +63,9 @@ var _ = Describe("run basic podman commands", func() {
  	})
  
  	It("Volume ops", func() {
@@ -70,7 +69,7 @@ index c060479cd..aa3626a79 100644
  		tDir, err := filepath.Abs(GinkgoT().TempDir())
  		Expect(err).ToNot(HaveOccurred())
  		roFile := filepath.Join(tDir, "attr-test-file")
-@@ -100,6 +104,9 @@ var _ = Describe("run basic podman commands", func() {
+@@ -129,6 +132,9 @@ var _ = Describe("run basic podman commands", func() {
  		// In theory this could run on MacOS too, but we know virtiofs works for that now,
  		// this is just testing linux
  		skipIfNotVmtype(define.QemuVirt, "This is just adding coverage for virtiofs on linux")
@@ -80,7 +79,7 @@ index c060479cd..aa3626a79 100644
  
  		tDir, err := filepath.Abs(GinkgoT().TempDir())
  		Expect(err).ToNot(HaveOccurred())
-@@ -190,6 +197,9 @@ var _ = Describe("run basic podman commands", func() {
+@@ -224,6 +230,9 @@ var _ = Describe("run basic podman commands", func() {
  
  	It("podman volume on non-standard path", func() {
  		skipIfWSL("Requires standard volume handling")
@@ -91,22 +90,22 @@ index c060479cd..aa3626a79 100644
  		Expect(err).ToNot(HaveOccurred())
  		defer os.RemoveAll(dir)
 diff --git a/pkg/machine/e2e/config_init_test.go b/pkg/machine/e2e/config_init_test.go
-index 042301047..9b4e3e129 100644
+index ae68d0c5fb..c2cfb5cbd3 100644
 --- a/pkg/machine/e2e/config_init_test.go
 +++ b/pkg/machine/e2e/config_init_test.go
-@@ -1,9 +1,11 @@
- package e2e_test
+@@ -2,9 +2,11 @@ package e2e_test
  
  import (
+ 	"fmt"
 +	"runtime"
  	"strconv"
  	"strings"
  
-+	"github.com/containers/podman/v5/pkg/machine/define"
++	"github.com/containers/podman/v6/pkg/machine/define"
  	. "github.com/onsi/ginkgo/v2"
  	. "github.com/onsi/gomega"
  	. "github.com/onsi/gomega/gexec"
-@@ -67,6 +69,10 @@ func (i *initMachine) buildCmd(m *machineTestBuilder) []string {
+@@ -59,6 +61,10 @@ func (i *initMachine) buildCmd(m *machineTestBuilder) []string {
  	for _, v := range i.volumes {
  		cmd = append(cmd, "--volume", v)
  	}
@@ -117,11 +116,32 @@ index 042301047..9b4e3e129 100644
  	if i.now {
  		cmd = append(cmd, "--now")
  	}
+diff --git a/pkg/machine/e2e/config_windows_test.go b/pkg/machine/e2e/config_windows_test.go
+index 294c989f97..52b48736be 100644
+--- a/pkg/machine/e2e/config_windows_test.go
++++ b/pkg/machine/e2e/config_windows_test.go
+@@ -29,6 +29,7 @@ func initPlatform() {
+ 		fakeImagePath = fullFileName
+ 		fmt.Println("Created fake disk image: " + fakeImagePath)
+ 	case define.WSLVirt.String():
++	case define.QemuVirt.String():
+ 	default:
+ 		Fail(fmt.Sprintf("unknown Windows provider: %q", testProvider.VMType().String()))
+ 	}
+@@ -79,6 +80,8 @@ func (i *initMachine) withFakeImage(mb *machineTestBuilder) *initMachine {
+ 		i.image = fakeImagePath
+ 	case define.WSLVirt:
+ 		i.image = mb.imagePath
++	case define.QemuVirt:
++		i.image = mb.imagePath
+ 	default:
+ 		Fail(fmt.Sprintf("unknown Windows provider: %q", testProvider.VMType().String()))
+ 	}
 diff --git a/pkg/machine/e2e/init_test.go b/pkg/machine/e2e/init_test.go
-index bd5fe683c..c5d7bfaba 100644
+index f9d8a6faa2..3dbd9268ae 100644
 --- a/pkg/machine/e2e/init_test.go
 +++ b/pkg/machine/e2e/init_test.go
-@@ -202,6 +202,9 @@ var _ = Describe("podman machine init", func() {
+@@ -325,6 +325,9 @@ var _ = Describe("podman machine init", func() {
  
  	It("machine init with volume", func() {
  		skipIfWSL("WSL volumes are much different.  This test will not pass as is")
@@ -131,56 +151,89 @@ index bd5fe683c..c5d7bfaba 100644
  
  		tmpDir, err := os.MkdirTemp("", "")
  		Expect(err).ToNot(HaveOccurred())
+@@ -648,7 +651,11 @@ var _ = Describe("podman machine init", func() {
+ 		var providerOverride string
+ 		switch testProvider.VMType() {
+ 		case define.QemuVirt, define.AppleHvVirt, define.LibKrun:
+-			providerOverride = "wsl"
++			if runtime.GOOS == "windows" {
++				providerOverride = "applehv"
++			} else {
++				providerOverride = "wsl"
++			}
+ 		case define.WSLVirt, define.HyperVVirt:
+ 			providerOverride = "applehv"
+ 		default:
+@@ -665,6 +672,9 @@ var _ = Describe("podman machine init", func() {
+ 	It("machine init --provider", func() {
+ 		skipIfVmtype(define.WSLVirt, "Skip to avoid long tests or image pulls on Windows")
+ 		skipIfVmtype(define.HyperVVirt, "Skip to avoid long tests or image pulls Windows")
++		if testProvider.VMType() == define.QemuVirt && runtime.GOOS == "windows" {
++			Skip("Skip to avoid long tests or image pulls Windows")
++		}
+ 		verify := make(map[string]string)
+ 
+ 		// Loop all providers and create a map with
 diff --git a/pkg/machine/provider/platform_windows.go b/pkg/machine/provider/platform_windows.go
-index eab7502af..056db09e5 100644
+index 2068c54467..f13bb5f1d5 100644
 --- a/pkg/machine/provider/platform_windows.go
 +++ b/pkg/machine/provider/platform_windows.go
-@@ -31,6 +31,8 @@ func Get() (vmconfigs.VMProvider, error) {
- 
- 	logrus.Debugf("Using Podman machine with `%s` virtualization provider", resolvedVMType.String())
+@@ -7,6 +7,7 @@ import (
+ 	"github.com/containers/libhvee/pkg/hypervctl"
+ 	"github.com/containers/podman/v6/pkg/machine/define"
+ 	"github.com/containers/podman/v6/pkg/machine/hyperv"
++	"github.com/containers/podman/v6/pkg/machine/qemu"
+ 	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
+ 	"github.com/containers/podman/v6/pkg/machine/windows"
+ 	"github.com/containers/podman/v6/pkg/machine/wsl"
+@@ -41,6 +42,8 @@ func Get() (vmconfigs.VMProvider, error) {
+ // VMProvider
+ func GetByVMType(resolvedVMType define.VMType) (vmconfigs.VMProvider, error) {
  	switch resolvedVMType {
 +	case define.QemuVirt:
-+		return getQemuProvider()
++		return new(qemu.QEMUStubber), nil
  	case define.WSLVirt:
  		return new(wsl.WSLStubber), nil
  	case define.HyperVVirt:
-@@ -43,20 +45,10 @@ func Get() (vmconfigs.VMProvider, error) {
+@@ -63,11 +66,18 @@ func GetAll() []vmconfigs.VMProvider {
+ 	if hasHyperVPermissionsFunc() {
+ 		providers = append(providers, new(hyperv.HyperVStubber))
  	}
++	if isQemuInstalled() {
++		providers = append(providers, new(qemu.QEMUStubber))
++	}
+ 	return providers
  }
  
--func GetAll() []vmconfigs.VMProvider {
--	return []vmconfigs.VMProvider{
--		new(wsl.WSLStubber),
--		new(hyperv.HyperVStubber),
--	}
--}
--
--// SupportedProviders returns the providers that are supported on the host operating system
--func SupportedProviders() []define.VMType {
--	return []define.VMType{define.HyperVVirt, define.WSLVirt}
--}
--
- func IsInstalled(provider define.VMType) (bool, error) {
+ // SupportedProviders returns the providers that are supported on the host operating system
+ func SupportedProviders() []define.VMType {
++	supported := []define.VMType{define.HyperVVirt, define.WSLVirt}
++	if isQemuInstalled() {
++		supported = append(supported, define.QemuVirt)
++	}
+ 	return []define.VMType{define.HyperVVirt, define.WSLVirt}
+ }
+ 
+@@ -75,6 +85,8 @@ func IsInstalled(provider define.VMType) (bool, error) {
  	switch provider {
-+	case define.QemuVirt:
-+		return isQemuInstalled(), nil
  	case define.WSLVirt:
  		return wutil.IsWSLInstalled(), nil
++	case define.QemuVirt:
++		return isQemuInstalled(), nil
  	case define.HyperVVirt:
+ 		service, err := hypervctl.NewLocalHyperVService()
+ 		if err == nil {
 diff --git a/pkg/machine/provider/platform_windows_amd64.go b/pkg/machine/provider/platform_windows_amd64.go
 new file mode 100644
-index 000000000..f76fe2a53
+index 0000000000..f8de7c5f51
 --- /dev/null
 +++ b/pkg/machine/provider/platform_windows_amd64.go
-@@ -0,0 +1,30 @@
+@@ -0,0 +1,14 @@
 +package provider
 +
 +import (
-+	"github.com/containers/podman/v5/pkg/machine/define"
-+	"github.com/containers/podman/v5/pkg/machine/hyperv"
-+	"github.com/containers/podman/v5/pkg/machine/qemu"
-+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
-+	"github.com/containers/podman/v5/pkg/machine/wsl"
++	"github.com/containers/podman/v6/pkg/machine/qemu"
++	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
 +)
 +
 +func getQemuProvider() (vmconfigs.VMProvider, error) {
@@ -190,34 +243,19 @@ index 000000000..f76fe2a53
 +func isQemuInstalled() bool {
 +	return true
 +}
-+
-+func GetAll() []vmconfigs.VMProvider {
-+	return []vmconfigs.VMProvider{
-+		new(wsl.WSLStubber),
-+		new(hyperv.HyperVStubber),
-+		new(qemu.QEMUStubber),
-+	}
-+}
-+
-+// SupportedProviders returns the providers that are supported on the host operating system
-+func SupportedProviders() []define.VMType {
-+	return []define.VMType{define.HyperVVirt, define.WSLVirt, define.QemuVirt}
-+}
 diff --git a/pkg/machine/provider/platform_windows_arm64.go b/pkg/machine/provider/platform_windows_arm64.go
 new file mode 100644
-index 000000000..dda895b51
+index 0000000000..49e746a60f
 --- /dev/null
 +++ b/pkg/machine/provider/platform_windows_arm64.go
-@@ -0,0 +1,30 @@
+@@ -0,0 +1,16 @@
 +package provider
 +
 +import (
 +	"fmt"
 +
-+	"github.com/containers/podman/v5/pkg/machine/define"
-+	"github.com/containers/podman/v5/pkg/machine/hyperv"
-+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
-+	"github.com/containers/podman/v5/pkg/machine/wsl"
++	"github.com/containers/podman/v6/pkg/machine/define"
++	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
 +)
 +
 +func getQemuProvider() (vmconfigs.VMProvider, error) {
@@ -227,18 +265,6 @@ index 000000000..dda895b51
 +func isQemuInstalled() bool {
 +	return false
 +}
-+
-+func GetAll() []vmconfigs.VMProvider {
-+	return []vmconfigs.VMProvider{
-+		new(wsl.WSLStubber),
-+		new(hyperv.HyperVStubber),
-+	}
-+}
-+
-+// SupportedProviders returns the providers that are supported on the host operating system
-+func SupportedProviders() []define.VMType {
-+	return []define.VMType{define.HyperVVirt, define.WSLVirt}
-+}
 -- 
-2.48.1
+2.52.0
 
