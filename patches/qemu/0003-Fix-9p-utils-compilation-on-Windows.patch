@@ -45,12 +45,15 @@ index dd5b514c23..cd85a7dfb9 100644
    '9p-xattr-user.c',
    '9p-xattr.c',
    '9p.c',
-@@ -14,9 +13,9 @@ fs_ss.add(files(
+@@ -14,11 +13,11 @@ fs_ss.add(files(
    'coxattr.c',
  ))
  if host_os == 'darwin'
 -  fs_ss.add(files('9p-util-darwin.c', '9p-proxy.c',))
 +  fs_ss.add(files('9p-util-darwin.c', '9p-proxy.c', '9p-util-generic.c',))
+ elif host_os == 'freebsd'
+-  fs_ss.add(files('9p-util-freebsd.c', '9p-proxy.c',))
++  fs_ss.add(files('9p-util-freebsd.c', '9p-proxy.c', '9p-util-generic.c',))
  elif host_os == 'linux'
 -  fs_ss.add(files('9p-util-linux.c', '9p-proxy.c',))
 +  fs_ss.add(files('9p-util-linux.c', '9p-proxy.c', '9p-util-generic.c',))
