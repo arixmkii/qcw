@@ -1,4 +1,4 @@
-From 7d78a136f8b4a0ef21b128d64fe11ca004560e52 Mon Sep 17 00:00:00 2001
+From 4bc7f7a483a051279a408c96c9a7ec2825519eb9 Mon Sep 17 00:00:00 2001
 From: Guohuai Shi <guohuai.shi@windriver.com>
 Date: Mon, 20 Feb 2023 18:08:00 +0800
 Subject: [PATCH 01/15] hw/9pfs: Add missing definitions for Windows
@@ -15,10 +15,10 @@ Signed-off-by: Bin Meng <bin.meng@windriver.com>
  2 files changed, 76 insertions(+)
 
 diff --git a/fsdev/file-op-9p.h b/fsdev/file-op-9p.h
-index 26ba1438c0..e754c63d3a 100644
+index 71188665c8..28a6ca1392 100644
 --- a/fsdev/file-op-9p.h
 +++ b/fsdev/file-op-9p.h
-@@ -27,6 +27,39 @@
+@@ -29,6 +29,39 @@
  # include <sys/mount.h>
  #endif
  
@@ -120,9 +120,9 @@ index 65cc45e344..a6cf54cfa3 100644
      P9_TLERROR = 6,
      P9_RLERROR,
 -- 
-2.50.1
+2.52.0
 
-From de3df64273b81f4854867e9627baf54bfea9e428 Mon Sep 17 00:00:00 2001
+From 1aba431e79093a1632a84d432e73b675b32806c7 Mon Sep 17 00:00:00 2001
 From: Guohuai Shi <guohuai.shi@windriver.com>
 Date: Mon, 20 Feb 2023 18:08:01 +0800
 Subject: [PATCH 02/15] hw/9pfs: Implement Windows specific utilities functions
@@ -1167,10 +1167,10 @@ index 0000000000..a99d579a06
 +    return -1;
 +}
 diff --git a/hw/9pfs/9p-util.h b/hw/9pfs/9p-util.h
-index 7bc4ec8e85..ec92934750 100644
+index 73e17648ea..74849b00c7 100644
 --- a/hw/9pfs/9p-util.h
 +++ b/hw/9pfs/9p-util.h
-@@ -90,12 +90,22 @@ static inline int errno_to_dotl(int err) {
+@@ -99,12 +99,22 @@ static inline int errno_to_dotl(int err) {
      return err;
  }
  
@@ -1194,7 +1194,7 @@ index 7bc4ec8e85..ec92934750 100644
  #define qemu_openat     openat
  #define qemu_fstat      fstat
  #define qemu_fstatat    fstatat
-@@ -103,6 +113,24 @@ static inline int errno_to_dotl(int err) {
+@@ -112,6 +122,24 @@ static inline int errno_to_dotl(int err) {
  #define qemu_renameat   renameat
  #define qemu_utimensat  utimensat
  #define qemu_unlinkat   unlinkat
@@ -1219,7 +1219,7 @@ index 7bc4ec8e85..ec92934750 100644
  
  static inline void close_preserve_errno(int fd)
  {
-@@ -111,6 +139,7 @@ static inline void close_preserve_errno(int fd)
+@@ -120,6 +148,7 @@ static inline void close_preserve_errno(int fd)
      errno = serrno;
  }
  
@@ -1227,18 +1227,18 @@ index 7bc4ec8e85..ec92934750 100644
  /**
   * close_if_special_file() - Close @fd if neither regular file nor directory.
   *
-@@ -200,6 +229,7 @@ again:
+@@ -209,6 +238,7 @@ again:
      }
      return fd;
  }
 +#endif
  
- ssize_t fgetxattrat_nofollow(int dirfd, const char *path, const char *name,
-                              void *value, size_t size);
+ #ifdef CONFIG_FREEBSD
+ ssize_t fgetxattr(int dirfd, const char *name, void *value, size_t size);
 -- 
-2.50.1
+2.52.0
 
-From 1ab0616535e72c4b1552887e41333503969f21e9 Mon Sep 17 00:00:00 2001
+From 9bf4dfe12909b3e254470ead8c3a8c35d99dfec7 Mon Sep 17 00:00:00 2001
 From: Guohuai Shi <guohuai.shi@windriver.com>
 Date: Mon, 20 Feb 2023 18:08:02 +0800
 Subject: [PATCH 03/15] hw/9pfs: Replace the direct call to xxxdir() APIs with
@@ -1308,10 +1308,10 @@ index 065f7dbef2..7340d03422 100644
  
  static ssize_t local_preadv(FsContext *ctx, V9fsFidOpenState *fs,
 diff --git a/hw/9pfs/9p-util.h b/hw/9pfs/9p-util.h
-index ec92934750..aec88892cc 100644
+index 74849b00c7..d2d60f5880 100644
 --- a/hw/9pfs/9p-util.h
 +++ b/hw/9pfs/9p-util.h
-@@ -105,6 +105,13 @@ static inline int errno_to_dotl(int err) {
+@@ -114,6 +114,13 @@ static inline int errno_to_dotl(int err) {
  #define qemu_renameat   renameat_win32
  #define qemu_utimensat  utimensat_win32
  #define qemu_unlinkat   unlinkat_win32
@@ -1325,7 +1325,7 @@ index ec92934750..aec88892cc 100644
  #else
  #define qemu_openat     openat
  #define qemu_fstat      fstat
-@@ -113,6 +120,13 @@ static inline int errno_to_dotl(int err) {
+@@ -122,6 +129,13 @@ static inline int errno_to_dotl(int err) {
  #define qemu_renameat   renameat
  #define qemu_utimensat  utimensat
  #define qemu_unlinkat   unlinkat
@@ -1340,9 +1340,9 @@ index ec92934750..aec88892cc 100644
  
  #ifdef CONFIG_WIN32
 -- 
-2.50.1
+2.52.0
 
-From d7d8697bd9eccb0fe306454fbe1c45214d39cd4e Mon Sep 17 00:00:00 2001
+From 59a731099acfdece7dda2d80be8e9d721fa7c4bb Mon Sep 17 00:00:00 2001
 From: Guohuai Shi <guohuai.shi@windriver.com>
 Date: Mon, 20 Feb 2023 18:08:03 +0800
 Subject: [PATCH 04/15] hw/9pfs: Implement Windows specific xxxdir() APIs
@@ -1823,10 +1823,10 @@ index a99d579a06..e9408f3c45 100644
 +    return (long)stream->offset;
 +}
 diff --git a/hw/9pfs/9p-util.h b/hw/9pfs/9p-util.h
-index aec88892cc..c07a919caa 100644
+index d2d60f5880..f86477d9c4 100644
 --- a/hw/9pfs/9p-util.h
 +++ b/hw/9pfs/9p-util.h
-@@ -144,6 +144,12 @@ int unlinkat_win32(int dirfd, const char *pathname, int flags);
+@@ -153,6 +153,12 @@ int unlinkat_win32(int dirfd, const char *pathname, int flags);
  int statfs_win32(const char *root_path, struct statfs *stbuf);
  int openat_dir(int dirfd, const char *name);
  int openat_file(int dirfd, const char *name, int flags, mode_t mode);
@@ -1840,9 +1840,9 @@ index aec88892cc..c07a919caa 100644
  
  static inline void close_preserve_errno(int fd)
 -- 
-2.50.1
+2.52.0
 
-From e06a51643a50e8a337d017a8b83c91bfdae9799b Mon Sep 17 00:00:00 2001
+From 99c35b17bf8b6fd5bf8c9534f6bc3554d05c2443 Mon Sep 17 00:00:00 2001
 From: Guohuai Shi <guohuai.shi@windriver.com>
 Date: Mon, 20 Feb 2023 18:08:04 +0800
 Subject: [PATCH 05/15] hw/9pfs: Update the local fs driver to support Windows
@@ -2465,9 +2465,9 @@ index 77e7f57f89..5905923881 100644
  } LocalData;
  
 -- 
-2.50.1
+2.52.0
 
-From 5364021b8940c1ba198f67a6c76680fcf8fcfec3 Mon Sep 17 00:00:00 2001
+From 481ae6d33774985c9211901e0e489d7cbe8adb0f Mon Sep 17 00:00:00 2001
 From: Guohuai Shi <guohuai.shi@windriver.com>
 Date: Mon, 20 Feb 2023 18:08:05 +0800
 Subject: [PATCH 06/15] hw/9pfs: Support getting current directory offset for
@@ -2502,7 +2502,7 @@ index e9408f3c45..37d98a3e63 100644
 +    return s->ops->telldir(&s->ctx, fs);
 +}
 diff --git a/hw/9pfs/9p-util.h b/hw/9pfs/9p-util.h
-index c07a919caa..a78602e99a 100644
+index f86477d9c4..765e8f3f7a 100644
 --- a/hw/9pfs/9p-util.h
 +++ b/hw/9pfs/9p-util.h
 @@ -21,6 +21,10 @@
@@ -2513,10 +2513,10 @@ index c07a919caa..a78602e99a 100644
 +union V9fsFidOpenState;
 +struct V9fsState;
 +
- #if !defined(CONFIG_LINUX)
- 
+ #ifdef CONFIG_FREEBSD
  /*
-@@ -150,6 +154,7 @@ struct dirent *readdir_win32(DIR *pDir);
+  * FreeBSD does not have these flags, so we can only emulate their intended
+@@ -159,6 +163,7 @@ struct dirent *readdir_win32(DIR *pDir);
  void rewinddir_win32(DIR *pDir);
  void seekdir_win32(DIR *pDir, long pos);
  long telldir_win32(DIR *pDir);
@@ -2524,7 +2524,7 @@ index c07a919caa..a78602e99a 100644
  #endif
  
  static inline void close_preserve_errno(int fd)
-@@ -266,12 +271,17 @@ ssize_t fremovexattrat_nofollow(int dirfd, const char *filename,
+@@ -278,12 +283,17 @@ ssize_t fremovexattrat_nofollow(int dirfd, const char *filename,
   * so ensure it is manually injected earlier and call here when
   * needed.
   */
@@ -2546,10 +2546,10 @@ index c07a919caa..a78602e99a 100644
  }
  
 diff --git a/hw/9pfs/9p.c b/hw/9pfs/9p.c
-index 7118692a1e..5fb9fabfae 100644
+index 93668e8c93..6e369f0256 100644
 --- a/hw/9pfs/9p.c
 +++ b/hw/9pfs/9p.c
-@@ -2395,7 +2395,7 @@ static int coroutine_fn v9fs_do_readdir_with_stat(V9fsPDU *pdu,
+@@ -2397,7 +2397,7 @@ static int coroutine_fn v9fs_do_readdir_with_stat(V9fsPDU *pdu,
          count += len;
          v9fs_stat_free(&v9stat);
          v9fs_path_free(&path);
@@ -2558,7 +2558,7 @@ index 7118692a1e..5fb9fabfae 100644
      }
  
      v9fs_readdir_unlock(&fidp->fs.dir);
-@@ -2596,7 +2596,7 @@ static int coroutine_fn v9fs_do_readdir(V9fsPDU *pdu, V9fsFidState *fidp,
+@@ -2598,7 +2598,7 @@ static int coroutine_fn v9fs_do_readdir(V9fsPDU *pdu, V9fsFidState *fidp,
              qid.version = 0;
          }
  
@@ -2581,9 +2581,9 @@ index bce7dd96e9..a953f36d14 100644
  
      /* restore (last) saved position */
 -- 
-2.50.1
+2.52.0
 
-From d6e5e88a503835aaeae2bfc9524826e197b36b77 Mon Sep 17 00:00:00 2001
+From 2adbd95a383978838bda99d154f2783cb8b03d3c Mon Sep 17 00:00:00 2001
 From: Bin Meng <bin.meng@windriver.com>
 Date: Mon, 20 Feb 2023 18:08:06 +0800
 Subject: [PATCH 07/15] hw/9pfs: Update helper qemu_stat_rdev()
@@ -2626,21 +2626,27 @@ index 37d98a3e63..61bb572261 100644
 +    return rdev;
 +}
 diff --git a/hw/9pfs/9p-util.h b/hw/9pfs/9p-util.h
-index a78602e99a..61b56d5f26 100644
+index 765e8f3f7a..cf4f173581 100644
 --- a/hw/9pfs/9p-util.h
 +++ b/hw/9pfs/9p-util.h
-@@ -24,8 +24,9 @@
+@@ -24,6 +24,7 @@
  /* forward declaration */
  union V9fsFidOpenState;
  struct V9fsState;
 +struct FsContext;
  
+ #ifdef CONFIG_FREEBSD
+ /*
+@@ -34,7 +35,7 @@ struct V9fsState;
+ #define XATTR_REPLACE   0x2
+ #endif
+ 
 -#if !defined(CONFIG_LINUX)
-+#ifdef CONFIG_DARWIN
++#if defined(CONFIG_DARWIN) || defined(CONFIG_FREEBSD)
  
  /*
   * Generates a Linux device number (a.k.a. dev_t) for given device major
-@@ -57,10 +58,12 @@ static inline uint64_t makedev_dotl(uint32_t dev_major, uint32_t dev_minor)
+@@ -66,10 +67,12 @@ static inline uint64_t makedev_dotl(uint32_t dev_major, uint32_t dev_minor)
   */
  static inline uint64_t host_dev_to_dotl_dev(dev_t dev)
  {
@@ -2655,7 +2661,7 @@ index a78602e99a..61b56d5f26 100644
  #endif
  }
  
-@@ -155,6 +158,7 @@ void rewinddir_win32(DIR *pDir);
+@@ -164,6 +167,7 @@ void rewinddir_win32(DIR *pDir);
  void seekdir_win32(DIR *pDir, long pos);
  long telldir_win32(DIR *pDir);
  off_t qemu_dirent_off_win32(struct V9fsState *s, union V9fsFidOpenState *fs);
@@ -2663,7 +2669,7 @@ index a78602e99a..61b56d5f26 100644
  #endif
  
  static inline void close_preserve_errno(int fd)
-@@ -315,6 +319,18 @@ static inline struct dirent *qemu_dirent_dup(struct dirent *dent)
+@@ -327,6 +331,18 @@ static inline struct dirent *qemu_dirent_dup(struct dirent *dent)
      return g_memdup(dent, sz);
  }
  
@@ -2683,10 +2689,10 @@ index a78602e99a..61b56d5f26 100644
   * As long as mknodat is not available on macOS, this workaround
   * using pthread_fchdir_np is needed. qemu_mknodat is defined in
 diff --git a/hw/9pfs/9p.c b/hw/9pfs/9p.c
-index 5fb9fabfae..06caee085d 100644
+index 6e369f0256..64dbea2ea8 100644
 --- a/hw/9pfs/9p.c
 +++ b/hw/9pfs/9p.c
-@@ -1285,7 +1285,8 @@ static int coroutine_fn stat_to_v9stat(V9fsPDU *pdu, V9fsPath *path,
+@@ -1287,7 +1287,8 @@ static int coroutine_fn stat_to_v9stat(V9fsPDU *pdu, V9fsPath *path,
      } else if (v9stat->mode & P9_STAT_MODE_DEVICE) {
          v9fs_string_sprintf(&v9stat->extension, "%c %u %u",
                  S_ISCHR(stbuf->st_mode) ? 'c' : 'b',
@@ -2696,7 +2702,7 @@ index 5fb9fabfae..06caee085d 100644
      } else if (S_ISDIR(stbuf->st_mode) || S_ISREG(stbuf->st_mode)) {
          v9fs_string_sprintf(&v9stat->extension, "%s %lu",
                  "HARDLINKCOUNT", (unsigned long)stbuf->st_nlink);
-@@ -1365,7 +1366,7 @@ static int stat_to_v9stat_dotl(V9fsPDU *pdu, const struct stat *stbuf,
+@@ -1367,7 +1368,7 @@ static int stat_to_v9stat_dotl(V9fsPDU *pdu, const struct stat *stbuf,
      v9lstat->st_nlink = stbuf->st_nlink;
      v9lstat->st_uid = stbuf->st_uid;
      v9lstat->st_gid = stbuf->st_gid;
@@ -2706,9 +2712,9 @@ index 5fb9fabfae..06caee085d 100644
      v9lstat->st_blksize = stat_to_iounit(pdu, stbuf);
      v9lstat->st_blocks = stbuf->st_blocks;
 -- 
-2.50.1
+2.52.0
 
-From 49e629c5c0ab45786cb604224f66d9356a358d3e Mon Sep 17 00:00:00 2001
+From af18edbe5f561cbf1166f2734954df2bc8e5e443 Mon Sep 17 00:00:00 2001
 From: Bin Meng <bin.meng@windriver.com>
 Date: Mon, 20 Feb 2023 18:08:07 +0800
 Subject: [PATCH 08/15] hw/9pfs: Add a helper qemu_stat_blksize()
@@ -2743,10 +2749,10 @@ index 61bb572261..ce7c5f7847 100644
 +    return data ? (uint64_t)data->block_size : 0;
 +}
 diff --git a/hw/9pfs/9p-util.h b/hw/9pfs/9p-util.h
-index 61b56d5f26..331b7e3d83 100644
+index cf4f173581..cec3bc2a01 100644
 --- a/hw/9pfs/9p-util.h
 +++ b/hw/9pfs/9p-util.h
-@@ -159,6 +159,7 @@ void seekdir_win32(DIR *pDir, long pos);
+@@ -168,6 +168,7 @@ void seekdir_win32(DIR *pDir, long pos);
  long telldir_win32(DIR *pDir);
  off_t qemu_dirent_off_win32(struct V9fsState *s, union V9fsFidOpenState *fs);
  uint64_t qemu_stat_rdev_win32(struct FsContext *fs_ctx);
@@ -2754,7 +2760,7 @@ index 61b56d5f26..331b7e3d83 100644
  #endif
  
  static inline void close_preserve_errno(int fd)
-@@ -331,6 +332,18 @@ static inline uint64_t qemu_stat_rdev(const struct stat *stbuf,
+@@ -343,6 +344,18 @@ static inline uint64_t qemu_stat_rdev(const struct stat *stbuf,
  #endif
  }
  
@@ -2774,10 +2780,10 @@ index 61b56d5f26..331b7e3d83 100644
   * As long as mknodat is not available on macOS, this workaround
   * using pthread_fchdir_np is needed. qemu_mknodat is defined in
 diff --git a/hw/9pfs/9p.c b/hw/9pfs/9p.c
-index 06caee085d..c48d2fc8ea 100644
+index 64dbea2ea8..5af3c49bcb 100644
 --- a/hw/9pfs/9p.c
 +++ b/hw/9pfs/9p.c
-@@ -1354,12 +1354,14 @@ static int32_t blksize_to_iounit(const V9fsPDU *pdu, int32_t blksize)
+@@ -1356,12 +1356,14 @@ static int32_t blksize_to_iounit(const V9fsPDU *pdu, int32_t blksize)
  
  static int32_t stat_to_iounit(const V9fsPDU *pdu, const struct stat *stbuf)
  {
@@ -2793,7 +2799,7 @@ index 06caee085d..c48d2fc8ea 100644
      memset(v9lstat, 0, sizeof(*v9lstat));
  
      v9lstat->st_mode = stbuf->st_mode;
-@@ -1369,7 +1371,16 @@ static int stat_to_v9stat_dotl(V9fsPDU *pdu, const struct stat *stbuf,
+@@ -1371,7 +1373,16 @@ static int stat_to_v9stat_dotl(V9fsPDU *pdu, const struct stat *stbuf,
      v9lstat->st_rdev = host_dev_to_dotl_dev(rdev);
      v9lstat->st_size = stbuf->st_size;
      v9lstat->st_blksize = stat_to_iounit(pdu, stbuf);
@@ -2811,9 +2817,9 @@ index 06caee085d..c48d2fc8ea 100644
      v9lstat->st_mtime_sec = stbuf->st_mtime;
      v9lstat->st_ctime_sec = stbuf->st_ctime;
 -- 
-2.50.1
+2.52.0
 
-From a11ae5ac2be88a12d737075a27707fdd4f9132e6 Mon Sep 17 00:00:00 2001
+From 7c3f5e1c4717f43f95447be18947d075baa75ccc Mon Sep 17 00:00:00 2001
 From: Guohuai Shi <guohuai.shi@windriver.com>
 Date: Mon, 20 Feb 2023 18:08:08 +0800
 Subject: [PATCH 09/15] hw/9pfs: Disable unsupported flags and features for
@@ -2829,7 +2835,7 @@ Signed-off-by: Bin Meng <bin.meng@windriver.com>
  1 file changed, 38 insertions(+), 7 deletions(-)
 
 diff --git a/hw/9pfs/9p.c b/hw/9pfs/9p.c
-index c48d2fc8ea..093fca75e9 100644
+index 5af3c49bcb..67836efbb2 100644
 --- a/hw/9pfs/9p.c
 +++ b/hw/9pfs/9p.c
 @@ -37,6 +37,11 @@
@@ -2857,13 +2863,13 @@ index c48d2fc8ea..093fca75e9 100644
          { P9_DOTL_NONBLOCK, O_NONBLOCK } ,
          { P9_DOTL_DSYNC, O_DSYNC },
          { P9_DOTL_FASYNC, FASYNC },
--#ifndef CONFIG_DARWIN
+-#if !defined(CONFIG_DARWIN) && !defined(CONFIG_FREEBSD)
 +#endif
-+#if !defined(CONFIG_DARWIN) && !defined(CONFIG_WIN32)
++#if !defined(CONFIG_DARWIN) && !defined(CONFIG_FREEBSD) && !defined(CONFIG_WIN32)
          { P9_DOTL_NOATIME, O_NOATIME },
-         /*
-          *  On Darwin, we could map to F_NOCACHE, which is
-@@ -149,8 +158,10 @@ static int dotl_to_open_flags(int flags)
+ #endif
+ #ifndef CONFIG_DARWIN
+@@ -151,8 +160,10 @@ static int dotl_to_open_flags(int flags)
  #endif
          { P9_DOTL_LARGEFILE, O_LARGEFILE },
          { P9_DOTL_DIRECTORY, O_DIRECTORY },
@@ -2874,7 +2880,7 @@ index c48d2fc8ea..093fca75e9 100644
      };
  
      for (i = 0; i < ARRAY_SIZE(dotl_oflag_map); i++) {
-@@ -177,8 +188,11 @@ static int get_dotl_openflags(V9fsState *s, int oflags)
+@@ -179,8 +190,11 @@ static int get_dotl_openflags(V9fsState *s, int oflags)
       * Filter the client open flags
       */
      flags = dotl_to_open_flags(oflags);
@@ -2888,7 +2894,7 @@ index c48d2fc8ea..093fca75e9 100644
      /*
       * Ignore direct disk access hint until the server supports it.
       */
-@@ -1136,12 +1150,14 @@ static mode_t v9mode_to_mode(uint32_t mode, V9fsString *extension)
+@@ -1138,12 +1152,14 @@ static mode_t v9mode_to_mode(uint32_t mode, V9fsString *extension)
      if (mode & P9_STAT_MODE_SYMLINK) {
          ret |= S_IFLNK;
      }
@@ -2903,7 +2909,7 @@ index c48d2fc8ea..093fca75e9 100644
      if (mode & P9_STAT_MODE_DEVICE) {
          if (extension->size && extension->data[0] == 'c') {
              ret |= S_IFCHR;
-@@ -1222,6 +1238,7 @@ static uint32_t stat_to_v9mode(const struct stat *stbuf)
+@@ -1224,6 +1240,7 @@ static uint32_t stat_to_v9mode(const struct stat *stbuf)
          mode |= P9_STAT_MODE_SYMLINK;
      }
  
@@ -2911,7 +2917,7 @@ index c48d2fc8ea..093fca75e9 100644
      if (S_ISSOCK(stbuf->st_mode)) {
          mode |= P9_STAT_MODE_SOCKET;
      }
-@@ -1229,6 +1246,7 @@ static uint32_t stat_to_v9mode(const struct stat *stbuf)
+@@ -1231,6 +1248,7 @@ static uint32_t stat_to_v9mode(const struct stat *stbuf)
      if (S_ISFIFO(stbuf->st_mode)) {
          mode |= P9_STAT_MODE_NAMED_PIPE;
      }
@@ -2919,7 +2925,7 @@ index c48d2fc8ea..093fca75e9 100644
  
      if (S_ISBLK(stbuf->st_mode) || S_ISCHR(stbuf->st_mode)) {
          mode |= P9_STAT_MODE_DEVICE;
-@@ -1388,7 +1406,8 @@ static int stat_to_v9stat_dotl(V9fsPDU *pdu, const struct stat *stbuf,
+@@ -1390,7 +1408,8 @@ static int stat_to_v9stat_dotl(V9fsPDU *pdu, const struct stat *stbuf,
      v9lstat->st_atime_nsec = stbuf->st_atimespec.tv_nsec;
      v9lstat->st_mtime_nsec = stbuf->st_mtimespec.tv_nsec;
      v9lstat->st_ctime_nsec = stbuf->st_ctimespec.tv_nsec;
@@ -2929,7 +2935,7 @@ index c48d2fc8ea..093fca75e9 100644
      v9lstat->st_atime_nsec = stbuf->st_atim.tv_nsec;
      v9lstat->st_mtime_nsec = stbuf->st_mtim.tv_nsec;
      v9lstat->st_ctime_nsec = stbuf->st_ctim.tv_nsec;
-@@ -2551,6 +2570,7 @@ static int coroutine_fn v9fs_do_readdir(V9fsPDU *pdu, V9fsFidState *fidp,
+@@ -2553,6 +2572,7 @@ static int coroutine_fn v9fs_do_readdir(V9fsPDU *pdu, V9fsFidState *fidp,
      struct dirent *dent;
      struct stat *st;
      struct V9fsDirEnt *entries = NULL;
@@ -2937,7 +2943,7 @@ index c48d2fc8ea..093fca75e9 100644
  
      /*
       * inode remapping requires the device id, which in turn might be
-@@ -2612,10 +2632,13 @@ static int coroutine_fn v9fs_do_readdir(V9fsPDU *pdu, V9fsFidState *fidp,
+@@ -2614,10 +2634,13 @@ static int coroutine_fn v9fs_do_readdir(V9fsPDU *pdu, V9fsFidState *fidp,
          v9fs_string_init(&name);
          v9fs_string_sprintf(&name, "%s", dent->d_name);
  
@@ -2952,7 +2958,7 @@ index c48d2fc8ea..093fca75e9 100644
  
          v9fs_string_free(&name);
  
-@@ -2976,8 +2999,12 @@ static void coroutine_fn v9fs_create(void *opaque)
+@@ -2978,8 +3001,12 @@ static void coroutine_fn v9fs_create(void *opaque)
          v9fs_path_copy(&fidp->path, &path);
          v9fs_path_unlock(s);
      } else if (perm & P9_STAT_MODE_SOCKET) {
@@ -2965,7 +2971,7 @@ index c48d2fc8ea..093fca75e9 100644
          if (err < 0) {
              goto out;
          }
-@@ -4047,7 +4074,7 @@ out_nofid:
+@@ -4049,7 +4076,7 @@ out_nofid:
  #if defined(CONFIG_LINUX)
  /* Currently, only Linux has XATTR_SIZE_MAX */
  #define P9_XATTR_SIZE_MAX XATTR_SIZE_MAX
@@ -2974,7 +2980,7 @@ index c48d2fc8ea..093fca75e9 100644
  /*
   * Darwin doesn't seem to define a maximum xattr size in its user
   * space header, so manually configure it across platforms as 64k.
-@@ -4064,6 +4091,8 @@ out_nofid:
+@@ -4076,6 +4103,8 @@ out_nofid:
  
  static void coroutine_fn v9fs_xattrcreate(void *opaque)
  {
@@ -2983,7 +2989,7 @@ index c48d2fc8ea..093fca75e9 100644
      int flags, rflags = 0;
      int32_t fid;
      uint64_t size;
-@@ -4072,7 +4101,6 @@ static void coroutine_fn v9fs_xattrcreate(void *opaque)
+@@ -4084,7 +4113,6 @@ static void coroutine_fn v9fs_xattrcreate(void *opaque)
      size_t offset = 7;
      V9fsFidState *file_fidp;
      V9fsFidState *xattr_fidp;
@@ -2991,7 +2997,7 @@ index c48d2fc8ea..093fca75e9 100644
  
      v9fs_string_init(&name);
      err = pdu_unmarshal(pdu, offset, "dsqd", &fid, &name, &size, &flags);
-@@ -4125,6 +4153,9 @@ out_put_fid:
+@@ -4137,6 +4165,9 @@ out_put_fid:
  out_nofid:
      pdu_complete(pdu, err);
      v9fs_string_free(&name);
@@ -3002,9 +3008,9 @@ index c48d2fc8ea..093fca75e9 100644
  
  static void coroutine_fn v9fs_readlink(void *opaque)
 -- 
-2.50.1
+2.52.0
 
-From 7e02168813d20f47868bdecf578f3f83cebe4851 Mon Sep 17 00:00:00 2001
+From a04f8a03c011db37408da00b8c287b98bedf349a Mon Sep 17 00:00:00 2001
 From: Guohuai Shi <guohuai.shi@windriver.com>
 Date: Mon, 20 Feb 2023 18:08:09 +0800
 Subject: [PATCH 10/15] hw/9pfs: Update v9fs_set_fd_limit() for Windows
@@ -3018,10 +3024,10 @@ Signed-off-by: Bin Meng <bin.meng@windriver.com>
  1 file changed, 20 insertions(+), 3 deletions(-)
 
 diff --git a/hw/9pfs/9p.c b/hw/9pfs/9p.c
-index 093fca75e9..f07ba8bddb 100644
+index 67836efbb2..8e80b6b22f 100644
 --- a/hw/9pfs/9p.c
 +++ b/hw/9pfs/9p.c
-@@ -4462,11 +4462,28 @@ void v9fs_reset(V9fsState *s)
+@@ -4474,11 +4474,28 @@ void v9fs_reset(V9fsState *s)
  
  static void __attribute__((__constructor__)) v9fs_set_fd_limit(void)
  {
@@ -3054,9 +3060,9 @@ index 093fca75e9..f07ba8bddb 100644
 +    open_fd_rc = rlim_cur / 2;
  }
 -- 
-2.50.1
+2.52.0
 
-From 94781c567b9c1abd7841774e95ebcdb860968e9b Mon Sep 17 00:00:00 2001
+From b84bc4193c11802d1485f78aac83f55d52b63193 Mon Sep 17 00:00:00 2001
 From: Guohuai Shi <guohuai.shi@windriver.com>
 Date: Mon, 20 Feb 2023 18:08:10 +0800
 Subject: [PATCH 11/15] hw/9pfs: Add Linux error number definition
@@ -3231,10 +3237,10 @@ index 0000000000..56c37fa293
 +
 +#endif /* QEMU_9P_LINUX_ERRNO_H */
 diff --git a/hw/9pfs/9p-util.h b/hw/9pfs/9p-util.h
-index 331b7e3d83..cc720ece80 100644
+index cec3bc2a01..2a91238a2d 100644
 --- a/hw/9pfs/9p-util.h
 +++ b/hw/9pfs/9p-util.h
-@@ -67,8 +67,11 @@ static inline uint64_t host_dev_to_dotl_dev(dev_t dev)
+@@ -76,8 +76,11 @@ static inline uint64_t host_dev_to_dotl_dev(dev_t dev)
  #endif
  }
  
@@ -3246,8 +3252,8 @@ index 331b7e3d83..cc720ece80 100644
 +{
  #if defined(CONFIG_LINUX)
      /* nothing to translate (Linux -> Linux) */
- #elif defined(CONFIG_DARWIN)
-@@ -78,18 +81,13 @@ static inline int errno_to_dotl(int err) {
+ #elif defined(CONFIG_DARWIN) || defined(CONFIG_FREEBSD)
+@@ -87,18 +90,13 @@ static inline int errno_to_dotl(int err) {
       * FIXME: Only most important errnos translated here yet, this should be
       * extended to as many errnos being translated as possible in future.
       */
@@ -3274,9 +3280,9 @@ index 331b7e3d83..cc720ece80 100644
  #else
  #error Missing errno translation to Linux for this host system
 -- 
-2.50.1
+2.52.0
 
-From 5e273587026b2df24648e4f665ee390b7db9ebbe Mon Sep 17 00:00:00 2001
+From fc03d5450299517dd3240615304211887efad8b7 Mon Sep 17 00:00:00 2001
 From: Guohuai Shi <guohuai.shi@windriver.com>
 Date: Mon, 20 Feb 2023 18:08:11 +0800
 Subject: [PATCH 12/15] hw/9pfs: Translate Windows errno to Linux value
@@ -3296,26 +3302,23 @@ on top of QEMU from a Windows host.
 Signed-off-by: Guohuai Shi <guohuai.shi@windriver.com>
 Signed-off-by: Bin Meng <bin.meng@windriver.com>
 ---
- hw/9pfs/9p-util.h | 12 ++++++++++--
- 1 file changed, 10 insertions(+), 2 deletions(-)
+ hw/9pfs/9p-util.h | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
 
 diff --git a/hw/9pfs/9p-util.h b/hw/9pfs/9p-util.h
-index cc720ece80..a92b85d7ca 100644
+index 2a91238a2d..68e8a95e01 100644
 --- a/hw/9pfs/9p-util.h
 +++ b/hw/9pfs/9p-util.h
-@@ -74,9 +74,9 @@ static inline int errno_to_dotl(int err)
+@@ -83,7 +83,7 @@ static inline int errno_to_dotl(int err)
  {
  #if defined(CONFIG_LINUX)
      /* nothing to translate (Linux -> Linux) */
--#elif defined(CONFIG_DARWIN)
-+#elif defined(CONFIG_DARWIN) || defined(CONFIG_WIN32)
+-#elif defined(CONFIG_DARWIN) || defined(CONFIG_FREEBSD)
++#elif defined(CONFIG_DARWIN) || defined(CONFIG_FREEBSD) || defined(CONFIG_WIN32)
      /*
--     * translation mandatory for macOS hosts
-+     * translation mandatory for different hosts
+      * translation mandatory for non-Linux hosts
       *
-      * FIXME: Only most important errnos translated here yet, this should be
-      * extended to as many errnos being translated as possible in future.
-@@ -85,9 +85,17 @@ static inline int errno_to_dotl(int err)
+@@ -94,9 +94,17 @@ static inline int errno_to_dotl(int err)
      case ENAMETOOLONG:  return L_ENAMETOOLONG;
      case ENOTEMPTY:     return L_ENOTEMPTY;
      case ELOOP:         return L_ELOOP;
@@ -3334,9 +3337,9 @@ index cc720ece80..a92b85d7ca 100644
  #else
  #error Missing errno translation to Linux for this host system
 -- 
-2.50.1
+2.52.0
 
-From bf30de0633daca5186ae69ce48153d1ea9720f60 Mon Sep 17 00:00:00 2001
+From d7d22b63c6fa7cfae6e652ada35a038c2c696dc2 Mon Sep 17 00:00:00 2001
 From: Guohuai Shi <guohuai.shi@windriver.com>
 Date: Mon, 20 Feb 2023 18:08:13 +0800
 Subject: [PATCH 13/15] hw/9pfs: Update synth fs driver for Windows
@@ -3355,7 +3358,7 @@ Reviewed-by: Philippe Mathieu-Daudé <philmd@linaro.org>
  1 file changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/hw/9pfs/9p-synth.c b/hw/9pfs/9p-synth.c
-index 3d28afc4d0..ffc1542f77 100644
+index 2d198da153..5b20dff24e 100644
 --- a/hw/9pfs/9p-synth.c
 +++ b/hw/9pfs/9p-synth.c
 @@ -146,8 +146,10 @@ static void synth_fill_statbuf(V9fsSynthNode *node, struct stat *stbuf)
@@ -3380,9 +3383,9 @@ index 3d28afc4d0..ffc1542f77 100644
  #endif
  }
 -- 
-2.50.1
+2.52.0
 
-From d55a7b61394b686e2c28b50773238945a55b77f9 Mon Sep 17 00:00:00 2001
+From 859efcd1ac8ba2611229a8e7f7e8125b321361a1 Mon Sep 17 00:00:00 2001
 From: Guohuai Shi <guohuai.shi@windriver.com>
 Date: Mon, 20 Feb 2023 18:08:14 +0800
 Subject: [PATCH 14/15] tests/qtest: virtio-9p-test: Adapt the case for win32
@@ -3415,9 +3418,9 @@ index e3221a3104..0058a5b1b3 100644
 +
  #endif
 -- 
-2.50.1
+2.52.0
 
-From 3ccd596c7273abfedf6d3460e1494d03669c4441 Mon Sep 17 00:00:00 2001
+From 71c91d7d220895134e605e02e335c7eb2df183a2 Mon Sep 17 00:00:00 2001
 From: Guohuai Shi <guohuai.shi@windriver.com>
 Date: Mon, 20 Feb 2023 18:08:15 +0800
 Subject: [PATCH 15/15] meson.build: Turn on virtfs for Windows
@@ -3428,32 +3431,35 @@ Signed-off-by: Guohuai Shi <guohuai.shi@windriver.com>
 Signed-off-by: Bin Meng <bin.meng@windriver.com>
 ---
  fsdev/meson.build   | 2 +-
- hw/9pfs/meson.build | 6 ++++--
- meson.build         | 8 ++++----
- 3 files changed, 9 insertions(+), 7 deletions(-)
+ hw/9pfs/meson.build | 8 +++++---
+ meson.build         | 4 ++--
+ 3 files changed, 8 insertions(+), 6 deletions(-)
 
 diff --git a/fsdev/meson.build b/fsdev/meson.build
-index c751d8cb62..cdfa077fa1 100644
+index 95fe816604..d827166c97 100644
 --- a/fsdev/meson.build
 +++ b/fsdev/meson.build
 @@ -5,6 +5,6 @@ fsdev_ss.add(when: ['CONFIG_FSDEV_9P'], if_true: files(
    '9p-marshal.c',
    'qemu-fsdev.c',
  ), if_false: files('qemu-fsdev-dummy.c'))
--if host_os in ['linux', 'darwin']
-+if host_os in ['linux', 'darwin', 'windows']
+-if host_os in ['linux', 'darwin', 'freebsd']
++if host_os in ['linux', 'darwin', 'freebsd', 'windows']
    system_ss.add_all(fsdev_ss)
  endif
 diff --git a/hw/9pfs/meson.build b/hw/9pfs/meson.build
-index d35d4f44ff..dd5b514c23 100644
+index 7f4d6e3a45..a96fe80579 100644
 --- a/hw/9pfs/meson.build
 +++ b/hw/9pfs/meson.build
-@@ -14,9 +14,11 @@ fs_ss.add(files(
+@@ -14,11 +14,13 @@ fs_ss.add(files(
    'coxattr.c',
  ))
  if host_os == 'darwin'
 -  fs_ss.add(files('9p-util-darwin.c'))
 +  fs_ss.add(files('9p-util-darwin.c', '9p-proxy.c',))
+ elif host_os == 'freebsd'
+-  fs_ss.add(files('9p-util-freebsd.c'))
++  fs_ss.add(files('9p-util-freebsd.c', '9p-proxy.c',))
  elif host_os == 'linux'
 -  fs_ss.add(files('9p-util-linux.c'))
 +  fs_ss.add(files('9p-util-linux.c', '9p-proxy.c',))
@@ -3463,25 +3469,20 @@ index d35d4f44ff..dd5b514c23 100644
  fs_ss.add(when: 'CONFIG_XEN_BUS', if_true: files('xen-9p-backend.c'))
  system_ss.add_all(when: 'CONFIG_FSDEV_9P', if_true: fs_ss)
 diff --git a/meson.build b/meson.build
-index 50c774a195..1112296ba0 100644
+index d9293294d8..bf5c457966 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -2391,11 +2391,11 @@ dbus_display = get_option('dbus_display') \
+@@ -2353,8 +2353,8 @@ dbus_display = get_option('dbus_display') \
    .allowed()
  
  have_virtfs = get_option('virtfs') \
--    .require(host_os == 'linux' or host_os == 'darwin',
--             error_message: 'virtio-9p (virtfs) requires Linux or macOS') \
--    .require(host_os == 'linux' or cc.has_function('pthread_fchdir_np'),
-+    .require(host_os == 'linux' or host_os == 'darwin' or host_os == 'windows',
-+             error_message: 'virtio-9p (virtfs) requires Linux or macOS or Windows') \
-+    .require(host_os == 'linux' or host_os == 'windows' or cc.has_function('pthread_fchdir_np'),
+-    .require(host_os == 'linux' or host_os == 'darwin' or host_os == 'freebsd',
+-             error_message: 'virtio-9p (virtfs) requires Linux or macOS or FreeBSD') \
++    .require(host_os == 'linux' or host_os == 'darwin' or host_os == 'freebsd' or host_os == 'windows',
++             error_message: 'virtio-9p (virtfs) requires Linux or macOS or FreeBSD or Windows') \
+     .require(host_os != 'darwin' or cc.has_function('pthread_fchdir_np'),
               error_message: 'virtio-9p (virtfs) on macOS requires the presence of pthread_fchdir_np') \
--    .require(host_os == 'darwin' or libattr.found(),
-+    .require(host_os == 'darwin' or host_os == 'windows' or libattr.found(),
-              error_message: 'virtio-9p (virtfs) on Linux requires libattr-devel') \
-     .disable_auto_if(not have_tools and not have_system) \
-     .allowed()
+     .require(host_os != 'linux' or libattr.found(),
 -- 
-2.50.1
+2.52.0
 
