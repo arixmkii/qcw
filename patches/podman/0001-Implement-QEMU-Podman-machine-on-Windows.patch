@@ -23,7 +23,12 @@ diff --git a/contrib/win-installer/wix/podman-ui-welcome-dlg.wxs b/contrib/win-i
 index deaa30552..ddd7e4eff 100644
 --- a/contrib/win-installer/wix/podman-ui-welcome-dlg.wxs
 +++ b/contrib/win-installer/wix/podman-ui-welcome-dlg.wxs
-@@ -12,6 +12,7 @@
+@@ -8,10 +8,11 @@
+                 <Control Id="DescriptionInstall" Type="Text" X="135" Y="50" Width="220" Height="60" Transparent="yes" NoPrefix="yes" Text="!(loc.WelcomeDlgDescription)" HideCondition="WIX_UPGRADE_DETECTED" />
+                 <Control Id="DescriptionUpdate" Type="Text" X="135" Y="50" Width="220" Height="60" Transparent="yes" NoPrefix="yes" Text="!(loc.WelcomeUpdateDlgDescriptionUpdate)" HideCondition="NOT WIX_UPGRADE_DETECTED" />
+                 <Control Id="ProviderChoice" Type="Text" X="135" Y="115" Width="220" Height="18" Transparent="yes" NoPrefix="yes" Text="Select the Virtualization Provider for the Podman machine:" HideCondition="HIDE_PROVIDER_CHOICE" />
+-                <Control Type="RadioButtonGroup" Property="MACHINE_PROVIDER" Id="MachineProviderRadioButtonGroup" Width="226" Height="30" X="135" Y="135" HideCondition="HIDE_PROVIDER_CHOICE">
++                <Control Type="RadioButtonGroup" Property="MACHINE_PROVIDER" Id="MachineProviderRadioButtonGroup" Width="226" Height="45" X="135" Y="135" HideCondition="HIDE_PROVIDER_CHOICE">
                      <RadioButtonGroup Property="MACHINE_PROVIDER">
                          <RadioButton Text="Windows Linux Subsystem (WSLv2)" Height="15" Value="wsl" Width="226" X="10" Y="0" />
                          <RadioButton Text="Windows Hyper-V" Height="15" Value="hyperv" Width="226" X="10" Y="15" />
