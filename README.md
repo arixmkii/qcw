@@ -73,7 +73,7 @@ Version bundled with Podman is used
 
 #### `go-wsllinks`
 
-Version `0.0.8`. Rebuilt for Windows amd64 platform with 1 patch set:
+Version `0.0.9`. Rebuilt for Windows amd64 platform with 1 patch set:
 * Package as Lima dependcies.
 
 #### `Lima`
