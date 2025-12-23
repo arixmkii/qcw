@@ -36,11 +36,11 @@ jobs:
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
       - name: "📝 Checkout"
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 1
       - name: "🛻 Donwload artifacts"
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: qcw
       - name: "🗒️ Prepare release notes"
@@ -80,7 +80,7 @@ jobs:
           cat qcw/checksums.sha512
       - name: "🏷️ Publish release"
         if: ${{ !inputs.dry_run }}
-        uses: ncipollo/release-action@bcfe5470707e8832e12347755757cec0eb3c22af # v1.18.0
+        uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b # v1.20.0
         with:
           name: ${{ inputs.release_name }}
           prerelease: "true"
