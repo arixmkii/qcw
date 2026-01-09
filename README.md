@@ -102,7 +102,7 @@ Version `10.2.0` with 6 patch sets:
 * Compilation fixes accomodating for latest changes withit 9pfs source files;
 * WHPX: Add support for device backed memory regions https://lists.gnu.org/archive/html/qemu-devel/2022-07/msg04837.html;
 * mingw related fixes https://lists.nongnu.org/archive/html/qemu-devel/2025-12/msg01895.html;
-* remove ftruncate macro to compile with mingw64.
+* ftruncate detection fixes https://lists.gnu.org/archive/html/qemu-devel/2026-01/msg01237.html.
 
 #### `sshocker`
 

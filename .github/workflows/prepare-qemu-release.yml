@@ -71,7 +71,7 @@ jobs:
           patch --binary -l -p 1 < ../patches/qemu/0003-Fix-9p-utils-compilation-on-Windows.patch
           patch --binary -l -p 1 < ../patches/qemu/0004-WHPX-Add-support-for-device-backed-memory-regions.patch
           patch --binary -l -p 1 < ../patches/qemu/0005-Fix-Windows-build-issues-with-newer-MinGW.patch
-          patch --binary -l -p 1 < ../patches/qemu/0006-Remove-ftruncate-macro.patch
+          patch --binary -l -p 1 < ../patches/qemu/0006-win32-Add-ftruncate-function-detection.patch
       - name: "🛠️ Build QEMU"
         working-directory: qemu-release
         shell: msys2 {0}
