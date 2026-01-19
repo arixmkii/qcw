@@ -61,7 +61,7 @@ Version `3.21.3-1` with 1 patch set:
 
 #### `docker-cli`
 
-Version `29.1.3`. Rebuilt for Windows amd64 platform.
+Version `29.1.5`. Rebuilt for Windows amd64 platform.
 
 #### `docker-compose`
 
