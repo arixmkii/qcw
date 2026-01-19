@@ -43,7 +43,7 @@ Ordered alphabetically
 * `gvisor-tap-vsock` - [GitHub](https://github.com/containers/gvisor-tap-vsock) the tool to provide networking for
 accessing containers from Windows;
 * `go-wsllinks` - [GitHub](https://github.com/arixmkii/go-wsllinks) symlink like binaries for WSL2;
-* `Lima` - [GitHub](https://github.com/lima-vm/lima) Linux virtual machines, with a focus on running containers;
+* `Lima` - [home page](https://lima-vm.io/) and [GitHub](https://github.com/lima-vm/lima) Linux virtual machines, with a focus on running containers;
 * `Podman` - [home page](https://podman.io/) and [GitHub](https://github.com/containers/podman) free and open source
 container runtime;
 * `Podman Desktop` - [home page](https://podman-desktop.io/) and [GitHub](https://github.com/containers/podman-desktop)
