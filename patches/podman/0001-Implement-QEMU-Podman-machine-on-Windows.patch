@@ -1,4 +1,4 @@
-From 04766cf806910794f17f4642840321b65bea003b Mon Sep 17 00:00:00 2001
+From 56003919eb8a829c8f3ed41baf31f8045d3c4249 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Tue, 20 Feb 2024 21:52:34 +0200
 Subject: [PATCH] Implement QEMU Podman machine on Windows
@@ -9,12 +9,12 @@ Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
  pkg/machine/e2e/README.md                        |  9 +++++++++
  pkg/machine/e2e/basic_test.go                    |  9 +++++++++
  pkg/machine/e2e/config_init_test.go              |  6 ++++++
- pkg/machine/e2e/config_windows_test.go           |  4 ++++
+ pkg/machine/e2e/config_windows_test.go           | 10 ++++++++--
  pkg/machine/e2e/init_test.go                     | 12 +++++++++++-
  pkg/machine/provider/platform_windows.go         | 12 ++++++++++++
  pkg/machine/provider/platform_windows_amd64.go   | 14 ++++++++++++++
  pkg/machine/provider/platform_windows_arm64.go   | 16 ++++++++++++++++
- 9 files changed, 83 insertions(+), 2 deletions(-)
+ 9 files changed, 87 insertions(+), 4 deletions(-)
  create mode 100644 pkg/machine/provider/platform_windows_amd64.go
  create mode 100644 pkg/machine/provider/platform_windows_arm64.go
 
@@ -117,10 +117,10 @@ index ae68d0c5fb..c2cfb5cbd3 100644
  		cmd = append(cmd, "--now")
  	}
 diff --git a/pkg/machine/e2e/config_windows_test.go b/pkg/machine/e2e/config_windows_test.go
-index 294c989f97..77a713e27c 100644
+index 294c989f97..74b36870c5 100644
 --- a/pkg/machine/e2e/config_windows_test.go
 +++ b/pkg/machine/e2e/config_windows_test.go
-@@ -29,6 +29,8 @@ func initPlatform() {
+@@ -29,14 +29,18 @@ func initPlatform() {
  		fakeImagePath = fullFileName
  		fmt.Println("Created fake disk image: " + fakeImagePath)
  	case define.WSLVirt.String():
@@ -129,7 +129,19 @@ index 294c989f97..77a713e27c 100644
  	default:
  		Fail(fmt.Sprintf("unknown Windows provider: %q", testProvider.VMType().String()))
  	}
-@@ -79,6 +81,8 @@ func (i *initMachine) withFakeImage(mb *machineTestBuilder) *initMachine {
+ }
+ 
+ func cleanupPlatform() {
+-	if err := os.Remove(fakeImagePath); err != nil {
+-		fmt.Printf("Failed to remove %s image: %q\n", fakeImagePath, err)
++	if fakeImagePath != os.DevNull {
++		if err := os.Remove(fakeImagePath); err != nil {
++			fmt.Printf("Failed to remove %s image: %q\n", fakeImagePath, err)
++		}
+ 	}
+ }
+ 
+@@ -79,6 +83,8 @@ func (i *initMachine) withFakeImage(mb *machineTestBuilder) *initMachine {
  		i.image = fakeImagePath
  	case define.WSLVirt:
  		i.image = mb.imagePath
