@@ -96,12 +96,10 @@ Should be installed via official setup mechanism.
 Starting from version `0.0.18` of qcw it is possible to use with official windows builds of QEMU (including msys2).
 To launch Lima one still will need the patched version of QEMU.
 
-Version `10.2.1` with 6 patch sets:
+Version `11.0.0-dev` with 4 patch sets:
 * revert futimens introduction for 9pfs;
 * hw/9pfs: Add 9pfs support for Windows https://lists.gnu.org/archive/html/qemu-devel/2023-02/msg05533.html;
-* Compilation fixes accomodating for latest changes withit 9pfs source files;
 * WHPX: Add support for device backed memory regions https://lists.gnu.org/archive/html/qemu-devel/2022-07/msg04837.html;
-* mingw related fixes https://lists.nongnu.org/archive/html/qemu-devel/2025-12/msg01895.html;
 * ftruncate detection fixes https://lists.gnu.org/archive/html/qemu-devel/2026-01/msg01237.html.
 
 #### `sshocker`
