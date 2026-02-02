@@ -11,6 +11,14 @@
 * Podman `<<PODMAN_VERSION>>` with patches to enable QEMU support on Windows
 * QEMU `<<QEMU_VERSION>>` (this one includes 9pfs on Windows hosts patches and UEFI pflash fixes, if this functionality is not needed, then consider using official installer)
 
+#### IMPORTANT! Security considerations for QEMU builds
+
+These builds include 9pfs support added based on patches, which were not included in the upstream because of
+security issues - DoS possibility from untrusted guests. See https://gitlab.com/qemu-project/qemu/-/work_items/974
+for details.
+
+These QEMU builds are not recommended as a general purpose replacement for official and third party QEMU builds.
+
 #### Recommendations on Docker releases
 
 These builds are of the most value if one can't use binaries provided as part of Docker Desktop for Windows

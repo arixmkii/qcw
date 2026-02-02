@@ -7,7 +7,7 @@ on:
         description: QEMU version"
         value: ${{ jobs.build.outputs.qemu_version }}
 env:
-  QEMU_VERSION: 10.2.2
+  QEMU_VERSION: 11.0.0
   MSYS: "winsymlinks:native"
 jobs:
   build:
@@ -66,17 +66,20 @@ jobs:
           7z x -sdel -snld "qemu-$QEMU_VERSION.tar"
           mv "qemu-$QEMU_VERSION" qemu-release
           cd qemu-release
-          patch --binary -l -p 1 < ../patches/qemu/0001-Revert-9pfs-Introduce-futimens-file-op.patch
-          patch --binary -l -p 1 < ../patches/qemu/0002-9pfs-Add-9pfs-support-for-Windows-host.patch
-          patch --binary -l -p 1 < ../patches/qemu/0003-Fix-9p-utils-compilation-on-Windows.patch
-          patch --binary -l -p 1 < ../patches/qemu/0004-WHPX-Add-support-for-device-backed-memory-regions.patch
-          patch --binary -l -p 1 < ../patches/qemu/0005-Fix-Windows-build-issues-with-newer-MinGW.patch
-          patch --binary -l -p 1 < ../patches/qemu/0006-win32-Add-ftruncate-function-detection.patch
+          patch --binary -l -p 1 < ../patches/qemu/0001-9pfs-Add-9pfs-support-for-Windows-host.patch
+          patch --binary -l -p 1 < ../patches/qemu/0002-win32-Add-ftruncate-function-detection.patch
+          patch --binary -l -p 1 < ../patches/qemu/0003-accel-tcg-Remove-non-explicit-endian-cpu_ld-_code-wrappers.patch
+          patch --binary -l -p 1 < ../patches/qemu/0004-thread-win32-replace-CRITICAL_SECTION-with-SRWLOCK.patch
+          patch --binary -l -p 1 < ../patches/qemu/0005-hw-q35-fix-VGA-text-console-with-SMM-disabled.patch
+          patch --binary -l -p 1 < ../patches/qemu/0006-win32-Windows-specific-fixes-from-the-mailing-list.patch
+          patch --binary -l -p 1 < ../patches/qemu/0007-WHPX-x86-updates-for-QEMU-11.1.patch
+          patch --binary -l -p 1 < ../patches/qemu/0008-whpx-i386-arm-do-partition-reset-on-boot-CPU-reset.patch
       - name: "🛠️ Build QEMU"
         working-directory: qemu-release
         shell: msys2 {0}
         # --disable-spice --disable-spice-protocol is needed for no warnings in clang64 config
         # --enable-lto is postponed
+        # --enable-u2f is postponed (no includes in msys2)
         run: |
           mkdir /usr/local/qemu
           ./configure --enable-gtk --enable-sdl --disable-user --disable-debug-info --disable-spice --disable-spice-protocol --extra-cflags="-D_FORTIFY_SOURCE=2" --prefix=/usr/local/qemu

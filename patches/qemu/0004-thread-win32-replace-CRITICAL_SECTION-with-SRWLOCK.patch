@@ -1,0 +1,217 @@
+From patchwork Mon Mar 30 14:18:18 2026
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Paolo Bonzini <pbonzini@redhat.com>
+X-Patchwork-Id: 2217762
+Return-Path: <qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org>
+X-Original-To: incoming@patchwork.ozlabs.org
+Delivered-To: patchwork-incoming@legolas.ozlabs.org
+Authentication-Results: legolas.ozlabs.org;
+	dkim=pass (1024-bit key;
+ unprotected) header.d=redhat.com header.i=@redhat.com header.a=rsa-sha256
+ header.s=mimecast20190719 header.b=OccxEV4r;
+	dkim=pass (2048-bit key;
+ unprotected) header.d=redhat.com header.i=@redhat.com header.a=rsa-sha256
+ header.s=google header.b=OQj6j2NK;
+	dkim-atps=neutral
+Authentication-Results: legolas.ozlabs.org;
+ spf=pass (sender SPF authorized) smtp.mailfrom=nongnu.org
+ (client-ip=209.51.188.17; helo=lists.gnu.org;
+ envelope-from=qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org;
+ receiver=patchwork.ozlabs.org)
+Received: from lists.gnu.org (lists.gnu.org [209.51.188.17])
+	(using TLSv1.2 with cipher ECDHE-ECDSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by legolas.ozlabs.org (Postfix) with ESMTPS id 4fktfC6rctz1yG8
+	for <incoming@patchwork.ozlabs.org>; Tue, 31 Mar 2026 01:18:59 +1100 (AEDT)
+Received: from localhost ([::1] helo=lists1p.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.90_1)
+	(envelope-from <qemu-devel-bounces@nongnu.org>)
+	id 1w7DRo-00043O-2B; Mon, 30 Mar 2026 10:18:32 -0400
+Received: from eggs.gnu.org ([2001:470:142:3::10])
+ by lists.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <pbonzini@redhat.com>)
+ id 1w7DRl-000431-Ep
+ for qemu-devel@nongnu.org; Mon, 30 Mar 2026 10:18:29 -0400
+Received: from us-smtp-delivery-124.mimecast.com ([170.10.129.124])
+ by eggs.gnu.org with esmtps (TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256)
+ (Exim 4.90_1) (envelope-from <pbonzini@redhat.com>)
+ id 1w7DRi-0000cq-G0
+ for qemu-devel@nongnu.org; Mon, 30 Mar 2026 10:18:29 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+ s=mimecast20190719; t=1774880304;
+ h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+ to:to:cc:cc:mime-version:mime-version:
+ content-transfer-encoding:content-transfer-encoding;
+ bh=yXY+tUsnoMaN/Ux1syF3v+VajHKWT9WhN4BtA+Pwhqk=;
+ b=OccxEV4rysqSyv/IyP+RIb8tOB1raebvq3XR8ZM2P81GhdPh6eSf3FTBJsNMCnkp69yKA9
+ b6+5puZv3/NLLBPfpS2CCh2IPCjLtHMpuqp1nUH6liTXjQS+DQK6uz+oPpsGzbgNrBuGEp
+ LkKiThoqRG6tGjV+bbOUFyT++wGNdVE=
+Received: from mail-wr1-f69.google.com (mail-wr1-f69.google.com
+ [209.85.221.69]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
+ us-mta-215-GTVJAfxsO96rMOw2mQczWw-1; Mon, 30 Mar 2026 10:18:22 -0400
+X-MC-Unique: GTVJAfxsO96rMOw2mQczWw-1
+X-Mimecast-MFC-AGG-ID: GTVJAfxsO96rMOw2mQczWw_1774880301
+Received: by mail-wr1-f69.google.com with SMTP id
+ ffacd0b85a97d-43cfb72377bso858414f8f.2
+ for <qemu-devel@nongnu.org>; Mon, 30 Mar 2026 07:18:22 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=redhat.com; s=google; t=1774880301; x=1775485101; darn=nongnu.org;
+ h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+ :to:from:from:to:cc:subject:date:message-id:reply-to;
+ bh=yXY+tUsnoMaN/Ux1syF3v+VajHKWT9WhN4BtA+Pwhqk=;
+ b=OQj6j2NKjXYWJFaJxgmy53en4yenQDt1dAgmSa4bj4JQ+sHZ4aGtceiC2ORpN5Iptw
+ NjrFJFZ68l5Vlmfj6Z3hGbFRi3hO/USPVcwVBYaHKQwQ+LRMsNTAGns67fM5nWa4f6Qn
+ wvICwXA5QiMdIZNH/nv/Smda3QErtMwM/zfh6+YDhC54nAJ4daKbiPcTjrnjR0D4vphp
+ fQQubMUZ3w/5sscARzrRyRif55TukTFydwiEtDRT1dPzYfzXCcb9iziNrI7gbhX+cgWn
+ vmixc8dqZUiPHGO4l3U2fnePNZnxzzqFIapilA9Sn4yQsj3T7uFlsr/IHxAPtFXqfvUK
+ oUgA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=1e100.net; s=20251104; t=1774880301; x=1775485101;
+ h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+ :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+ :message-id:reply-to;
+ bh=yXY+tUsnoMaN/Ux1syF3v+VajHKWT9WhN4BtA+Pwhqk=;
+ b=dsuY5myhd42LHeltcXAdFMmP3Gn2FIHwo8KCDWXxWA8mjKtkhbrSp2WwRrM/GcVPiY
+ 9qRRKJyCmfA30Ba8gFbUkAjgFbzoay+sP7Gjsjb8zQPz7Q+icucfrxAh+h3GmACYrqpm
+ 7NVHs43eShkhHF77Hv3/Skzj75kHGTN82td7uMjwZVSsOv063+wkOjL8Q1cgF2WMGN0F
+ JSq/bbednRdGdUMgGRjWsmme0OhrK+JdFFigwA263Z/oUsSBQGlTLOKRORlcQoyDfrmz
+ zgWUiiWlSmmQt3rF1Dcaa7c/EccTmduDk/rAl1/7URYnEBVdprxCJolzaz5I7b7v/mRx
+ jFyw==
+X-Gm-Message-State: AOJu0Yy+B/XKo9mH3nYoXRd2hYlnH0Umtpm5Pq4164FpAFvs/QocLbxI
+ VEjNRCjSzzUXpEBmFFTQFWU8gfCp7shGnES6uUEJQdIjNiHHLKfHo07PQrrYT+aH/Go8n1bvSTl
+ 6+JTZg/4Qb4pI4t1EMGAadDV+e85kbaHTzTR8OZfdMT/xvXCHaFlpvl5PVd3fSm8fOi2TLXOxoB
+ s6DJjbMAjkP5EBj65JmyNg0yOUAHza0y2W3zKLN66F
+X-Gm-Gg: ATEYQzyacTSn+R9YXN05GyMlLq/p9vxZnZYEEDP7d6LNz4ibQAIz5+MqKtTw/gg1iSp
+ cteLN3tWJGipHmA5qh2RjNsBP5kArdRjzviLarBVG3Dxnv/meI6uEox3mMUseTlXXv4iVaOk9SG
+ zwhs6zBowSo0uvY0jQgadCFkrPelqjIlTQLVdWOQJorz8IgBX84fBjTIUpIW/djWvbuuYiC8ys8
+ lVA2XfogmWJGz21fhXzbMX4OPEzVcHxjfPtsM0zn9PT1VOQmiMlqPD+ypMVosx6eT/3/b6VuNfk
+ jmkNsx+A7DOohNqYwLwslaUJxm7/EabjZvfU+lP0uC1j1Qqh87CnzxgasQE+MP4Tipb94j2iUVF
+ 0LnZdB9cS/ozEVTBesejyOYztPPGzH2tZm2qxixHwpsqpR6y9Pc43eklB1I3pCvzQ0OiAAdqIai
+ nR/p/W6lr2maSllIQ7M9vv0KnY
+X-Received: by 2002:a05:600c:c102:b0:485:3812:36f6 with SMTP id
+ 5b1f17b1804b1-48727f7bd61mr151249405e9.21.1774880300502;
+ Mon, 30 Mar 2026 07:18:20 -0700 (PDT)
+X-Received: by 2002:a05:600c:c102:b0:485:3812:36f6 with SMTP id
+ 5b1f17b1804b1-48727f7bd61mr151248775e9.21.1774880299792;
+ Mon, 30 Mar 2026 07:18:19 -0700 (PDT)
+Received: from [192.168.10.48] ([151.49.85.67])
+ by smtp.gmail.com with ESMTPSA id
+ 5b1f17b1804b1-48730688605sm297329635e9.10.2026.03.30.07.18.18
+ (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+ Mon, 30 Mar 2026 07:18:19 -0700 (PDT)
+From: Paolo Bonzini <pbonzini@redhat.com>
+To: qemu-devel@nongnu.org
+Cc: kkostiuk@redhat.com
+Subject: [PATCH] thread-win32: replace CRITICAL_SECTION with SRWLOCK
+Date: Mon, 30 Mar 2026 16:18:18 +0200
+Message-ID: <20260330141818.286412-1-pbonzini@redhat.com>
+X-Mailer: git-send-email 2.53.0
+MIME-Version: 1.0
+Received-SPF: pass client-ip=170.10.129.124;
+ envelope-from=pbonzini@redhat.com;
+ helo=us-smtp-delivery-124.mimecast.com
+X-Spam_score_int: -5
+X-Spam_score: -0.6
+X-Spam_bar: /
+X-Spam_report: (-0.6 / 5.0 requ) BAYES_00=-1.9, DKIMWL_WL_HIGH=-0.54,
+ DKIM_SIGNED=0.1, DKIM_VALID=-0.1, DKIM_VALID_AU=-0.1, DKIM_VALID_EF=-0.1,
+ RCVD_IN_DNSWL_NONE=-0.0001, RCVD_IN_VALIDITY_CERTIFIED_BLOCKED=1,
+ RCVD_IN_VALIDITY_RPBL_BLOCKED=1, SPF_HELO_PASS=-0.001,
+ SPF_PASS=-0.001 autolearn=no autolearn_force=no
+X-Spam_action: no action
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.29
+Precedence: list
+List-Id: qemu development <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <https://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+ <mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org
+Sender: qemu-devel-bounces+incoming=patchwork.ozlabs.org@nongnu.org
+
+SRWLOCK is a much cheaper primitive than CRITICAL_SECTION, which
+basically exists only as a legacy API.  The SRWLOCK is a single word
+in memory and it is cheaper to just initialize it always.
+
+Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
+Reviewed-by: Kostiantyn Kostiuk <kkostiuk@redhat.com>
+---
+ util/qemu-thread-win32.c | 16 ++++++----------
+ 1 file changed, 6 insertions(+), 10 deletions(-)
+
+diff --git a/util/qemu-thread-win32.c b/util/qemu-thread-win32.c
+index 272afc33856..3037732a6fe 100644
+--- a/util/qemu-thread-win32.c
++++ b/util/qemu-thread-win32.c
+@@ -242,7 +242,7 @@ struct QemuThreadData {
+     /* Only used for joinable threads. */
+     bool              exited;
+     void             *ret;
+-    CRITICAL_SECTION  cs;
++    SRWLOCK           lock;
+ };
+ 
+ static bool atexit_registered;
+@@ -295,9 +295,9 @@ void qemu_thread_exit(void *arg)
+     notifier_list_notify(&data->exit, NULL);
+     if (data->mode == QEMU_THREAD_JOINABLE) {
+         data->ret = arg;
+-        EnterCriticalSection(&data->cs);
++        AcquireSRWLockExclusive(&data->lock);
+         data->exited = true;
+-        LeaveCriticalSection(&data->cs);
++        ReleaseSRWLockExclusive(&data->lock);
+     } else {
+         g_free(data);
+     }
+@@ -328,7 +328,6 @@ void *qemu_thread_join(QemuThread *thread)
+         CloseHandle(handle);
+     }
+     ret = data->ret;
+-    DeleteCriticalSection(&data->cs);
+     g_free(data);
+     return ret;
+ }
+@@ -357,6 +356,7 @@ void qemu_thread_create(QemuThread *thread, const char *name,
+     struct QemuThreadData *data;
+ 
+     data = g_malloc(sizeof *data);
++    InitializeSRWLock(&data->lock);
+     data->start_routine = start_routine;
+     data->arg = arg;
+     data->mode = mode;
+@@ -364,10 +364,6 @@ void qemu_thread_create(QemuThread *thread, const char *name,
+     data->name = g_strdup(name);
+     notifier_list_init(&data->exit);
+ 
+-    if (data->mode != QEMU_THREAD_DETACHED) {
+-        InitializeCriticalSection(&data->cs);
+-    }
+-
+     hThread = (HANDLE) _beginthreadex(NULL, 0, win32_start_routine,
+                                       data, 0, &thread->tid);
+     if (!hThread) {
+@@ -406,14 +402,14 @@ HANDLE qemu_thread_get_handle(QemuThread *thread)
+         return NULL;
+     }
+ 
+-    EnterCriticalSection(&data->cs);
++    AcquireSRWLockExclusive(&data->lock);
+     if (!data->exited) {
+         handle = OpenThread(SYNCHRONIZE | THREAD_SUSPEND_RESUME |
+                             THREAD_SET_CONTEXT, FALSE, thread->tid);
+     } else {
+         handle = NULL;
+     }
+-    LeaveCriticalSection(&data->cs);
++    ReleaseSRWLockExclusive(&data->lock);
+     return handle;
+ }
+ 

@@ -1,0 +1,53 @@
+From 595ef2bb3529e7981f852bf549180b4c11b1b463 Mon Sep 17 00:00:00 2001
+From: Tianlan Zhou <bobby825@126.com>
+Date: Fri, 9 Jan 2026 02:03:15 +0800
+Subject: [PATCH] win32: Add ftruncate function detection
+
+Add detection for `ftruncate` function in Meson, so that it can be
+used when possible instead of fallback version `qemu_ftruncate64`.
+
+Signed-off-by: Tianlan Zhou <bobby825@126.com>
+Resolves: https://gitlab.com/qemu-project/qemu/-/issues/3234
+---
+ include/system/os-win32.h |  2 +-
+ meson.build               | 11 +++++++++++
+ 2 files changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/include/system/os-win32.h b/include/system/os-win32.h
+index 22d72babdf..9832b7589a 100644
+--- a/include/system/os-win32.h
++++ b/include/system/os-win32.h
+@@ -140,7 +140,7 @@ static inline void os_setup_limits(void)
+ 
+ int qemu_ftruncate64(int, int64_t);
+ 
+-#if !defined(ftruncate)
++#ifndef CONFIG_FTRUNCATE
+ # define ftruncate qemu_ftruncate64
+ #endif
+ 
+diff --git a/meson.build b/meson.build
+index 620b2ad903..4a11366dba 100644
+--- a/meson.build
++++ b/meson.build
+@@ -3211,6 +3211,17 @@ if host_os == 'windows'
+   config_host_data.set('CONFIG_CONVERT_STRING_TO_BSTR', has_convert_string_to_bstr)
+ endif
+ 
++# Detect if ftruncate exist
++if host_os == 'windows'
++  has_ftruncate = cxx.links('''
++    #include <unistd.h>
++    int main() {
++        return ftruncate(0, 0);
++    }
++  ''')
++  config_host_data.set('CONFIG_FTRUNCATE', has_ftruncate)
++endif
++
+ ########################
+ # Target configuration #
+ ########################
+-- 
+2.53.0
+

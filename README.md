@@ -95,13 +95,15 @@ Should be installed via official setup mechanism.
 
 Starting from version `0.0.18` of qcw it is possible to use with official windows builds of QEMU (including msys2).
 
-Version `10.2.2` with 6 patch sets:
-* revert futimens introduction for 9pfs;
-* hw/9pfs: Add 9pfs support for Windows https://lists.gnu.org/archive/html/qemu-devel/2023-02/msg05533.html;
-* Compilation fixes accomodating for latest changes withit 9pfs source files;
-* WHPX: Add support for device backed memory regions https://lists.gnu.org/archive/html/qemu-devel/2022-07/msg04837.html;
-* mingw related fixes https://lists.nongnu.org/archive/html/qemu-devel/2025-12/msg01895.html;
-* ftruncate detection fixes https://lists.gnu.org/archive/html/qemu-devel/2026-01/msg01237.html.
+Version `11.0.0` with 8 patch sets:
+* hw/9pfs: Add 9pfs support for Windows https://lists.nongnu.org/archive/html/qemu-devel/2023-02/msg05533.html;
+* ftruncate detection fixes https://lists.nongnu.org/archive/html/qemu-devel/2026-01/msg01237.html;
+* tcg cleanups https://lists.nongnu.org/archive/html/qemu-devel/2026-03/msg06151.html;
+* critical section fixes https://lists.nongnu.org/archive/html/qemu-devel/2026-03/msg08040.html;
+* q35 fixes https://lists.nongnu.org/archive/html/qemu-devel/2026-04/msg02141.html;
+* win32 fixes https://lists.nongnu.org/archive/html/qemu-devel/2026-04/msg02137.html;
+* WHPX patches after 11.0 https://lists.nongnu.org/archive/html/qemu-devel/2026-04/msg03391.html;
+* WHPX CPU reset patch https://lists.nongnu.org/archive/html/qemu-devel/2026-04/msg03811.html.
 
 #### `sshocker`
 
