@@ -66,10 +66,9 @@ jobs:
           7z x -sdel -snld "qemu-$QEMU_VERSION.tar"
           mv "qemu-$QEMU_VERSION" qemu-release
           cd qemu-release
-          patch --binary -l -p 1 < ../patches/qemu/0001-Revert-9pfs-Introduce-futimens-file-op.patch
-          patch --binary -l -p 1 < ../patches/qemu/0002-9pfs-Add-9pfs-support-for-Windows-host.patch
-          patch --binary -l -p 1 < ../patches/qemu/0003-WHPX-Add-support-for-device-backed-memory-regions.patch
-          patch --binary -l -p 1 < ../patches/qemu/0004-win32-Add-ftruncate-function-detection.patch
+          patch --binary -l -p 1 < ../patches/qemu/0001-9pfs-Add-9pfs-support-for-Windows-host.patch
+          patch --binary -l -p 1 < ../patches/qemu/0002-WHPX-Add-support-for-device-backed-memory-regions.patch
+          patch --binary -l -p 1 < ../patches/qemu/0003-win32-Add-ftruncate-function-detection.patch
       - name: "🛠️ Build QEMU"
         working-directory: qemu-release
         shell: msys2 {0}
