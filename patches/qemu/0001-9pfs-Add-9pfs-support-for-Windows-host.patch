@@ -2053,9 +2053,9 @@ index bd19aed4a9..e7441c5c5b 100644
  static ssize_t local_readlink(FsContext *fs_ctx, V9fsPath *fs_path,
                                char *buf, size_t bufsz)
 @@ -471,6 +483,12 @@ static ssize_t local_readlink(FsContext *fs_ctx, V9fsPath *fs_path,
-         close_preserve_errno(fd);
      } else if ((fs_ctx->export_flags & V9FS_SM_PASSTHROUGH) ||
                 (fs_ctx->export_flags & V9FS_SM_NONE)) {
+     native_symlink:;
 +#ifdef CONFIG_WIN32
 +        errno = ENOTSUP;
 +        error_report_once("readlink is not available on Windows host when"
