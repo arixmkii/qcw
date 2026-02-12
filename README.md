@@ -98,8 +98,8 @@ To launch Lima one still will need the patched version of QEMU.
 
 Version `11.0.0-dev` with 3 patch sets:
 * hw/9pfs: Add 9pfs support for Windows https://lists.gnu.org/archive/html/qemu-devel/2023-02/msg05533.html;
-* WHPX: Add support for device backed memory regions https://lists.gnu.org/archive/html/qemu-devel/2022-07/msg04837.html;
-* ftruncate detection fixes https://lists.gnu.org/archive/html/qemu-devel/2026-01/msg01237.html.
+* ftruncate detection fixes https://lists.gnu.org/archive/html/qemu-devel/2026-01/msg01237.html;
+* WHPX fixes https://lists.nongnu.org/archive/html/qemu-devel/2026-02/msg03956.html
 
 #### `sshocker`
 
