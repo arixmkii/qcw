@@ -7,7 +7,7 @@ on:
         description: QEMU version"
         value: ${{ jobs.build.outputs.qemu_version }}
 env:
-  QEMU_VERSION: 10.2.0
+  QEMU_VERSION: 10.2.1
   MSYS: "winsymlinks:native"
 jobs:
   build:
