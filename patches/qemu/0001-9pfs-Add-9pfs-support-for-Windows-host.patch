@@ -255,7 +255,7 @@ new file mode 100644
 index 0000000000..a99d579a06
 --- /dev/null
 +++ b/hw/9pfs/9p-util-win32.c
-@@ -0,0 +1,990 @@
+@@ -0,0 +1,989 @@
 +/*
 + * 9p utilities (Windows Implementation)
 + *
@@ -871,8 +871,7 @@ index 0000000000..a99d579a06
 + * futimens_win32 - stub (not used)
 + */
 +
-+int futimens_win32(FsContext *fs_ctx, int fid_type, V9fsFidOpenState *fs,
-+                          const struct timespec *buf)
++int futimens_win32(int fd, const struct timespec times[2])
 +{
 +    errno = ENOSYS;
 +    return -1;
@@ -1275,7 +1274,7 @@ index 73e17648ea..74849b00c7 100644
  #define qemu_openat     openat
  #define qemu_fstat      fstat
  #define qemu_fstatat    fstatat
-@@ -112,6 +122,24 @@ static inline int errno_to_dotl(int err) {
+@@ -112,6 +122,25 @@ static inline int errno_to_dotl(int err) {
  #define qemu_utimensat  utimensat
  #define qemu_unlinkat   unlinkat
  #define qemu_futimens   futimens
@@ -1293,6 +1292,7 @@ index 73e17648ea..74849b00c7 100644
 +int utimensat_win32(int dirfd, const char *pathname,
 +                    const struct timespec times[2], int flags);
 +int unlinkat_win32(int dirfd, const char *pathname, int flags);
++int futimens_win32(int fd, const struct timespec times[2]);
 +int statfs_win32(const char *root_path, struct statfs *stbuf);
 +int openat_dir(int dirfd, const char *name);
 +int openat_file(int dirfd, const char *name, int flags, mode_t mode);
