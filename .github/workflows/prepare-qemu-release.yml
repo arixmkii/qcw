@@ -72,6 +72,7 @@ jobs:
           patch --binary -l -p 1 < ../patches/qemu/0004-WHPX-Add-support-for-device-backed-memory-regions.patch
           patch --binary -l -p 1 < ../patches/qemu/0005-Fix-Windows-build-issues-with-newer-MinGW.patch
           patch --binary -l -p 1 < ../patches/qemu/0006-win32-Add-ftruncate-function-detection.patch
+          patch --binary -l -p 1 < ../patches/qemu/0007-Force-prefix-on-Windows-platform.patch
       - name: "🛠️ Build QEMU"
         working-directory: qemu-release
         shell: msys2 {0}

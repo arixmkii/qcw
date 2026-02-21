@@ -1,0 +1,59 @@
+From 27cddb2599d66f5a631798b13dcee18c6c16b3e5 Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Sat, 21 Feb 2026 22:03:52 +0200
+Subject: [PATCH] Force prefix on Windows platform
+
+---
+ meson.build | 30 ++++++++++++++++++------------
+ 1 file changed, 18 insertions(+), 12 deletions(-)
+
+diff --git a/meson.build b/meson.build
+index 4af32c3e1f..7f8b136e42 100644
+--- a/meson.build
++++ b/meson.build
+@@ -2365,24 +2365,30 @@ config_host_data.set_quoted('CONFIG_TLS_PRIORITY', get_option('tls_priority'))
+ if iasl.found()
+   config_host_data.set_quoted('CONFIG_IASL', iasl.full_path())
+ endif
+-config_host_data.set_quoted('CONFIG_BINDIR', get_option('prefix') / get_option('bindir'))
+-config_host_data.set_quoted('CONFIG_PREFIX', get_option('prefix'))
+-config_host_data.set_quoted('CONFIG_QEMU_CONFDIR', get_option('prefix') / qemu_confdir)
+-config_host_data.set_quoted('CONFIG_QEMU_DATADIR', get_option('prefix') / qemu_datadir)
+-config_host_data.set_quoted('CONFIG_QEMU_DESKTOPDIR', get_option('prefix') / qemu_desktopdir)
++
++platform_prefix = get_option('prefix')
++if host_os == 'windows'
++  platform_prefix = '/qemu'
++endif
++
++config_host_data.set_quoted('CONFIG_BINDIR', platform_prefix / get_option('bindir'))
++config_host_data.set_quoted('CONFIG_PREFIX', platform_prefix)
++config_host_data.set_quoted('CONFIG_QEMU_CONFDIR', platform_prefix / qemu_confdir)
++config_host_data.set_quoted('CONFIG_QEMU_DATADIR', platform_prefix / qemu_datadir)
++config_host_data.set_quoted('CONFIG_QEMU_DESKTOPDIR', platform_prefix / qemu_desktopdir)
+ 
+ qemu_firmwarepath = ''
+ foreach k : get_option('qemu_firmwarepath')
+-  qemu_firmwarepath += '"' + get_option('prefix') / k + '", '
++  qemu_firmwarepath += '"' + platform_prefix / k + '", '
+ endforeach
+ config_host_data.set('CONFIG_QEMU_FIRMWAREPATH', qemu_firmwarepath)
+ 
+-config_host_data.set_quoted('CONFIG_QEMU_HELPERDIR', get_option('prefix') / get_option('libexecdir'))
+-config_host_data.set_quoted('CONFIG_QEMU_ICONDIR', get_option('prefix') / qemu_icondir)
+-config_host_data.set_quoted('CONFIG_QEMU_LOCALEDIR', get_option('prefix') / get_option('localedir'))
+-config_host_data.set_quoted('CONFIG_QEMU_LOCALSTATEDIR', get_option('prefix') / get_option('localstatedir'))
+-config_host_data.set_quoted('CONFIG_QEMU_MODDIR', get_option('prefix') / qemu_moddir)
+-config_host_data.set_quoted('CONFIG_SYSCONFDIR', get_option('prefix') / get_option('sysconfdir'))
++config_host_data.set_quoted('CONFIG_QEMU_HELPERDIR', platform_prefix / get_option('libexecdir'))
++config_host_data.set_quoted('CONFIG_QEMU_ICONDIR', platform_prefix / qemu_icondir)
++config_host_data.set_quoted('CONFIG_QEMU_LOCALEDIR', platform_prefix / get_option('localedir'))
++config_host_data.set_quoted('CONFIG_QEMU_LOCALSTATEDIR', platform_prefix / get_option('localstatedir'))
++config_host_data.set_quoted('CONFIG_QEMU_MODDIR', platform_prefix / qemu_moddir)
++config_host_data.set_quoted('CONFIG_SYSCONFDIR', platform_prefix / get_option('sysconfdir'))
+ 
+ if enable_modules
+   config_host_data.set('CONFIG_STAMP', run_command(
+-- 
+2.53.0
+
