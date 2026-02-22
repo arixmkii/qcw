@@ -94,7 +94,6 @@ Should be installed via official setup mechanism.
 #### `QEMU`
 
 Starting from version `0.0.18` of qcw it is possible to use with official windows builds of QEMU (including msys2).
-To launch Lima one still will need the patched version of QEMU.
 
 Version `10.2.1` with 6 patch sets:
 * revert futimens introduction for 9pfs;
