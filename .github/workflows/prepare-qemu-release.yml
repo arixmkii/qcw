@@ -69,11 +69,8 @@ jobs:
           patch --binary -l -p 1 < ../patches/qemu/0001-9pfs-Add-9pfs-support-for-Windows-host.patch
           patch --binary -l -p 1 < ../patches/qemu/0002-win32-Add-ftruncate-function-detection.patch
           patch --binary -l -p 1 < ../patches/qemu/0003-Force-prefix-on-Windows-platform.patch
-          patch --binary -l -p 1 < ../patches/qemu/0004-whpx-x86-updates-2026-02.patch
-          patch --binary -l -p 1 < ../patches/qemu/0005-whpx-i386-interrupt-related-updates.patch
-          patch --binary -l -p 1 < ../patches/qemu/0006-whpx-i386-apic-bring-closer-to-MSHV-code-path.patch
-          patch --binary -l -p 1 < ../patches/qemu/0007-whpx-i386-even-more-changes.patch
-          patch --binary -l -p 1 < ../patches/qemu/0008-whpx-i386-small-random-fixes.patch
+          patch --binary -l -p 1 < ../patches/qemu/0004-whpx-i386-apic-bring-closer-to-MSHV-code-path.patch
+          patch --binary -l -p 1 < ../patches/qemu/0005-whpx-i386-small-random-fixes.patch
       - name: "🛠️ Build QEMU"
         working-directory: qemu-release
         shell: msys2 {0}
