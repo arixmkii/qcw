@@ -7,7 +7,7 @@ on:
         description: QEMU version"
         value: ${{ jobs.build.outputs.qemu_version }}
 env:
-  QEMU_VERSION: 10.2.1
+  QEMU_VERSION: 10.2.2
   MSYS: "winsymlinks:native"
 jobs:
   build:
@@ -72,14 +72,14 @@ jobs:
           patch --binary -l -p 1 < ../patches/qemu/0004-WHPX-Add-support-for-device-backed-memory-regions.patch
           patch --binary -l -p 1 < ../patches/qemu/0005-Fix-Windows-build-issues-with-newer-MinGW.patch
           patch --binary -l -p 1 < ../patches/qemu/0006-win32-Add-ftruncate-function-detection.patch
-          patch --binary -l -p 1 < ../patches/qemu/0007-Force-prefix-on-Windows-platform.patch
       - name: "🛠️ Build QEMU"
         working-directory: qemu-release
         shell: msys2 {0}
         # --disable-spice --disable-spice-protocol is needed for no warnings in clang64 config
         # --enable-lto is postponed
         run: |
-          ./configure --enable-gtk --enable-sdl --disable-user --disable-debug-info --disable-spice --disable-spice-protocol --extra-cflags="-D_FORTIFY_SOURCE=2"
+          mkdir /usr/local/qemu
+          ./configure --enable-gtk --enable-sdl --disable-user --disable-debug-info --disable-spice --disable-spice-protocol --extra-cflags="-D_FORTIFY_SOURCE=2" --prefix=/usr/local/qemu
           make
           make installer
       - name: "📦 Pack QEMU"
