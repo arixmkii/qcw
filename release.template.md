@@ -11,6 +11,12 @@
 * Podman `<<PODMAN_VERSION>>` with patches to enable QEMU support on Windows
 * QEMU `<<QEMU_VERSION>>` (this one includes 9pfs on Windows hosts patches and UEFI pflash fixes, if this functionality is not needed, then consider using official installer)
 
+#### Deprecation notice
+
+MINGW64 Mys2 Environment is being depricated https://www.msys2.org/news/#2026-03-15-deprecating-the-mingw64-environment
+This effectively deprecated QEMU builds for this environemnt, they will be continued to be available until
+they become broken, but users are encouraged to use other provided flavours - URCT64 or CLANG64.
+
 #### How to install
 1. Download and install QEMU (from this release or official one version 7.2.0 or newer)
 2. Download and install Podman from this release (it might be a good idea to uninstall one first if you had it before)
