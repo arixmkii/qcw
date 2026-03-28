@@ -51,7 +51,7 @@ jobs:
           git fetch --depth 1 origin $PODMAN_SHA
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/podman/0001-Implement-QEMU-Podman-machine-on-Windows.patch
-          patch --binary -l -p 1 < ../patches/podman/0002-Update-QEMU-CPU-baseline-to-x86-64v2.5.patch
+          patch --binary -l -p 1 < ../patches/podman/0002-Update-QEMU-CPU-baseline-to-x86-64-v3.patch
       - name: "⚗️ Prepare Test Podman"
         working-directory: podman-release
         shell: msys2 {0}

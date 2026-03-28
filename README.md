@@ -85,7 +85,7 @@ Version `2.1.1` with 1 patch set:
 
 Version `5.8.2` with 2 patch sets:
 * Implement QEMU Podman machine on Windows;
-* Change CPU HW baseline to x86_64v2 + AES (also known as v2.5);
+* Change CPU HW baseline to x86_64v3.
 
 #### `Podman Desktop`
 
@@ -93,7 +93,7 @@ Should be installed via official setup mechanism.
 
 #### `QEMU`
 
-Starting from version `0.0.18` of qcw it is possible to use with official windows builds of QEMU (including msys2).
+Starting from version `0.0.18` of qcw it is possible to use with official Windows builds of QEMU (including msys2).
 
 Version `11.0.0` with 8 patch sets:
 * hw/9pfs: Add 9pfs support for Windows https://lists.nongnu.org/archive/html/qemu-devel/2023-02/msg05533.html;

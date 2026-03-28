@@ -1,0 +1,28 @@
+From ea209e410003362b5233552343b4edd6f8b9a03d Mon Sep 17 00:00:00 2001
+From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+Date: Fri, 17 Jan 2025 19:10:55 +0200
+Subject: [PATCH] Update QEMU CPU baseline to x86-64-v3
+
+Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
+---
+ pkg/machine/qemu/options_windows_amd64.go | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/pkg/machine/qemu/options_windows_amd64.go b/pkg/machine/qemu/options_windows_amd64.go
+index 96ca711ea3..b408494203 100644
+--- a/pkg/machine/qemu/options_windows_amd64.go
++++ b/pkg/machine/qemu/options_windows_amd64.go
+@@ -5,8 +5,7 @@ package qemu
+ var QemuCommand = "qemu-system-x86_64w"
+ 
+ func (q *QEMUStubber) addArchOptions(_ *setNewMachineCMDOpts) []string {
+-	// "qemu64" level is used, because "host" is not supported with "whpx" acceleration.
+-	// It is a stable choice for running on bare metal and inside Hyper-V machine with nested virtualization.
+-	opts := []string{"-machine", "q35,accel=whpx:tcg", "-cpu", "qemu64"}
++	// defaults to x86_64-v3 to support RHEL workloads
++	opts := []string{"-machine", "q35,accel=whpx:tcg", "-cpu", "qemu64,+aes,+popcnt,+pni,+sse4.1,+sse4.2,+ssse3,+avx,+avx2,+bmi1,+bmi2,+f16c,+fma,+abm,+movbe"}
+ 	return opts
+ }
+-- 
+2.53.0
+
