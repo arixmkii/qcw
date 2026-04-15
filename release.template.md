@@ -11,7 +11,14 @@
 * Podman `<<PODMAN_VERSION>>` with patches to enable QEMU support on Windows
 * QEMU `<<QEMU_VERSION>>` (this one includes 9pfs on Windows hosts patches and UEFI pflash fixes, if this functionality is not needed, then consider using official installer)
 
-#### Recommendation on Podman releases
+#### Recommendations on Docker releases
+
+These builds are of the most value if one can't use binaries provided as part of Docker Desktop for Windows
+offering. They should have no functional differences from their official conuterparts, but they are not
+tested for the perfect match between CLI and Compose versions. It is advised to use official builds where
+possible for production purposes.
+
+#### Recommendations on Podman releases
 
 This build of Podman is only recommended for users, who need QEMU support for Podman machine. While it
 should contain no functional differences from official builds, the binaries are not signed and doesn't
