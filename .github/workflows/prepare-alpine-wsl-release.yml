@@ -11,9 +11,9 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   ALPINE_WSL_GITURL: https://github.com/yuk7/AlpineWSL.git
-  ALPINE_WSL_SHA: 984c3e110e87711228c623c282d34d1b4c8022cb # 3.21.3-1
-  ALPINE_WSL_VERSION: 3.21.3-1
-  ALPINE_VERSION: 3.23.3-0 # from the last applied patch
+  ALPINE_WSL_SHA: 6d4f2c67552b9a48cdab034154bb21ab84c7969a # 3.23.3-0
+  ALPINE_WSL_VERSION: 3.23.3-0
+  ALPINE_VERSION: 3.23.4-0 # from the last applied patch
 jobs:
   build:
     runs-on: ubuntu-latest
