@@ -83,7 +83,7 @@ Version `2.1.1` with 1 patch set:
 
 #### `Podman`
 
-Version `5.8.1` with 2 patch sets:
+Version `5.8.2` with 2 patch sets:
 * Implement QEMU Podman machine on Windows;
 * Change CPU HW baseline to x86_64v2 + AES (also known as v2.5);
 

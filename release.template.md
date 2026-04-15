@@ -11,6 +11,13 @@
 * Podman `<<PODMAN_VERSION>>` with patches to enable QEMU support on Windows
 * QEMU `<<QEMU_VERSION>>` (this one includes 9pfs on Windows hosts patches and UEFI pflash fixes, if this functionality is not needed, then consider using official installer)
 
+#### Recommendation on Podman releases
+
+This build of Podman is only recommended for users, who need QEMU support for Podman machine. While it
+should contain no functional differences from official builds, the binaries are not signed and doesn't
+meet all the production requirements. It is advised to use official releases from Podman team for
+production purposes.
+
 #### Deprecation notice
 
 MINGW64 Mys2 Environment is being depricated https://www.msys2.org/news/#2026-03-15-deprecating-the-mingw64-environment
