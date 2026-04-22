@@ -9,7 +9,7 @@
 * Lima `<<LIMA_VERSION>>` with patches to enable WSL userland tools support
 * lima-infra Alpine WSL image `<<ALPINE_VERSION>>` based on AlpineWSL project `<<ALPINEWSL_VERSION>>`
 * Podman `<<PODMAN_VERSION>>` with patches to enable QEMU support on Windows
-* QEMU `<<QEMU_VERSION>>` (this one includes 9pfs on Windows hosts patches and UEFI pflash fixes, if this functionality is not needed, then consider using official installer)
+* QEMU `<<QEMU_VERSION>>` (this one includes 9pfs on Windows hosts patches, if this functionality is not needed, then consider using official installer)
 
 #### IMPORTANT! Security considerations for QEMU builds
 
