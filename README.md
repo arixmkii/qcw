@@ -102,7 +102,7 @@ Version `11.0.0` with 8 patch sets:
 * critical section fixes https://lists.nongnu.org/archive/html/qemu-devel/2026-03/msg08040.html;
 * q35 fixes https://lists.nongnu.org/archive/html/qemu-devel/2026-04/msg02141.html;
 * win32 fixes https://lists.nongnu.org/archive/html/qemu-devel/2026-04/msg02137.html;
-* WHPX patches after 11.0 https://lists.nongnu.org/archive/html/qemu-devel/2026-04/msg03391.html;
+* WHPX patches after 11.0 https://lists.nongnu.org/archive/html/qemu-devel/2026-04/msg04150.html;
 * WHPX CPU reset patch https://lists.nongnu.org/archive/html/qemu-devel/2026-04/msg03811.html.
 
 #### `sshocker`
