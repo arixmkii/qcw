@@ -95,14 +95,13 @@ Should be installed via official setup mechanism.
 
 Starting from version `0.0.18` of qcw it is possible to use with official Windows builds of QEMU (including msys2).
 
-Version `11.0.0` with 8 patch sets:
+Version `11.0.0` with 7 patch sets:
 * hw/9pfs: Add 9pfs support for Windows https://lists.nongnu.org/archive/html/qemu-devel/2023-02/msg05533.html;
 * ftruncate detection fixes https://lists.nongnu.org/archive/html/qemu-devel/2026-01/msg01237.html;
 * tcg cleanups https://lists.nongnu.org/archive/html/qemu-devel/2026-03/msg06151.html;
 * critical section fixes https://lists.nongnu.org/archive/html/qemu-devel/2026-03/msg08040.html;
 * q35 fixes https://lists.nongnu.org/archive/html/qemu-devel/2026-04/msg02141.html;
 * win32 fixes https://lists.nongnu.org/archive/html/qemu-devel/2026-04/msg02137.html;
-* WHPX patches after 11.0 https://lists.nongnu.org/archive/html/qemu-devel/2026-04/msg04150.html;
 * WHPX CPU reset patch https://lists.nongnu.org/archive/html/qemu-devel/2026-04/msg03811.html.
 
 #### `sshocker`

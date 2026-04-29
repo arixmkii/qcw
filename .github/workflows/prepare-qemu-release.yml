@@ -72,8 +72,7 @@ jobs:
           patch --binary -l -p 1 < ../patches/qemu/0004-thread-win32-replace-CRITICAL_SECTION-with-SRWLOCK.patch
           patch --binary -l -p 1 < ../patches/qemu/0005-hw-q35-fix-VGA-text-console-with-SMM-disabled.patch
           patch --binary -l -p 1 < ../patches/qemu/0006-win32-Windows-specific-fixes-from-the-mailing-list.patch
-          patch --binary -l -p 1 < ../patches/qemu/0007-WHPX-x86-updates-for-QEMU-11.1.patch
-          patch --binary -l -p 1 < ../patches/qemu/0008-whpx-i386-arm-do-partition-reset-on-boot-CPU-reset.patch
+          patch --binary -l -p 1 < ../patches/qemu/0007-whpx-i386-arm-do-partition-reset-on-boot-CPU-reset.patch
       - name: "🛠️ Build QEMU"
         working-directory: qemu-release
         shell: msys2 {0}
