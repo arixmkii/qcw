@@ -20,8 +20,8 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: 3f73aec2dc0b4cdcff201985bd940d7b40b69b6f # v2.1.1
-  LIMA_VERSION: 2.1.1
+  LIMA_SHA: 29db4fa7babf7852ce0f52f4c74eef56465a651c # v2.1.2-beta.0
+  LIMA_VERSION: 2.1.2-beta.0
 jobs:
   call-prepare-alpine-wsl:
     uses: ./.github/workflows/prepare-alpine-wsl-release.yml
@@ -62,6 +62,7 @@ jobs:
           git fetch --tags origin $LIMA_SHA
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/lima/0001-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
+          patch --binary -l -p 1 < ../patches/lima/0002-QEMU-command-line-allow-kernel-irqchip-enabled-with-.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}
@@ -166,6 +167,7 @@ jobs:
           git fetch --tags origin $LIMA_SHA
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/lima/0001-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
+          patch --binary -l -p 1 < ../patches/lima/0002-QEMU-command-line-allow-kernel-irqchip-enabled-with-.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}

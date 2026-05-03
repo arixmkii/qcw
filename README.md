@@ -78,8 +78,9 @@ Version `0.0.11`. Rebuilt for Windows amd64 platform with 1 patch set:
 
 #### `Lima`
 
-Version `2.1.1` with 1 patch set:
-* Support WSL2 as a replacement for msys2/cygwin.
+Version `2.1.2-beta.0` with 2 patch sets:
+* Support WSL2 as a replacement for msys2/cygwin;
+* Keep QEMU `kernel-irqchip` enabled.
 
 #### `Podman`
 
