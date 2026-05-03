@@ -67,8 +67,8 @@ index 0000000..f1f14ca
 +
 +set -ue
 +
-+addgroup --gid 1000 lima
-+adduser -D --gecos "" --home /home/lima --ingroup lima --uid 1000 -s /bin/bash lima
++addgroup --gid 5000 lima
++adduser -D --gecos "" --home /home/lima --ingroup lima --uid 5000 -s /bin/bash lima
 +mkdir -p -m 700 /var/opt/lima
 +chown lima:lima /var/opt/lima
 diff --git a/src_x64/wsl-distribution.conf b/src_x64/wsl-distribution.conf
