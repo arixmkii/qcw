@@ -228,7 +228,7 @@ Only 2 templates - `default` and `experimental/wsl2` has been tested to work. Ot
 Create new instance.
 
 ```bat
-limactl create template://default
+limactl create --vm-type=qemu template://default
 ```
 
 Start the instance as normal
