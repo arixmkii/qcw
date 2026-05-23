@@ -61,11 +61,11 @@ Version `3.23.3-0` with 1 patch set:
 
 #### `docker-cli`
 
-Version `29.4.2`. Rebuilt for Windows amd64 platform.
+Version `29.5.2`. Rebuilt for Windows amd64 platform.
 
 #### `docker-compose`
 
-Version `5.1.3`. Rebuilt for Windows amd64 platform.
+Version `5.1.4`. Rebuilt for Windows amd64 platform.
 
 #### `gvisor-tap-vsock`
 
