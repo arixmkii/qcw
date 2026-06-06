@@ -44,9 +44,9 @@ Ordered alphabetically
 accessing containers from Windows;
 * `go-wsllinks` - [GitHub](https://github.com/arixmkii/go-wsllinks) symlink like binaries for WSL2;
 * `Lima` - [home page](https://lima-vm.io/) and [GitHub](https://github.com/lima-vm/lima) Linux virtual machines, with a focus on running containers;
-* `Podman` - [home page](https://podman.io/) and [GitHub](https://github.com/containers/podman) free and open source
+* `Podman` - [home page](https://podman.io/) and [GitHub](https://github.com/podman-container-tools/podman) free and open source
 container runtime;
-* `Podman Desktop` - [home page](https://podman-desktop.io/) and [GitHub](https://github.com/containers/podman-desktop)
+* `Podman Desktop` - [home page](https://podman-desktop.io/) and [GitHub](https://github.com/podman-desktop/podman-desktop)
 GUI companion to Podman;
 * `QEMU` - [home page](https://www.qemu.org/) and [GitHub (mirror)](https://github.com/qemu/qemu) free and open source
 feature rich machine emulator;
