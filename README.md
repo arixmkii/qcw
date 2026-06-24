@@ -78,7 +78,7 @@ Version `0.0.11`. Rebuilt for Windows amd64 platform with 1 patch set:
 
 #### `Lima`
 
-Version `2.1.2` with 3 patch sets:
+Version `2.1.3` with 3 patch sets:
 * Support WSL2 as a replacement for msys2/cygwin;
 * Bump miminal QEMU on Windows to 11.0.0.
 
