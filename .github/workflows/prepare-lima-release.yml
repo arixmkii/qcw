@@ -20,8 +20,8 @@ on:
         value: ${{ jobs.build.outputs.alpine_wsl_version }}
 env:
   LIMA_GITURL: https://github.com/lima-vm/lima.git
-  LIMA_SHA: 5f0456df6167abb83e4115b7e7bfa2fff46d72c8 # v2.1.4
-  LIMA_VERSION: 2.1.4
+  LIMA_SHA: de0816ea4bdc5267b428ab21025889b8dd785526 # v2.2.0
+  LIMA_VERSION: 2.2.0
 jobs:
   call-prepare-alpine-wsl:
     uses: ./.github/workflows/prepare-alpine-wsl-release.yml
@@ -62,7 +62,6 @@ jobs:
           git fetch --tags origin $LIMA_SHA
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/lima/0001-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
-          patch --binary -l -p 1 < ../patches/lima/0002-Remove-deprecated-_LIMA_QEMU_UEFI_IN_BIOS-feature.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}
@@ -167,7 +166,6 @@ jobs:
           git fetch --tags origin $LIMA_SHA
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/lima/0001-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
-          patch --binary -l -p 1 < ../patches/lima/0002-Remove-deprecated-_LIMA_QEMU_UEFI_IN_BIOS-feature.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}
