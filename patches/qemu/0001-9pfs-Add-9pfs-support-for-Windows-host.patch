@@ -2181,9 +2181,9 @@ index bd19aed4a9..e7441c5c5b 100644
 +#else
          return dirfd(fs->dir.stream);
 +#endif
-     } else {
+     } else if (fid_type == P9_FID_FILE) {
          return fs->fd;
-     }
+     } else {
 @@ -775,6 +840,12 @@ static int local_fid_fd(int fid_type, V9fsFidOpenState *fs)
  static int local_fstat(FsContext *fs_ctx, int fid_type,
                         V9fsFidOpenState *fs, struct stat *stbuf)
@@ -3490,18 +3490,18 @@ diff --git a/tests/qtest/libqos/virtio-9p-client.h b/tests/qtest/libqos/virtio-9
 index e3221a3104..0058a5b1b3 100644
 --- a/tests/qtest/libqos/virtio-9p-client.h
 +++ b/tests/qtest/libqos/virtio-9p-client.h
-@@ -525,4 +525,11 @@ void v9fs_rlink(P9Req *req);
+@@ -525,4 +525,10 @@ void v9fs_rlink(P9Req *req);
  TunlinkatRes v9fs_tunlinkat(TunlinkatOpt);
  void v9fs_runlinkat(P9Req *req);
- 
 +#ifdef CONFIG_WIN32
 +static inline uint32_t getuid(void)
 +{
 +    return 0;
 +}
 +#endif
-+
- #endif
+ TReadRes v9fs_tread(TReadOpt opt);
+ void v9fs_rread(P9Req *req, uint32_t *count, void *data);
+ TClunkRes v9fs_tclunk(TClunkOpt opt);
 -- 
 2.52.0
 
