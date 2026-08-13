@@ -130,9 +130,9 @@ index 294c989f97..74b36870c5 100644
 --- a/pkg/machine/e2e/config_windows_test.go
 +++ b/pkg/machine/e2e/config_windows_test.go
 @@ -29,14 +29,18 @@ func initPlatform() {
- 		fakeImagePath = fullFileName
  		fmt.Println("Created fake disk image: " + fakeImagePath)
  	case define.WSLVirt.String():
+ 		gvproxy = "win-sshproxy.exe"
 +	case define.QemuVirt.String():
 +		fakeImagePath = os.DevNull
  	default:

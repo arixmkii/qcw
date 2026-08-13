@@ -8,8 +8,8 @@ on:
         value: ${{ jobs.build.outputs.podman_version }}
 env:
   PODMAN_GITURL: https://github.com/podman-container-tools/podman.git
-  PODMAN_SHA: b28edb9ad70ce4317dc762ee9ce0a6d081d154e9 # v6.0.2
-  PODMAN_VERSION: 6.0.2
+  PODMAN_SHA: cade97a52ebdf9dbf9e81de8009015776837a074 # v6.1.0
+  PODMAN_VERSION: 6.1.0
 jobs:
   build:
     runs-on: windows-2025
