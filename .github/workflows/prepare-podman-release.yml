@@ -25,7 +25,7 @@ jobs:
             make git unzip base-devel man-db zip mingw-w64-ucrt-x86_64-go python
       - name: "🏗️ Install tools"
         run: |
-          winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
+          winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU --version 11.0.50 --exact
           winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity JohnMacFarlane.Pandoc
           dotnet tool install wix --global --version 5.0.2
       - name: "📝 Configure checkout"
