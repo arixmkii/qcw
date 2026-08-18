@@ -65,7 +65,7 @@ Version `29.7.2`. Rebuilt for Windows amd64 platform.
 
 #### `docker-compose`
 
-Version `5.4.0`. Rebuilt for Windows amd64 platform.
+Version `5.5.0`. Rebuilt for Windows amd64 platform.
 
 #### `gvisor-tap-vsock`
 
