@@ -7,7 +7,7 @@ on:
         description: QEMU version"
         value: ${{ jobs.build.outputs.qemu_version }}
 env:
-  QEMU_VERSION: 11.1.0
+  QEMU_VERSION: 11.1.1
   MSYS: "winsymlinks:native"
 jobs:
   build:
@@ -70,7 +70,6 @@ jobs:
           patch --binary -l -p 1 < ../patches/qemu/0002-win32-Add-ftruncate-function-detection.patch
           patch --binary -l -p 1 < ../patches/qemu/0003-win32-Windows-specific-fixes-from-the-mailing-list.patch
           patch --binary -l -p 1 < ../patches/qemu/0004-whpx-i386-arm-do-partition-reset-on-boot-CPU-reset.patch
-          patch --binary -l -p 1 < ../patches/qemu/0005-whpx-i386-some-fixes.patch
       - name: "🛠️ Build QEMU"
         working-directory: qemu-release
         shell: msys2 {0}
