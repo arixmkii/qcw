@@ -22,7 +22,7 @@ jobs:
       bundles_version: ${{ steps.make_versions.outputs.bundles }}
     steps:
       - name: "🏗️ Install msys2"
-        uses: msys2/setup-msys2@4f806de0a5a7294ffabaff804b38a9b435a73bda # v2.30.0
+        uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2.32.0
         with:
           msystem: UCRT64
           update: true
@@ -31,7 +31,7 @@ jobs:
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
       - name: "📝 Checkout"
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
       - name: "📝 Fetch sources"
@@ -73,7 +73,7 @@ jobs:
           echo "gowsllinks=$GOWSLLINKS_VERSION" >> "$GITHUB_OUTPUT"
           echo "bundles=$BUNDLES_VERSION" >> "$GITHUB_OUTPUT"
       - name: "🚀 Upload artifact"
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: qcw-go-wsllinks
           path: qcw
