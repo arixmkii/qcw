@@ -62,6 +62,7 @@ jobs:
           git fetch --tags origin $LIMA_SHA
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/lima/0001-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
+          patch --binary -l -p 1 < ../patches/lima/0002-Use-host-CPU-type-starting-from-QEMU-11.1.1-on-Windo.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}
@@ -164,6 +165,7 @@ jobs:
           git fetch --tags origin $LIMA_SHA
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/lima/0001-Add-WSL2-based-tooling-support-on-Windows-hosts.patch
+          patch --binary -l -p 1 < ../patches/lima/0002-Use-host-CPU-type-starting-from-QEMU-11.1.1-on-Windo.patch
       - name: "🛠️ Build Lima"
         working-directory: lima-release
         shell: msys2 {0}
