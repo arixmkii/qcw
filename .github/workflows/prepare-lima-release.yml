@@ -128,8 +128,12 @@ jobs:
           path: qcw-art
       - name: "🏗️ Install tools"
         run: |
-          winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
+          echo "Re-enable later"
+          echo winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
           winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity MikeFarah.yq
+          echo "Remove later"
+          curl.exe -LO https://github.com/arixmkii/qcw/releases/download/v0.1.20/ucrt64-qemu-setup-11.1.1.exe
+          Start-Process ./ucrt64-qemu-setup-11.1.1.exe -NoNewWindow -Wait -ArgumentList /LANG=ENGLISH,/S
       - name: "🏗️ Install lima-infra"
         shell: pwsh
         run: |
