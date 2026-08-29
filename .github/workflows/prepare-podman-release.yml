@@ -25,9 +25,13 @@ jobs:
             make git unzip base-devel man-db zip mingw-w64-ucrt-x86_64-go python
       - name: "🏗️ Install tools"
         run: |
-          winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU --version 11.0.50 --exact
+          echo "Re-enable later"
+          echo winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
           winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity JohnMacFarlane.Pandoc
           dotnet tool install wix --global --version 5.0.2
+          echo "Remove later"
+          curl.exe -LO https://github.com/arixmkii/qcw/releases/download/v0.1.20/ucrt64-qemu-setup-11.1.1.exe
+          Start-Process ./ucrt64-qemu-setup-11.1.1.exe -NoNewWindow -Wait -ArgumentList /LANG=ENGLISH,/S
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
       - name: "📝 Checkout"
@@ -51,7 +55,6 @@ jobs:
           git fetch --depth 1 origin $PODMAN_SHA
           git checkout FETCH_HEAD
           patch --binary -l -p 1 < ../patches/podman/0001-Implement-QEMU-Podman-machine-on-Windows.patch
-          patch --binary -l -p 1 < ../patches/podman/0002-Update-QEMU-CPU-baseline-to-x86-64-v3.patch
       - name: "⚗️ Prepare Test Podman"
         working-directory: podman-release
         shell: msys2 {0}
