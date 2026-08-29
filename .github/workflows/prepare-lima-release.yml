@@ -109,11 +109,12 @@ jobs:
     steps:
       - name: "🏗️ Install msys2 (user)"
         uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2.32.0
+        id: msys2
         with:
           msystem: UCRT64
           update: true
           install: >-
-            git patch unzip
+            git patch unzip openbsd-netcat diffutils socat w3m
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
       - name: "📝 Checkout"
@@ -124,9 +125,6 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: qcw-art
-      - name: "🏗️ Install msys2 (system)"
-        shell: pwsh
-        run: "$env:PATH = 'C:\\msys64\\usr\\bin;' + $env:PATH\npacman -Sy --noconfirm openbsd-netcat diffutils socat w3m \n"
       - name: "🏗️ Install tools"
         run: |
           winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
@@ -179,29 +177,33 @@ jobs:
           popd
       - name: "🧪 Test Lima QEMU machine '${{ matrix.bundle }}' bundle WSL2 (NAT)"
         working-directory: lima-release
+        env:
+          MSYS2_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
         shell: pwsh
         run: |
           Remove-Item "$env:USERPROFILE\.lima\_config\user*" -Recurse -Force -ErrorAction SilentlyContinue || $true
           Remove-Item "$env:USERPROFILE\.lima\_config\wsl2*" -Recurse -Force -ErrorAction SilentlyContinue || $true
-          $env:PATH = "$env:PROGRAMFILES\QEMU;$env:LOCALAPPDATA\Microsoft\WinGet\Links;$pwd\..\qcw-art\qcw-lima\lima\bin;C:\msys64\usr\bin;" + $env:PATH
+          $env:PATH = "$env:PROGRAMFILES\QEMU;$env:LOCALAPPDATA\Microsoft\WinGet\Links;$pwd\..\qcw-art\qcw-lima\lima\bin;$env:MSYS2_LOCATION;" + $env:PATH
           $env:MSYS2_ENV_CONV_EXCL = 'HOME_HOST;HOME_GUEST;_LIMA_WINDOWS_EXTRA_PATH'
           $env:HOME_ALT = $(cygpath.exe -m "$env:USERPROFILE")
           $env:HOME_HOST = $(cygpath.exe "$env:HOME_ALT")
           $env:HOME_GUEST = ('wsl' -eq '${{ matrix.bundle }}') ? $(wsl -d lima-infra wslpath "$env:HOME_ALT") : $(cygpath.exe "$env:HOME_ALT")
           $env:LIMACTL_CREATE_ARGS = '--vm-type=qemu'
           $env:_LIMA_WINDOWS_EXTRA_PATH = "$pwd\..\qcw-art\qcw-go-wsllinks\bundle-${{ matrix.bundle }}"
-          bash.exe -c "./hack/test-templates.sh templates/default.yaml"
+          msys2_shell.cmd -defterm -here -no-start -use-full-path -msys2 -c "./hack/test-templates.sh templates/default.yaml"
       - name: "🧪 Test Lima WSL2 machine '${{ matrix.bundle }}' bundle WSL2 (NAT)"
         working-directory: lima-release
+        env:
+          MSYS2_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
         shell: pwsh
         run: |
           Remove-Item "$env:USERPROFILE\.lima\_config\user*" -Recurse -Force -ErrorAction SilentlyContinue || $true
           Remove-Item "$env:USERPROFILE\.lima\_config\wsl2*" -Recurse -Force -ErrorAction SilentlyContinue || $true
-          $env:PATH = "$env:LOCALAPPDATA\Microsoft\WinGet\Links;$pwd\..\qcw-art\qcw-lima\lima\bin;C:\msys64\usr\bin;" + $env:PATH
+          $env:PATH = "$env:LOCALAPPDATA\Microsoft\WinGet\Links;$pwd\..\qcw-art\qcw-lima\lima\bin;$env:MSYS2_LOCATION;" + $env:PATH
           $env:MSYS2_ENV_CONV_EXCL = 'HOME_HOST;HOME_GUEST;_LIMA_WINDOWS_EXTRA_PATH'
           $env:HOME_ALT = $(cygpath.exe -m "$env:USERPROFILE")
           $env:HOME_HOST = $(cygpath.exe "$env:HOME_ALT")
           $env:HOME_GUEST = $(wsl -d lima-infra wslpath "$env:HOME_ALT")
           $env:LIMACTL_CREATE_ARGS = '--vm-type=wsl2 --mount-type=wsl2 --containerd=system'
           $env:_LIMA_WINDOWS_EXTRA_PATH = "$pwd\..\qcw-art\qcw-go-wsllinks\bundle-${{ matrix.bundle }}"
-          bash.exe -c './hack/test-templates.sh templates/experimental/wsl2.yaml'
+          msys2_shell.cmd -defterm -here -no-start -use-full-path -msys2 -c './hack/test-templates.sh templates/experimental/wsl2.yaml'
