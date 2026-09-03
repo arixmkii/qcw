@@ -88,7 +88,7 @@ Starting from version `0.0.18` of qcw it is possible to use with official Window
 
 Starting from version `0.1.21` minimal required QEMU version is `11.1.1`.
 
-Version `6.1.0` with 1 patch set:
+Version `6.1.1` with 1 patch set:
 * Implement QEMU Podman machine on Windows.
 
 #### `Podman Desktop`
