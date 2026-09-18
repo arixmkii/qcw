@@ -25,8 +25,9 @@ jobs:
         with:
           msystem: ${{ matrix.msystem }}
           update: true
+          # mingw-w64-x86_64-libslirp mingw-w64-x86_64-spice mingw-w64-x86_64-spice-protocol are missing
           install: >-
-            base-devel cmake git make mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_image mingw-w64-x86_64-binutils mingw-w64-x86_64-capstone mingw-w64-x86_64-cc mingw-w64-x86_64-curl-winssl mingw-w64-x86_64-cyrus-sasl mingw-w64-x86_64-gtk-vnc mingw-w64-x86_64-gtk3 mingw-w64-x86_64-libcbor mingw-w64-x86_64-libnfs mingw-w64-x86_64-libslirp mingw-w64-x86_64-libssh mingw-w64-x86_64-libxml2 mingw-w64-x86_64-lzo2 mingw-w64-x86_64-ncurses mingw-w64-x86_64-ninja mingw-w64-x86_64-nsis mingw-w64-x86_64-pixman mingw-w64-x86_64-pkgconf mingw-w64-x86_64-python mingw-w64-x86_64-sccache mingw-w64-x86_64-snappy mingw-w64-x86_64-spice mingw-w64-x86_64-spice-protocol mingw-w64-x86_64-toolchain mingw-w64-x86_64-usbredir mingw-w64-x86_64-virglrenderer mingw-w64-x86_64-zlib mingw-w64-x86_64-zstd patch zip
+            base-devel cmake git make mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_image mingw-w64-x86_64-binutils mingw-w64-x86_64-capstone mingw-w64-x86_64-cc mingw-w64-x86_64-curl-winssl mingw-w64-x86_64-cyrus-sasl mingw-w64-x86_64-gtk-vnc mingw-w64-x86_64-gtk3 mingw-w64-x86_64-libcbor mingw-w64-x86_64-libnfs mingw-w64-x86_64-libssh mingw-w64-x86_64-libxml2 mingw-w64-x86_64-lzo2 mingw-w64-x86_64-ncurses mingw-w64-x86_64-ninja mingw-w64-x86_64-nsis mingw-w64-x86_64-pixman mingw-w64-x86_64-pkgconf mingw-w64-x86_64-python mingw-w64-x86_64-sccache mingw-w64-x86_64-snappy mingw-w64-x86_64-toolchain mingw-w64-x86_64-usbredir mingw-w64-x86_64-virglrenderer mingw-w64-x86_64-zlib mingw-w64-x86_64-zstd patch zip
       - name: "🏗️ Install msys2 UCRT64"
         if: "${{ matrix.msystem == 'ucrt64' }}"
         uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2.32.0
@@ -41,9 +42,8 @@ jobs:
         with:
           msystem: ${{ matrix.msystem }}
           update: true
-          # mingw-w64-clang-x86_64-virglrenderer is missing
           install: >-
-            base-devel cmake git make mingw-w64-clang-x86_64-SDL2 mingw-w64-clang-x86_64-SDL2_image mingw-w64-clang-x86_64-binutils mingw-w64-clang-x86_64-capstone mingw-w64-clang-x86_64-cc mingw-w64-clang-x86_64-curl-winssl mingw-w64-clang-x86_64-cyrus-sasl mingw-w64-clang-x86_64-gtk-vnc mingw-w64-clang-x86_64-gtk3 mingw-w64-clang-x86_64-libcbor mingw-w64-clang-x86_64-libnfs mingw-w64-clang-x86_64-libslirp mingw-w64-clang-x86_64-libssh mingw-w64-clang-x86_64-libxml2 mingw-w64-clang-x86_64-lzo2 mingw-w64-clang-x86_64-ncurses mingw-w64-clang-x86_64-ninja mingw-w64-clang-x86_64-nsis mingw-w64-clang-x86_64-pixman mingw-w64-clang-x86_64-pkgconf mingw-w64-clang-x86_64-python mingw-w64-clang-x86_64-sccache mingw-w64-clang-x86_64-snappy mingw-w64-clang-x86_64-spice mingw-w64-clang-x86_64-spice-protocol mingw-w64-clang-x86_64-toolchain mingw-w64-clang-x86_64-usbredir mingw-w64-clang-x86_64-zlib mingw-w64-clang-x86_64-zstd patch zip
+            base-devel cmake git make mingw-w64-clang-x86_64-SDL2 mingw-w64-clang-x86_64-SDL2_image mingw-w64-clang-x86_64-binutils mingw-w64-clang-x86_64-capstone mingw-w64-clang-x86_64-cc mingw-w64-clang-x86_64-curl-winssl mingw-w64-clang-x86_64-cyrus-sasl mingw-w64-clang-x86_64-gtk-vnc mingw-w64-clang-x86_64-gtk3 mingw-w64-clang-x86_64-libcbor mingw-w64-clang-x86_64-libnfs mingw-w64-clang-x86_64-libslirp mingw-w64-clang-x86_64-libssh mingw-w64-clang-x86_64-libxml2 mingw-w64-clang-x86_64-lzo2 mingw-w64-clang-x86_64-ncurses mingw-w64-clang-x86_64-ninja mingw-w64-clang-x86_64-nsis mingw-w64-clang-x86_64-pixman mingw-w64-clang-x86_64-pkgconf mingw-w64-clang-x86_64-python mingw-w64-clang-x86_64-sccache mingw-w64-clang-x86_64-snappy mingw-w64-clang-x86_64-spice mingw-w64-clang-x86_64-spice-protocol mingw-w64-clang-x86_64-toolchain mingw-w64-clang-x86_64-usbredir mingw-w64-clang-x86_64-virglrenderer mingw-w64-clang-x86_64-zlib mingw-w64-clang-x86_64-zstd patch zip
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
       - name: "📝 Checkout"
