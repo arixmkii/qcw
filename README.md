@@ -97,7 +97,7 @@ Should be installed via official setup mechanism.
 
 #### `QEMU`
 
-Version `11.1.1` with 4 patch sets:
+Version `11.1.2` with 4 patch sets:
 * hw/9pfs: Add 9pfs support for Windows https://lists.nongnu.org/archive/html/qemu-devel/2023-02/msg05533.html;
 * ftruncate detection fixes https://lists.nongnu.org/archive/html/qemu-devel/2026-01/msg01237.html;
 * win32 fixes https://lists.nongnu.org/archive/html/qemu-devel/2026-04/msg02137.html;
