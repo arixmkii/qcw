@@ -283,11 +283,6 @@ The patch used to enable 9pfs is a work in progress. Some of the functionality i
 * it is impossible to enumerate content of directories containing Windows Unix domain socket records;
 * non determenistic access denied could be thrown on file overwrites because of some internal races.
 
-### 2. Limited hardware level support
-
-Currently WHPX acceleration doesn't support instructions beyond v2.5 https://gitlab.com/qemu-project/qemu/-/issues/2782
-Containers, which require v3 and more modern hardware will not run at all (it doesn't matter if host is capable or not).
-
 ## Known issues Podman
 
 ### 1. Sometimes sock files are not cleaned up (if somethign crashes)
