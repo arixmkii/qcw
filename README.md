@@ -78,7 +78,7 @@ Version `0.0.12`. Rebuilt for Windows amd64 platform with 1 patch set:
 
 #### `Lima`
 
-Version `2.2.0` with 2 patch sets:
+Version `2.3.0-beta.1` with 2 patch sets:
 * Support WSL2 as a replacement for msys2/cygwin;
 * Use `host` CPU time with recent QEMU.
 
@@ -215,7 +215,7 @@ Download `lima.zip` and extract it to the local machine. Either add `<path-to-ex
 or run terminal inside `<path-to-extract>\lima\bin` folder.
 
 Then one has to decide on the tooling, which has different level of supported features. To specify tooling one shall set
-`_LIMA_WINDOWS_EXTRA_PATH` environment variable to the location of tools
+prepend path with location of tools to resolve first
 
 * for WSL2 based tools - `<path-to-extract>\lima\bin\bundle-wsl`
 * for Git packaged tools (assuming default installation) - `C:\Program Files\Git\usr\bin`

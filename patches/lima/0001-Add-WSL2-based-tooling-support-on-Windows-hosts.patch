@@ -1,24 +1,24 @@
-From dbe21fd266e115769bfcdd60f06676b8f8ac2d86 Mon Sep 17 00:00:00 2001
+From a460bd8f51c642b5c683f032a622a12e07d1bf36 Mon Sep 17 00:00:00 2001
 From: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 Date: Sat, 8 Mar 2025 23:30:25 +0200
 Subject: [PATCH] Add WSL2 based tooling support on Windows hosts
 
 Signed-off-by: Arthur Sengileyev <arthur.sengileyev@gmail.com>
 ---
- cmd/limactl/shell.go         | 27 +++++++++++++++------------
+ cmd/limactl/shell.go         | 25 ++++++++++++++-----------
  pkg/fsutil/fsutil_unix.go    |  4 ++++
  pkg/fsutil/fsutil_windows.go | 10 ++++++++++
  pkg/hostagent/hostagent.go   | 28 ++++++++++++++++------------
- pkg/hostagent/mount.go       |  5 ++++-
+ pkg/hostagent/mount.go       |  6 +++++-
  pkg/sshutil/sshutil.go       |  6 ++++++
  pkg/store/instance.go        | 25 +++++++++++++++++++++++++
- 7 files changed, 80 insertions(+), 25 deletions(-)
+ 7 files changed, 80 insertions(+), 24 deletions(-)
 
 diff --git a/cmd/limactl/shell.go b/cmd/limactl/shell.go
-index 48864650..1dc04042 100644
+index 6e8b5d09..b43b2575 100644
 --- a/cmd/limactl/shell.go
 +++ b/cmd/limactl/shell.go
-@@ -376,18 +376,21 @@ func shellAction(cmd *cobra.Command, args []string) error {
+@@ -399,17 +399,20 @@ func shellAction(cmd *cobra.Command, args []string) error {
  		return err
  	}
  	if runtime.GOOS == "windows" {
@@ -32,7 +32,6 @@ index 48864650..1dc04042 100644
 -		//   - Prevents error messages such as:
 -		//     > mux_client_request_session: read from master failed: Connection reset by peer
 -		//     > ControlSocket ....sock already exists, disabling multiplexing
--		// Only remove these options when writing the SSH config file and executing `limactl shell`, since multiplexing seems to work with port forwarding.
 -		sshOpts = sshutil.SSHOptsRemovingControlPath(sshOpts)
 +		localFS, err := fsutil.IsLocalWindowsFS()
 +		if err != nil || localFS {
@@ -46,7 +45,6 @@ index 48864650..1dc04042 100644
 +			//   - Prevents error messages such as:
 +			//     > mux_client_request_session: read from master failed: Connection reset by peer
 +			//     > ControlSocket ....sock already exists, disabling multiplexing
-+			// Only remove these options when writing the SSH config file and executing `limactl shell`, since multiplexing seems to work with port forwarding.
 +			sshOpts = sshutil.SSHOptsRemovingControlPath(sshOpts)
 +		}
  	}
@@ -83,7 +81,7 @@ index f74bb77c..12d998b0 100644
 +	return len(filepath.VolumeName(res)) == 2 && res != "\\\\", nil
 +}
 diff --git a/pkg/hostagent/hostagent.go b/pkg/hostagent/hostagent.go
-index 80ff71d9..69ef117a 100644
+index 77e46d77..ac029992 100644
 --- a/pkg/hostagent/hostagent.go
 +++ b/pkg/hostagent/hostagent.go
 @@ -34,6 +34,7 @@ import (
@@ -94,7 +92,7 @@ index 80ff71d9..69ef117a 100644
  	guestagentapi "github.com/lima-vm/lima/v2/pkg/guestagent/api"
  	guestagentclient "github.com/lima-vm/lima/v2/pkg/guestagent/api/client"
  	hostagentapi "github.com/lima-vm/lima/v2/pkg/hostagent/api"
-@@ -292,18 +293,21 @@ func writeSSHConfigFile(sshPath, instName, instDir, instSSHAddress string, sshLo
+@@ -295,18 +296,21 @@ func writeSSHConfigFile(sshPath, instName, instDir, instSSHAddress string, sshLo
  # Modifications to this file will be lost on restarting the Lima instance.
  `)
  	if runtime.GOOS == "windows" {
@@ -108,7 +106,7 @@ index 80ff71d9..69ef117a 100644
 -		//   - Prevents error messages such as:
 -		//     > mux_client_request_session: read from master failed: Connection reset by peer
 -		//     > ControlSocket ....sock already exists, disabling multiplexing
--		// Only remove these options when writing the SSH config file and executing `limactl shell`, since multiplexing seems to work with port forwarding.
+-		// The sshConfig the hostagent builds from the same options keeps them.
 -		sshOpts = sshutil.SSHOptsRemovingControlPath(sshOpts)
 +		localFS, err := fsutil.IsLocalWindowsFS()
 +		if err != nil || localFS {
@@ -122,17 +120,25 @@ index 80ff71d9..69ef117a 100644
 +			//   - Prevents error messages such as:
 +			//     > mux_client_request_session: read from master failed: Connection reset by peer
 +			//     > ControlSocket ....sock already exists, disabling multiplexing
-+			// Only remove these options when writing the SSH config file and executing `limactl shell`, since multiplexing seems to work with port forwarding.
++			// The sshConfig the hostagent builds from the same options keeps them.
 +			sshOpts = sshutil.SSHOptsRemovingControlPath(sshOpts)
 +		}
  	}
  	if err := sshutil.Format(b, sshPath, instName, sshutil.FormatConfig,
  		append(sshOpts,
 diff --git a/pkg/hostagent/mount.go b/pkg/hostagent/mount.go
-index ba2f5224..58edfaf3 100644
+index 4bc058f2..db849161 100644
 --- a/pkg/hostagent/mount.go
 +++ b/pkg/hostagent/mount.go
-@@ -80,7 +80,10 @@ func (a *HostAgent) setupMount(ctx context.Context, m limatype.Mount) (*mount, e
+@@ -14,6 +14,7 @@ import (
+ 	"github.com/lima-vm/sshocker/pkg/reversesshfs"
+ 	"github.com/sirupsen/logrus"
+ 
++	"github.com/lima-vm/lima/v2/pkg/fsutil"
+ 	"github.com/lima-vm/lima/v2/pkg/limatype"
+ 	"github.com/lima-vm/lima/v2/pkg/sshutil"
+ )
+@@ -98,7 +99,10 @@ func (a *HostAgent) setupMount(ctx context.Context, m limatype.Mount) (*mount, e
  		// 1. unnecessary pollutes output with error on errors encountered (ssh will try to tolerate them with fallbacks);
  		// 2. these errors still imply additional coms over mux socket, which resulted sftp-server to fail more often statistically during test runs.
  		// It is reasonable to disable this on Windows if required feature is not fully operational.
@@ -145,7 +151,7 @@ index ba2f5224..58edfaf3 100644
  		// HostAgent's `sshConfig` already has some ControlMaster related args in `AdditionalArgs`,
  		// so it is necessary to remove them to avoid overrides above `Persist=false`.
 diff --git a/pkg/sshutil/sshutil.go b/pkg/sshutil/sshutil.go
-index cf90d560..fd1ee423 100644
+index 0ac16da8..661268ee 100644
 --- a/pkg/sshutil/sshutil.go
 +++ b/pkg/sshutil/sshutil.go
 @@ -14,6 +14,7 @@ import (
@@ -156,7 +162,7 @@ index cf90d560..fd1ee423 100644
  	"path/filepath"
  	"regexp"
  	"runtime"
-@@ -592,6 +593,11 @@ func SSHOpts(ctx context.Context, sshExe SSHExe, instDir, username string, useDo
+@@ -609,6 +610,11 @@ func SSHOpts(ctx context.Context, sshExe SSHExe, instDir, username string, useDo
  		if err != nil {
  			return nil, err
  		}
@@ -169,7 +175,7 @@ index cf90d560..fd1ee423 100644
  	}
  	opts = append(opts,
 diff --git a/pkg/store/instance.go b/pkg/store/instance.go
-index f48fb861..10fd1e10 100644
+index 6f99c121..aac20184 100644
 --- a/pkg/store/instance.go
 +++ b/pkg/store/instance.go
 @@ -9,6 +9,7 @@ import (
@@ -188,7 +194,7 @@ index f48fb861..10fd1e10 100644
  	hostagentclient "github.com/lima-vm/lima/v2/pkg/hostagent/api/client"
  	"github.com/lima-vm/lima/v2/pkg/instance/hostname"
  	"github.com/lima-vm/lima/v2/pkg/limatype"
-@@ -60,6 +62,20 @@ func Inspect(ctx context.Context, instName string) (*limatype.Instance, error) {
+@@ -90,6 +92,20 @@ func Inspect(ctx context.Context, instName string) (*limatype.Instance, error) {
  	inst.Arch = *y.Arch
  	inst.VMType = *y.VMType
  	inst.SSHAddress = "127.0.0.1"
@@ -209,7 +215,7 @@ index f48fb861..10fd1e10 100644
  	inst.SSHLocalPort = *y.SSH.LocalPort // maybe 0
  	inst.SSHConfigFile = filepath.Join(instDir, filenames.SSHConfig)
  	inst.HostAgentPID, err = ReadPIDFile(filepath.Join(instDir, filenames.HostAgentPID))
-@@ -173,6 +189,15 @@ func inspectStatus(ctx context.Context, instDir string, inst *limatype.Instance,
+@@ -203,6 +219,15 @@ func inspectStatus(ctx context.Context, instDir string, inst *limatype.Instance,
  	inst.Status = status
  }
  
@@ -226,5 +232,5 @@ index f48fb861..10fd1e10 100644
  	var err error
  	inst.DriverPID, err = ReadPIDFile(filepath.Join(instDir, filenames.PIDFile(*y.VMType)))
 -- 
-2.55.0
+2.56.0
 
