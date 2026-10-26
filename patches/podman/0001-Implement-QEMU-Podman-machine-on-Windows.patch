@@ -218,21 +218,12 @@ index 436bc6c5b1..499f1a79cd 100644
  	case define.WSLVirt:
  		return new(wsl.WSLStubber), nil
  	case define.HyperVVirt:
-@@ -51,11 +54,16 @@ func GetAll() []vmconfigs.VMProvider {
+@@ -51,6 +54,7 @@ func GetAll() []vmconfigs.VMProvider {
  	return []vmconfigs.VMProvider{
  		new(wsl.WSLStubber),
  		new(hyperv.HyperVStubber),
 +		new(qemu.QEMUStubber),
  	}
- }
- 
- // SupportedProviders returns the providers that are supported on the host operating system
- func SupportedProviders() []define.VMType {
-+	supported := []define.VMType{define.HyperVVirt, define.WSLVirt}
-+	if isQemuInstalled() {
-+		supported = append(supported, define.QemuVirt)
-+	}
- 	return []define.VMType{define.HyperVVirt, define.WSLVirt}
  }
  
 @@ -63,6 +71,8 @@ func IsInstalled(provider define.VMType) (bool, error) {
