@@ -2631,14 +2631,14 @@ index b09f7ba798..37ebe5dff1 100644
 --- a/hw/9pfs/9p.c
 +++ b/hw/9pfs/9p.c
 @@ -2397,7 +2397,7 @@ static int coroutine_fn v9fs_do_readdir_with_stat(V9fsPDU *pdu,
-         count += len;
-         v9fs_stat_free(&v9stat);
-         v9fs_path_free(&path);
--        saved_dir_pos = qemu_dirent_off(dent);
-+        saved_dir_pos = qemu_dirent_off(dent, pdu->s, &fidp->fs);
-     }
- 
-     v9fs_readdir_unlock(&fidp->fs.dir);
+         if (err || !dent) {
+             break;
+         }
+-        current_dir_pos = qemu_dirent_off(dent);
++        current_dir_pos = qemu_dirent_off(dent, pdu->s, &fidp->fs);
+         err = v9fs_co_name_to_path(pdu, &fidp->path, dent->d_name, &path);
+         if (err < 0) {
+             break;
 @@ -2598,7 +2598,7 @@ static int coroutine_fn v9fs_do_readdir(V9fsPDU *pdu, V9fsFidState *fidp,
              qid.version = 0;
          }
