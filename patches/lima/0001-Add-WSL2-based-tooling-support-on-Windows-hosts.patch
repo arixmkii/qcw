@@ -126,30 +126,6 @@ index 77e46d77..ac029992 100644
  	}
  	if err := sshutil.Format(b, sshPath, instName, sshutil.FormatConfig,
  		append(sshOpts,
-diff --git a/pkg/hostagent/mount.go b/pkg/hostagent/mount.go
-index 4bc058f2..db849161 100644
---- a/pkg/hostagent/mount.go
-+++ b/pkg/hostagent/mount.go
-@@ -14,6 +14,7 @@ import (
- 	"github.com/lima-vm/sshocker/pkg/reversesshfs"
- 	"github.com/sirupsen/logrus"
- 
-+	"github.com/lima-vm/lima/v2/pkg/fsutil"
- 	"github.com/lima-vm/lima/v2/pkg/limatype"
- 	"github.com/lima-vm/lima/v2/pkg/sshutil"
- )
-@@ -98,7 +99,10 @@ func (a *HostAgent) setupMount(ctx context.Context, m limatype.Mount) (*mount, e
- 		// 1. unnecessary pollutes output with error on errors encountered (ssh will try to tolerate them with fallbacks);
- 		// 2. these errors still imply additional coms over mux socket, which resulted sftp-server to fail more often statistically during test runs.
- 		// It is reasonable to disable this on Windows if required feature is not fully operational.
--		rsf.SSHConfig.Persist = false
-+		localFS, err := fsutil.IsLocalWindowsFS()
-+		if err != nil || localFS {
-+			rsf.SSHConfig.Persist = false
-+		}
- 
- 		// HostAgent's `sshConfig` already has some ControlMaster related args in `AdditionalArgs`,
- 		// so it is necessary to remove them to avoid overrides above `Persist=false`.
 diff --git a/pkg/sshutil/sshutil.go b/pkg/sshutil/sshutil.go
 index 0ac16da8..661268ee 100644
 --- a/pkg/sshutil/sshutil.go
