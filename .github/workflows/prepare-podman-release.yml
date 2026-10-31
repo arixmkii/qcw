@@ -10,6 +10,8 @@ env:
   PODMAN_GITURL: https://github.com/podman-container-tools/podman.git
   PODMAN_SHA: 464c15fec06f0074c916f9eff87c4806869c2833 # v6.1.4
   PODMAN_VERSION: 6.1.4
+  BASE_QCW_RELEASE: 0.1.26
+  QEMU_VERSION: 11.1.3
 jobs:
   build:
     runs-on: windows-2025
@@ -25,13 +27,13 @@ jobs:
             make git unzip base-devel man-db zip mingw-w64-ucrt-x86_64-go python
       - name: "🏗️ Install tools"
         run: |
-          echo "Re-enable later"
+          echo "!!! Re-enable later !!!"
           echo winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity SoftwareFreedomConservancy.QEMU
           winget install --silent --accept-source-agreements --accept-package-agreements --disable-interactivity JohnMacFarlane.Pandoc
           dotnet tool install wix --global --version 5.0.2
-          echo "Remove later"
-          curl.exe -LO https://github.com/arixmkii/qcw/releases/download/v0.1.20/ucrt64-qemu-setup-11.1.1.exe
-          Start-Process ./ucrt64-qemu-setup-11.1.1.exe -NoNewWindow -Wait -ArgumentList /LANG=ENGLISH,/S
+          echo "!!! Remove later !!!"
+          curl.exe -LO "https://github.com/arixmkii/qcw/releases/download/v$env:BASE_QCW_RELEASE/ucrt64-qemu-setup-$env:QEMU_VERSION.exe"
+          Start-Process "./ucrt64-qemu-setup-$env:QEMU_VERSION.exe" -NoNewWindow -Wait -ArgumentList /LANG=ENGLISH,/S
       - name: "📝 Configure checkout"
         run: git config --global core.autocrlf input
       - name: "📝 Checkout"
