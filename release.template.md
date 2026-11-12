@@ -39,12 +39,6 @@ should contain no functional differences from official builds, the binaries are 
 meet all the production requirements. It is advised to use official releases from Podman team for
 production purposes.
 
-#### Deprecation notice
-
-MINGW64 Mys2 Environment is being depricated https://www.msys2.org/news/#2026-03-15-deprecating-the-mingw64-environment
-This effectively deprecated QEMU builds for this environemnt, they will continue to be available until
-they become broken, but users are encouraged to use other provided flavours - URCT64 or CLANG64.
-
 #### How to install
 1. Download and install QEMU (from this release or official one version 7.2.0 or newer)
 2. Download and install Podman from this release (it might be a good idea to uninstall one first if you had it before)
