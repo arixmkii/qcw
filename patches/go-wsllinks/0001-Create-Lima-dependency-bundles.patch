@@ -41,7 +41,7 @@ new file mode 100644
 index 0000000..79cf2da
 --- /dev/null
 +++ b/bundle-git/sftp-server.ini
-@@ -0,0 +2 @@
+@@ -0,0 +1,2 @@
 +baseDir = C:\Program Files\Git\usr\lib\ssh
 +extraPath = C:\Program Files\Git\usr\bin
 diff --git a/bundle-git/wsllinks.ini b/bundle-git/wsllinks.ini
