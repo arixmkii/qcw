@@ -11,8 +11,8 @@ on:
         value: ${{ jobs.build.outputs.compose_version }}
 env:
   CLI_GITURL: https://github.com/docker/cli.git
-  CLI_SHA: fdd4b8e5da335e1d0d83d29af5045f57280cd694 # v29.10.0
-  CLI_VERSION: 29.10.0
+  CLI_SHA: c48360f51c53d2029ab6721ad4d012f9e14df846 # v29.10.1
+  CLI_VERSION: 29.10.1
   COMPOSE_GITURL: https://github.com/docker/compose.git
   COMPOSE_SHA: aee88dcde588d9dc7d8d2902f97b6b5502fdb771 # v5.8.0
   COMPOSE_VERSION: 5.8.0
